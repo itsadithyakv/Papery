@@ -3,43 +3,22 @@ using Papery.Pdf.Native;
 
 namespace Papery.Pdf;
 
-/// <summary>Page size in PDF points (1 pt = 1/72 inch), already accounting for page rotation.</summary>
-public readonly record struct PdfPageSize(float Width, float Height);
-
-/// <summary>BGRA pixels, 4 bytes per pixel, rows <see cref="Stride"/> bytes apart.</summary>
-public sealed record PdfBitmap(int Width, int Height, int Stride, byte[] Pixels);
-
-public enum PdfFormType
-{
-    None = 0,
-    AcroForm = 1,
-    XfaFull = 2,
-    XfaForeground = 3,
-}
-
-[Flags]
-public enum PdfRenderOptions
-{
-    None = 0,
-
-    /// <summary>Draw annotations (highlights, notes, stamps...).</summary>
-    Annotations = PdfiumNative.FPDF_ANNOT,
-
-    /// <summary>Render as greyscale.</summary>
-    Grayscale = PdfiumNative.FPDF_GRAYSCALE,
-
-    /// <summary>Use print appearance (hides "screen only" annotations).</summary>
-    Printing = PdfiumNative.FPDF_PRINTING,
-}
-
 /// <summary>
 /// An open PDF file. All methods are safe to call from any thread: the work is
 /// forwarded to the PDFium thread and the result comes back as a Task.
 /// </summary>
-public sealed class PdfDocument : IAsyncDisposable
+/// <remarks>
+/// This class is split into partial files by topic:
+/// PdfDocument.Rendering.cs, PdfDocument.Text.cs, PdfDocument.Navigation.cs, PdfDocument.Printing.cs.
+/// </remarks>
+public sealed partial class PdfDocument : IAsyncDisposable
 {
+    // Loaded page handles kept open so rendering several tiles of a page doesn't re-parse it.
+    private const int PageCacheSize = 6;
+
     private readonly PdfiumThread _thread;
     private readonly PdfFileSource _source;
+    private readonly LinkedList<(int Index, nint Handle)> _pageCache = new(); // most recent first; PDFium thread only
     private nint _handle;
 
     private unsafe PdfDocument(PdfiumThread thread, PdfFileSource source, nint handle, string path)
@@ -55,7 +34,7 @@ public sealed class PdfDocument : IAsyncDisposable
         for (int i = 0; i < pageCount; i++)
         {
             PdfiumNative.FS_SIZEF size;
-            sizes[i] = PdfiumNative.FPDF_GetPageSizeByIndexF(handle, i, &size) != 0
+            sizes[i] = PdfiumNative.FPDF_GetPageSizeByIndexF(handle, i, &size) != 0 && size.Width > 0 && size.Height > 0
                 ? new PdfPageSize(size.Width, size.Height)
                 : new PdfPageSize(612, 792); // US Letter fallback for unreadable page dictionaries
         }
@@ -89,6 +68,12 @@ public sealed class PdfDocument : IAsyncDisposable
 
     /// <summary>Raw PDF permission bits (PDF spec table 22).</summary>
     public uint Permissions { get; }
+
+    /// <summary>Bit 3 of the permissions: printing allowed.</summary>
+    public bool CanPrint => (Permissions & (1 << 2)) != 0;
+
+    /// <summary>Bit 5 of the permissions: copying text allowed.</summary>
+    public bool CanCopy => (Permissions & (1 << 4)) != 0;
 
     /// <summary>True when the cross-reference table was broken and PDFium rebuilt it.</summary>
     public bool WasRepaired { get; }
@@ -138,113 +123,7 @@ public sealed class PdfDocument : IAsyncDisposable
             }
 
             return new PdfDocument(engine.Thread, source, handle, path);
-        }, cancellationToken);
-    }
-
-    /// <summary>Renders one page into a BGRA bitmap of exactly <paramref name="width"/> Ã— <paramref name="height"/> pixels.</summary>
-    public unsafe Task<PdfBitmap> RenderPageAsync(
-        int pageIndex,
-        int width,
-        int height,
-        PdfRenderOptions flags = PdfRenderOptions.Annotations,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
-        CheckPageIndex(pageIndex);
-
-        return _thread.InvokeAsync(() =>
-        {
-            nint page = LoadPage(pageIndex);
-            try
-            {
-                int stride = width * 4;
-                byte[] pixels = new byte[stride * height];
-                fixed (byte* p = pixels)
-                {
-                    // Render straight into our managed array: no extra copy.
-                    nint bitmap = PdfiumNative.FPDFBitmap_CreateEx(width, height, PdfiumNative.FPDFBitmap_BGRA, (nint)p, stride);
-                    if (bitmap == 0)
-                    {
-                        throw new InvalidOperationException($"Could not create a {width}Ã—{height} bitmap.");
-                    }
-
-                    try
-                    {
-                        _ = PdfiumNative.FPDFBitmap_FillRect(bitmap, 0, 0, width, height, 0xFFFFFFFF);
-                        PdfiumNative.FPDF_RenderPageBitmap(bitmap, page, 0, 0, width, height, 0, (int)flags);
-                    }
-                    finally
-                    {
-                        PdfiumNative.FPDFBitmap_Destroy(bitmap);
-                    }
-                }
-
-                return new PdfBitmap(width, height, stride, pixels);
-            }
-            finally
-            {
-                PdfiumNative.FPDF_ClosePage(page);
-            }
-        }, cancellationToken);
-    }
-
-    /// <summary>Returns all text on a page, in PDFium's reading order.</summary>
-    public unsafe Task<string> GetPageTextAsync(int pageIndex, CancellationToken cancellationToken = default)
-    {
-        CheckPageIndex(pageIndex);
-        return _thread.InvokeAsync(() =>
-        {
-            nint page = LoadPage(pageIndex);
-            nint textPage = PdfiumNative.FPDFText_LoadPage(page);
-            try
-            {
-                if (textPage == 0)
-                {
-                    return string.Empty;
-                }
-
-                int count = PdfiumNative.FPDFText_CountChars(textPage);
-                if (count <= 0)
-                {
-                    return string.Empty;
-                }
-
-                var buffer = new char[count + 1];
-                fixed (char* b = buffer)
-                {
-                    int written = PdfiumNative.FPDFText_GetText(textPage, 0, count, (ushort*)b);
-                    return new string(buffer, 0, Math.Max(0, written - 1)); // drop the terminator
-                }
-            }
-            finally
-            {
-                if (textPage != 0)
-                {
-                    PdfiumNative.FPDFText_ClosePage(textPage);
-                }
-
-                PdfiumNative.FPDF_ClosePage(page);
-            }
-        }, cancellationToken);
-    }
-
-    /// <summary>Number of annotations (notes, highlights, links, form widgets...) on a page.</summary>
-    public Task<int> GetAnnotationCountAsync(int pageIndex, CancellationToken cancellationToken = default)
-    {
-        CheckPageIndex(pageIndex);
-        return _thread.InvokeAsync(() =>
-        {
-            nint page = LoadPage(pageIndex);
-            try
-            {
-                return PdfiumNative.FPDFPage_GetAnnotCount(page);
-            }
-            finally
-            {
-                PdfiumNative.FPDF_ClosePage(page);
-            }
-        }, cancellationToken);
+        }, PdfWorkPriority.Visible, cancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -256,6 +135,13 @@ public sealed class PdfDocument : IAsyncDisposable
 
         await _thread.InvokeAsync(() =>
         {
+            CloseTextPage();
+            foreach (var (_, page) in _pageCache)
+            {
+                PdfiumNative.FPDF_ClosePage(page);
+            }
+
+            _pageCache.Clear();
             PdfiumNative.FPDF_CloseDocument(_handle);
             _handle = 0;
         }).ConfigureAwait(false);
@@ -264,20 +150,60 @@ public sealed class PdfDocument : IAsyncDisposable
         _source.Dispose();
     }
 
-    private nint LoadPage(int pageIndex)
+    /// <summary>Runs work on the PDFium thread with a loaded page. Must only be called from inside the thread.</summary>
+    private T WithPage<T>(int pageIndex, Func<nint, T> work) => work(GetPage(pageIndex));
+
+    private nint GetPage(int pageIndex)
     {
         ObjectDisposedException.ThrowIf(_handle == 0, this);
+        for (var node = _pageCache.First; node != null; node = node.Next)
+        {
+            if (node.Value.Index == pageIndex)
+            {
+                _pageCache.Remove(node);
+                _pageCache.AddFirst(node);
+                return node.Value.Handle;
+            }
+        }
+
         nint page = PdfiumNative.FPDF_LoadPage(_handle, pageIndex);
         if (page == 0)
         {
             throw new InvalidDataException($"Page {pageIndex + 1} of '{FilePath}' could not be loaded.");
         }
 
+        _pageCache.AddFirst((pageIndex, page));
+        if (_pageCache.Count > PageCacheSize)
+        {
+            var (evictedIndex, evictedHandle) = _pageCache.Last!.Value;
+            if (evictedIndex == _textPageIndex)
+            {
+                CloseTextPage(); // a text page must be closed before its page
+            }
+
+            PdfiumNative.FPDF_ClosePage(evictedHandle);
+            _pageCache.RemoveLast();
+        }
+
         return page;
     }
 
+    private Task<T> Run<T>(Func<T> work, CancellationToken cancellationToken, PdfWorkPriority priority = PdfWorkPriority.Visible) =>
+        _thread.InvokeAsync(work, priority, cancellationToken);
+
     private void CheckPageIndex(int pageIndex) =>
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)pageIndex, (uint)PageCount, nameof(pageIndex));
+
+    /// <summary>Converts a rectangle in page space (points, y up) to fractions of the displayed page.</summary>
+    private static unsafe NormalizedRect Normalize(nint page, double left, double top, double right, double bottom)
+    {
+        const int Scale = 100_000;
+        int x1, y1, x2, y2;
+        _ = PdfiumNative.FPDF_PageToDevice(page, 0, 0, Scale, Scale, 0, left, top, &x1, &y1);
+        _ = PdfiumNative.FPDF_PageToDevice(page, 0, 0, Scale, Scale, 0, right, bottom, &x2, &y2);
+        double x = Math.Min(x1, x2) / (double)Scale, y = Math.Min(y1, y2) / (double)Scale;
+        return new NormalizedRect(x, y, Math.Abs(x2 - x1) / (double)Scale, Math.Abs(y2 - y1) / (double)Scale);
+    }
 
     private static PdfOpenError MapError(uint error) => error switch
     {

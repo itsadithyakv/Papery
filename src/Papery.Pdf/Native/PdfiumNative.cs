@@ -135,6 +135,171 @@ internal static unsafe partial class PdfiumNative
     [LibraryImport(Dll)]
     internal static partial int FPDF_GetFormType(nint document);
 
+    [LibraryImport(Dll)]
+    internal static partial uint FPDF_GetMetaText(nint document, byte* tag, void* buffer, uint bufferLength);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDF_GetPageLabel(nint document, int pageIndex, void* buffer, uint bufferLength);
+
+    // ---- Coordinates (fpdfview.h) ----
+
+    // Converts a point in page space (points, origin bottom-left) to device pixels
+    // for a page rendered at (startX, startY, sizeX, sizeY). Handles /Rotate and the crop box.
+    [LibraryImport(Dll)]
+    internal static partial int FPDF_PageToDevice(
+        nint page, int startX, int startY, int sizeX, int sizeY, int rotate,
+        double pageX, double pageY, int* deviceX, int* deviceY);
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct FS_RECTF
+    {
+        public float Left;
+        public float Top;
+        public float Right;
+        public float Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct FS_MATRIX
+    {
+        public float A, B, C, D, E, F;
+    }
+
+    // The reverse of FPDF_PageToDevice: device pixels to page space.
+    [LibraryImport(Dll)]
+    internal static partial int FPDF_DeviceToPage(
+        nint page, int startX, int startY, int sizeX, int sizeY, int rotate,
+        int deviceX, int deviceY, double* pageX, double* pageY);
+
+    // Index of the character at a point in page space, or -1 (fpdf_text.h).
+    [LibraryImport(Dll)]
+    internal static partial int FPDFText_GetCharIndexAtPos(nint textPage, double x, double y, double xTolerance, double yTolerance);
+
+    // ---- Printing (fpdfview.h, Windows only) ----
+
+    // Renders a page straight onto a GDI device context (a printer), as vectors where possible.
+    [LibraryImport(Dll)]
+    internal static partial int FPDF_RenderPage(
+        nint hdc, nint page, int startX, int startY, int sizeX, int sizeY, int rotate, int flags);
+
+    // ---- Search (fpdf_text.h) ----
+
+    internal const uint FPDF_MATCHCASE = 0x1;
+    internal const uint FPDF_MATCHWHOLEWORD = 0x2;
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFText_FindStart(nint textPage, char* findWhat, uint flags, int startIndex);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFText_FindNext(nint handle);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFText_GetSchResultIndex(nint handle);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFText_GetSchCount(nint handle);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFText_FindClose(nint handle);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFText_CountRects(nint textPage, int startIndex, int count);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFText_GetRect(nint textPage, int rectIndex, double* left, double* top, double* right, double* bottom);
+
+    // ---- Plain-text web addresses found in page text (fpdf_text.h) ----
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFLink_LoadWebLinks(nint textPage);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFLink_CountWebLinks(nint linkPage);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFLink_GetURL(nint linkPage, int linkIndex, char* buffer, int bufferLength);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFLink_CountRects(nint linkPage, int linkIndex);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFLink_GetRect(nint linkPage, int linkIndex, int rectIndex, double* left, double* top, double* right, double* bottom);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFLink_CloseWebLinks(nint linkPage);
+
+    // ---- Link annotations, destinations and actions (fpdf_doc.h) ----
+
+    internal const uint PDFACTION_GOTO = 1;
+    internal const uint PDFACTION_REMOTEGOTO = 2;
+    internal const uint PDFACTION_URI = 3;
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFLink_Enumerate(nint page, int* startPos, nint* linkAnnot);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFLink_GetAnnotRect(nint linkAnnot, FS_RECTF* rect);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFLink_GetDest(nint document, nint link);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFLink_GetAction(nint link);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFAction_GetType(nint action);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFAction_GetDest(nint document, nint action);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFAction_GetURIPath(nint document, nint action, void* buffer, uint bufferLength);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFDest_GetDestPageIndex(nint document, nint dest);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFDest_GetLocationInPage(
+        nint dest, int* hasX, int* hasY, int* hasZoom, float* x, float* y, float* zoom);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFBookmark_GetNextSibling(nint document, nint bookmark);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFBookmark_GetTitle(nint bookmark, void* buffer, uint bufferLength);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFBookmark_GetDest(nint document, nint bookmark);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFBookmark_GetAction(nint bookmark);
+
+    // ---- Page objects (fpdf_edit.h) ----
+
+    internal const int FPDF_PAGEOBJ_IMAGE = 3;
+    internal const int FPDF_PAGEOBJ_FORM = 5;
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPage_CountObjects(nint page);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFPage_GetObject(nint page, int index);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPageObj_GetType(nint pageObject);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPageObj_GetBounds(nint pageObject, float* left, float* bottom, float* right, float* top);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPageObj_GetMatrix(nint pageObject, FS_MATRIX* matrix);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFFormObj_CountObjects(nint formObject);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFFormObj_GetObject(nint formObject, uint index);
+
     // ---- Error codes returned by FPDF_GetLastError ----
     internal const uint FPDF_ERR_SUCCESS = 0;
     internal const uint FPDF_ERR_UNKNOWN = 1;

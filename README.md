@@ -14,6 +14,8 @@ Papery Pro purchase. No subscription, no ads, no account, no cloud.
 
 | Folder | What's inside |
 |---|---|
+| `src/Papery.App` | The WinUI 3 app (MSIX): window, tabs, home, viewer, dialogs. Look and feel: `Themes/Papery.xaml` |
+| `src/Papery.Core` | Logic with no UI: page layout, zoom, print imposition, settings and saved positions |
 | `src/Papery.Pdf` | PDF engine: PDFium bindings, all PDFium calls on one dedicated thread |
 | `tests/` | Automated tests (xUnit v3) |
 | `tools/Papery.TestFiles` | Generator for the `PaperyTestFiles` folder |
@@ -21,6 +23,15 @@ Papery Pro purchase. No subscription, no ads, no account, no cloud.
 | `docs/` | Third-party notices and architecture notes |
 
 ## Everyday commands
+
+Build, register and start Papery (needs Windows **Developer Mode** on). Add `-File "C:\path\file.pdf"` to open a file:
+
+```bash
+powershell -ExecutionPolicy Bypass -File tools/Run-Papery.ps1
+```
+
+Once registered, `papery.exe some.pdf` works from any command line, and Papery appears in the Start menu
+and in "Open with" for PDFs.
 
 ```bash
 dotnet test --solution Papery.slnx

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using static Papery.TestFiles.Layout;
 
 namespace Papery.TestFiles.Generators;
@@ -35,7 +35,7 @@ internal static class Forms
             y += 56;
             g.DrawString("Send me the newsletter", LabelFont, Ink, Margin + 24, y, XStringFormats.TopLeft);
             g.DrawString("I accept the terms", LabelFont, Ink, Margin + 24, y + 26, XStringFormats.TopLeft);
-            DrawFooter(g, page, "Papery test file Â· forms-interactive.pdf Â· page 1");
+            DrawFooter(g, page, "Papery test file · forms-interactive.pdf · page 1");
         }
 
         double fy = 130; // field rows line up with the labels drawn above
@@ -60,7 +60,7 @@ internal static class Forms
                 BodyFont, Ink, Margin, y, width);
             g.DrawString("Signature", LabelFont, Ink, Margin, y + 30, XStringFormats.TopLeft);
             g.DrawString("Date", LabelFont, Ink, Margin + 300, y + 30, XStringFormats.TopLeft);
-            DrawFooter(g, page2, "Papery test file Â· forms-interactive.pdf Â· page 2");
+            DrawFooter(g, page2, "Papery test file · forms-interactive.pdf · page 2");
         }
 
         form.AddSignature(page2, "signature", new XRect(Margin, 300, 260, 60));
@@ -99,7 +99,7 @@ internal static class Forms
         g.DrawRectangle(Rule, Margin, y + 18, width, 80);
         y += 120;
 
-        // A small table: 4 columns Ã— 5 rows.
+        // A small table: 4 columns × 5 rows.
         string[] headers = ["Item", "Quantity", "Price", "Total"];
         double colWidth = width / headers.Length;
         for (int row = 0; row <= 5; row++)
@@ -120,7 +120,7 @@ internal static class Forms
         y += 150;
         g.DrawString("Signature", LabelFont, Ink, Margin, y, XStringFormats.TopLeft);
         g.DrawLine(Rule, Margin + 70, y + 14, Margin + 300, y + 14);
-        DrawFooter(g, page, "Papery test file Â· forms-flat.pdf");
+        DrawFooter(g, page, "Papery test file · forms-flat.pdf");
         doc.Save(path);
     }
 
@@ -287,7 +287,7 @@ internal static class Forms
 
         private static string Circle(XRect r, bool filled)
         {
-            // Four BÃ©zier curves approximate a circle; k is the standard control-point factor.
+            // Four Bézier curves approximate a circle; k is the standard control-point factor.
             static string Path(double cx, double cy, double rad)
             {
                 const double k = 0.5523;

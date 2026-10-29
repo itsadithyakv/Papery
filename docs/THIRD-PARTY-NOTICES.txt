@@ -24,6 +24,15 @@ PDFsharp 6.2.4
   Licence: MIT. Copyright (c) 2005-2025 empira Software GmbH, Troisdorf (Cologne Area), Germany.
   NOTE: pinned to 6.2.4. PDFsharp 6.5.0 and later are AGPL-3.0 and are NOT used.
 
+Windows App SDK / WinUI 3
+  https://github.com/microsoft/WindowsAppSDK
+  Licence: Microsoft Software License Terms for the Windows App SDK (redistributable
+  platform licence for Windows apps). Source on GitHub is MIT.
+
+CommunityToolkit.Mvvm 8.4
+  https://github.com/CommunityToolkit/dotnet
+  Licence: MIT. Copyright (c) .NET Foundation and Contributors.
+
 .NET runtime and libraries
   https://github.com/dotnet/runtime
   Licence: MIT. Copyright (c) .NET Foundation and Contributors.

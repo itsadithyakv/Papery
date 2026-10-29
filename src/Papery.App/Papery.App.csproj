@@ -1,0 +1,62 @@
+<!--
+  Papery.App: the WinUI 3 desktop app, packaged as MSIX.
+  Build and run from the command line with tools/Run-Papery.ps1, or press F5 in Visual Studio.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <RootNamespace>Papery</RootNamespace>
+    <AssemblyName>Papery</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\Papery.ico</ApplicationIcon>
+    <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(Platform)' != '' and '$(Platform)' != 'AnyCPU'">win-$(Platform.ToLowerInvariant())</RuntimeIdentifier>
+    <!-- Store builds carry their own .NET runtime; Debug builds use the one installed with the SDK. -->
+    <SelfContained Condition="'$(Configuration)' == 'Release'">true</SelfContained>
+    <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefaultLanguage>en-US</DefaultLanguage>
+
+    <!-- Our own Main (Program.cs) handles single-instance redirection. -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+
+    <!-- Fast start-up: precompile to native code in Release builds. -->
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Release'">true</PublishReadyToRun>
+    <PublishTrimmed>false</PublishTrimmed>
+
+    <!-- WinUI XAML types and event handlers are used from XAML; analyzers can't see that. -->
+    <NoWarn>$(NoWarn);CA1812;CA1001;CA1515;CA1822</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Only the Windows App SDK parts Papery uses (not the AI/ML/Widgets extras). -->
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Papery.Core\Papery.Core.csproj" />
+    <ProjectReference Include="..\Papery.Pdf\Papery.Pdf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Copied into the build folder too, so registering straight from it (tools/Run-Papery.ps1) finds them. -->
+    <Content Include="Assets\**\*.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Papery.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\docs\THIRD-PARTY-NOTICES.txt" Link="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <!-- Lets Visual Studio show the "Package and Publish" menus for this single-project MSIX. -->
+  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)' != 'true' and '$(EnableMsixTooling)' == 'true'">
+    <ProjectCapability Include="Msix" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,103 @@
+<UserControl
+    x:Class="Papery.Views.SettingsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource PaperySurfaceBrush}">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="820" Padding="32,28,32,40" Spacing="4">
+            <TextBlock Text="Settings" Style="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,8" />
+
+            <TextBlock Text="Appearance" Style="{StaticResource SectionHeaderStyle}" />
+            <Border Style="{StaticResource SettingsCardStyle}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="App theme" />
+                        <TextBlock Text="Light or dark for Papery's windows and menus" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                    <ComboBox x:Name="ThemeBox" Grid.Column="1" Width="220" VerticalAlignment="Center" SelectionChanged="OnThemeChanged" AutomationProperties.Name="App theme">
+                        <x:String>Use my Windows setting</x:String>
+                        <x:String>Light</x:String>
+                        <x:String>Dark</x:String>
+                    </ComboBox>
+                </Grid>
+            </Border>
+
+            <TextBlock Text="Reading" Style="{StaticResource SectionHeaderStyle}" />
+            <Border Style="{StaticResource SettingsCardStyle}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Page colours" />
+                        <TextBlock Text="Dark and Sepia recolour the pages for comfortable reading; pictures keep their colours" TextWrapping="Wrap"
+                                   Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                    <ComboBox x:Name="ReadingBox" Grid.Column="1" Width="220" VerticalAlignment="Center" SelectionChanged="OnReadingChanged" AutomationProperties.Name="Page colours">
+                        <x:String>Light (original)</x:String>
+                        <x:String>Dark</x:String>
+                        <x:String>Sepia</x:String>
+                    </ComboBox>
+                </Grid>
+            </Border>
+            <Border Style="{StaticResource SettingsCardStyle}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="Page layout for files you haven't opened before" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    <ComboBox x:Name="LayoutBox" Grid.Column="1" Width="220" VerticalAlignment="Center" SelectionChanged="OnLayoutChanged" AutomationProperties.Name="Default page layout">
+                        <x:String>Single page</x:String>
+                        <x:String>Continuous scrolling</x:String>
+                        <x:String>Two pages side by side</x:String>
+                        <x:String>Book</x:String>
+                    </ComboBox>
+                </Grid>
+            </Border>
+            <Border Style="{StaticResource SettingsCardStyle}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Reopen files where I left off" />
+                        <TextBlock Text="Remembers the page and zoom for each file, on this PC only" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="RememberSwitch" Grid.Column="1" Toggled="OnRememberToggled" AutomationProperties.Name="Reopen files where I left off" />
+                </Grid>
+            </Border>
+
+            <TextBlock Text="Default app" Style="{StaticResource SectionHeaderStyle}" />
+            <Border Style="{StaticResource SettingsCardStyle}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Open PDFs with Papery" />
+                        <TextBlock Text="Windows lets you choose this in its settings. Papery never changes it by itself." TextWrapping="Wrap"
+                                   Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Choose default apps" Click="OnDefaultAppsClick" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <TextBlock Text="Privacy" Style="{StaticResource SectionHeaderStyle}" />
+            <Border Style="{StaticResource SettingsCardStyle}">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Your files never leave this PC" />
+                    <TextBlock TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               Text="Papery works offline. It has no account, no cloud and no ads, and it doesn't collect any data. The only time it goes online is when the Microsoft Store checks or completes a purchase." />
+                    <HyperlinkButton Content="Clear the recent files list" Click="OnClearRecentClick" Padding="0" Margin="0,6,0,0" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="About" Style="{StaticResource SectionHeaderStyle}" />
+            <Border Style="{StaticResource SettingsCardStyle}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <Image Source="ms-appx:///Assets/AppIcon-64.png" Width="32" Height="32" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Papery – PDF Editor, Merge &amp; Sign" />
+                        <TextBlock x:Name="VersionText" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Content="Third-party notices" Click="OnNoticesClick" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,8 +1,10 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Papery.Core/Papery.Core.csproj" />
     <Project Path="src/Papery.Pdf/Papery.Pdf.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Papery.Core.Tests/Papery.Core.Tests.csproj" />
     <Project Path="tests/Papery.Pdf.Tests/Papery.Pdf.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">

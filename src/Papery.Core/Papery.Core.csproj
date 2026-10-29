@@ -1,0 +1,14 @@
+<!--
+  Papery.Core: app logic with no UI and no native code, so it can be unit-tested.
+  Page layout, zoom maths, print imposition, saved view state, settings.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Papery.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Papery.Core.Tests" />
+  </ItemGroup>
+</Project>

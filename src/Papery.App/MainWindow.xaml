@@ -1,0 +1,50 @@
+<Window
+    x:Class="Papery.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Papery">
+
+    <!-- KeyboardAcceleratorPlacementMode="Hidden": window-wide shortcuts must not show a hover hint everywhere. -->
+    <Grid x:Name="Root" AllowDrop="True" DragOver="OnDragOver" Drop="OnDrop" KeyboardAcceleratorPlacementMode="Hidden"
+          Background="{ThemeResource PaperyChromeBrush}">
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Modifiers="Control" Key="O" Invoked="OnOpenShortcut" />
+            <KeyboardAccelerator Modifiers="Control" Key="T" Invoked="OnNewTabShortcut" />
+            <KeyboardAccelerator Modifiers="Control" Key="W" Invoked="OnCloseTabShortcut" />
+            <KeyboardAccelerator Modifiers="Control" Key="F4" Invoked="OnCloseTabShortcut" />
+            <KeyboardAccelerator Modifiers="Control" Key="Tab" Invoked="OnNextTabShortcut" />
+            <KeyboardAccelerator Modifiers="Control,Shift" Key="Tab" Invoked="OnPreviousTabShortcut" />
+            <KeyboardAccelerator Modifiers="Control" Key="K" Invoked="OnCommandPaletteShortcut" />
+            <KeyboardAccelerator Key="F1" Invoked="OnHelpShortcut" />
+        </Grid.KeyboardAccelerators>
+
+        <TabView x:Name="Tabs"
+                 IsAddTabButtonVisible="True"
+                 CanReorderTabs="True"
+                 CanDragTabs="True"
+                 CanTearOutTabs="True"
+                 TabWidthMode="SizeToContent"
+                 AddTabButtonClick="OnAddTabClick"
+                 TabCloseRequested="OnTabCloseRequested"
+                 SelectionChanged="OnTabSelectionChanged"
+                 TabTearOutWindowRequested="OnTabTearOutWindowRequested"
+                 TabTearOutRequested="OnTabTearOutRequested"
+                 ExternalTornOutTabsDropping="OnExternalTabsDropping"
+                 ExternalTornOutTabsDropped="OnExternalTabsDropped">
+            <TabView.TabStripHeader>
+                <Image Source="ms-appx:///Assets/AppIcon-32.png" Width="16" Height="16" Margin="12,0,4,0"
+                       VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+            </TabView.TabStripHeader>
+            <TabView.TabStripFooter>
+                <!--
+                  Empty title bar space: drag here to move the window. Nothing clickable goes in here,
+                  because Windows treats this whole area as the title bar. Width leaves room for the caption buttons.
+                -->
+                <Grid x:Name="DragRegion" Background="Transparent" MinWidth="188" />
+            </TabView.TabStripFooter>
+        </TabView>
+
+        <!-- Presentation mode: the document is moved here so it can fill the whole screen. -->
+        <Grid x:Name="PresentationHost" Visibility="Collapsed" Background="Black" />
+    </Grid>
+</Window>

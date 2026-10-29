@@ -24,6 +24,18 @@
     <!-- Indirect dependency of PDFsharp; pinned up from 8.0.1, which has known vulnerabilities. MIT. -->
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
 
+    <!--
+      Windows App SDK (WinUI 3). Microsoft Software License Terms: the platform licence that
+      permits building and selling Windows apps. Only the parts Papery uses are referenced.
+    -->
+    <PackageVersion Include="Microsoft.WindowsAppSDK.WinUI" Version="2.6.4" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK.Foundation" Version="2.6.4" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK.Runtime" Version="2.6.4" />
+    <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2957" />
+
+    <!-- MVVM helpers (ObservableObject, RelayCommand). MIT. -->
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+
     <!-- Tests only. xUnit v3: Apache-2.0. Runs on Microsoft.Testing.Platform (see global.json). -->
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
   </ItemGroup>

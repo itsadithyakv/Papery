@@ -1,0 +1,282 @@
+<!--
+  Papery's own look. Warm, paper-toned neutrals instead of Windows' cool greys; coral for the
+  brand, primary actions and whatever is selected; soft rounded surfaces.
+  Windows conventions are kept where people rely on them (window buttons, menus, dialogs,
+  keyboard, High Contrast). Change colours here and the whole app follows.
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <!--
+              Brand coral is #E5533D (app icon, Store art). On-screen text and icons use #CC4430,
+              a touch deeper, so they reach the 4.5:1 contrast needed for accessibility on white.
+            -->
+            <Color x:Key="PaperyCoral">#CC4430</Color>
+            <Color x:Key="PaperyCoralSubtle">#1FE5533D</Color>
+
+            <SolidColorBrush x:Key="PaperyCoralBrush" Color="#CC4430" />
+            <SolidColorBrush x:Key="PaperyCoralSubtleBrush" Color="#1FE5533D" />
+            <SolidColorBrush x:Key="PaperyChromeBrush" Color="#EFEBE5" />
+            <SolidColorBrush x:Key="PaperySurfaceBrush" Color="#FAF8F5" />
+            <SolidColorBrush x:Key="PaperySidebarBrush" Color="#F5F2EE" />
+            <SolidColorBrush x:Key="PaperyCardBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="PaperyCardBorderBrush" Color="#E6E0D7" />
+            <SolidColorBrush x:Key="PaperyDividerBrush" Color="#E6E0D7" />
+            <SolidColorBrush x:Key="PaperyCanvasBrush" Color="#E7E2DB" />
+            <SolidColorBrush x:Key="PaperyHoverBrush" Color="#0F3B2A1E" />
+            <SolidColorBrush x:Key="PaperyPressedBrush" Color="#1A3B2A1E" />
+            <SolidColorBrush x:Key="PaperySearchHitBrush" Color="#66FFC233" />
+            <SolidColorBrush x:Key="PaperySearchCurrentBrush" Color="#99E5533D" />
+
+            <!-- Selected tab blends into the page below it. -->
+            <SolidColorBrush x:Key="TabViewItemHeaderBackgroundSelected" Color="#FAF8F5" />
+
+            <!-- Toggled-on buttons (e.g. the sidebar toggle): a soft coral tint, not a solid block. -->
+            <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#1FE5533D" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#2EE5533D" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#3DE5533D" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundChecked" Color="#CC4430" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" Color="#CC4430" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed" Color="#B03826" />
+
+            <!--
+              Papery's coral replaces the Windows accent colour everywhere WinUI uses it:
+              primary buttons, selection marks, toggles, progress. (Light theme fills use Dark1.)
+            -->
+            <Color x:Key="SystemAccentColor">#E5533D</Color>
+            <Color x:Key="SystemAccentColorLight1">#EC705D</Color>
+            <Color x:Key="SystemAccentColorLight2">#F28C7C</Color>
+            <Color x:Key="SystemAccentColorLight3">#F8AFA3</Color>
+            <Color x:Key="SystemAccentColorDark1">#CC4430</Color>
+            <Color x:Key="SystemAccentColorDark2">#B03826</Color>
+            <Color x:Key="SystemAccentColorDark3">#8F2C1C</Color>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Dark">
+            <Color x:Key="PaperyCoral">#FF7A63</Color>
+            <Color x:Key="PaperyCoralSubtle">#29FF7A63</Color>
+
+            <SolidColorBrush x:Key="PaperyCoralBrush" Color="#FF7A63" />
+            <SolidColorBrush x:Key="PaperyCoralSubtleBrush" Color="#29FF7A63" />
+            <SolidColorBrush x:Key="PaperyChromeBrush" Color="#191817" />
+            <SolidColorBrush x:Key="PaperySurfaceBrush" Color="#22201E" />
+            <SolidColorBrush x:Key="PaperySidebarBrush" Color="#1E1D1B" />
+            <SolidColorBrush x:Key="PaperyCardBrush" Color="#2A2826" />
+            <SolidColorBrush x:Key="PaperyCardBorderBrush" Color="#38342F" />
+            <SolidColorBrush x:Key="PaperyDividerBrush" Color="#34302C" />
+            <SolidColorBrush x:Key="PaperyCanvasBrush" Color="#141312" />
+            <SolidColorBrush x:Key="PaperyHoverBrush" Color="#14FFF4EA" />
+            <SolidColorBrush x:Key="PaperyPressedBrush" Color="#0CFFF4EA" />
+            <SolidColorBrush x:Key="PaperySearchHitBrush" Color="#66FFC233" />
+            <SolidColorBrush x:Key="PaperySearchCurrentBrush" Color="#99FF7A63" />
+
+            <SolidColorBrush x:Key="TabViewItemHeaderBackgroundSelected" Color="#22201E" />
+
+            <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#29FF7A63" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#38FF7A63" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#47FF7A63" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundChecked" Color="#FF7A63" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" Color="#FF8D79" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed" Color="#FF7A63" />
+
+            <!-- Dark theme fills use Light2, text uses Light3. -->
+            <Color x:Key="SystemAccentColor">#FF7A63</Color>
+            <Color x:Key="SystemAccentColorLight1">#FF8D79</Color>
+            <Color x:Key="SystemAccentColorLight2">#FF7A63</Color>
+            <Color x:Key="SystemAccentColorLight3">#FFA796</Color>
+            <Color x:Key="SystemAccentColorDark1">#E8705B</Color>
+            <Color x:Key="SystemAccentColorDark2">#CC5A46</Color>
+            <Color x:Key="SystemAccentColorDark3">#A84535</Color>
+        </ResourceDictionary>
+
+        <!-- High Contrast: only the user's own system colours. -->
+        <ResourceDictionary x:Key="HighContrast">
+            <SolidColorBrush x:Key="PaperyCoralBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="PaperyCoralSubtleBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="PaperyChromeBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="PaperySurfaceBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="PaperySidebarBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="PaperyCardBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="PaperyCardBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="PaperyDividerBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="PaperyCanvasBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="PaperyHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" Opacity="0.3" />
+            <SolidColorBrush x:Key="PaperyPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" Opacity="0.5" />
+            <SolidColorBrush x:Key="PaperySearchHitBrush" Color="{ThemeResource SystemColorHighlightColor}" Opacity="0.4" />
+            <SolidColorBrush x:Key="PaperySearchCurrentBrush" Color="{ThemeResource SystemColorHighlightColor}" Opacity="0.7" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!-- Icons: Segoe Fluent Icons on Windows 11, Segoe MDL2 Assets on Windows 10. -->
+    <FontFamily x:Key="PaperyIcons">Segoe Fluent Icons,Segoe MDL2 Assets</FontFamily>
+    <x:Double x:Key="PaperyToolbarHeight">48</x:Double>
+
+    <!-- ===================================================== buttons -->
+
+    <!-- The one main action on a screen: a coral pill. -->
+    <Style x:Key="PaperyPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="Padding" Value="18,8" />
+        <Setter Property="MinHeight" Value="36" />
+    </Style>
+
+    <Style x:Key="PaperySecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="Padding" Value="16,7" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="Background" Value="{ThemeResource PaperyCardBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource PaperyCardBorderBrush}" />
+    </Style>
+
+    <!-- Round icon-only buttons with no fill until hovered. -->
+    <Style x:Key="PaperyQuietButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="Padding" Value="9" />
+        <Setter Property="MinWidth" Value="36" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Toolbar buttons: quiet, 36px square (comfortable for touch), softly rounded. -->
+    <Style x:Key="ToolButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="MinWidth" Value="36" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style x:Key="ToolToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="MinWidth" Value="36" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- WinUI has no named default DropDownButton style; its built-in template still applies underneath. -->
+    <Style x:Key="ToolDropDownStyle" TargetType="DropDownButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="MinHeight" Value="36" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style x:Key="ToolbarSeparatorStyle" TargetType="Rectangle">
+        <Setter Property="Width" Value="1" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="Margin" Value="6,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Fill" Value="{ThemeResource PaperyDividerBrush}" />
+    </Style>
+    <Style x:Key="ToolIconStyle" TargetType="FontIcon">
+        <Setter Property="FontFamily" Value="{StaticResource PaperyIcons}" />
+        <Setter Property="FontSize" Value="16" />
+    </Style>
+
+    <!--
+      Pill switcher (mode bar, sidebar tabs): a row of RadioButtons that look like soft pills.
+      Selected = coral text on a light coral pill. Arrow keys move between them.
+    -->
+    <Style x:Key="PaperyPillStyle" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="CornerRadius" Value="17" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualMargin" Value="-2" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid CornerRadius="{TemplateBinding CornerRadius}" Background="{TemplateBinding Background}">
+                        <Border x:Name="CheckedFill" Background="{ThemeResource PaperyCoralSubtleBrush}" Opacity="0" />
+                        <Border x:Name="HoverFill" Background="Transparent" />
+                        <ContentPresenter x:Name="Presenter"
+                                          Padding="{TemplateBinding Padding}"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          HorizontalContentAlignment="Center"
+                                          VerticalContentAlignment="Center" />
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="HoverFill.Background" Value="{ThemeResource PaperyHoverBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="HoverFill.Background" Value="{ThemeResource PaperyPressedBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="Presenter.Opacity" Value="0.4" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                            <VisualStateGroup x:Name="CheckStates">
+                                <VisualState x:Name="Checked">
+                                    <VisualState.Setters>
+                                        <Setter Target="CheckedFill.Opacity" Value="1" />
+                                        <Setter Target="Presenter.Foreground" Value="{ThemeResource PaperyCoralBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Unchecked" />
+                                <VisualState x:Name="Indeterminate" />
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===================================================== surfaces -->
+
+    <Style x:Key="PaperyCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource PaperyCardBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource PaperyCardBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="16" />
+    </Style>
+    <Style x:Key="SettingsCardStyle" TargetType="Border" BasedOn="{StaticResource PaperyCardStyle}">
+        <Setter Property="Padding" Value="16,12" />
+        <Setter Property="MinHeight" Value="64" />
+    </Style>
+
+    <!-- Home screen tool cards: the whole card is one button (keyboard and Narrator friendly). -->
+    <Style x:Key="ToolCardStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+        <Setter Property="Background" Value="{ThemeResource PaperyCardBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource PaperyCardBorderBrush}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="16,14" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Top" />
+    </Style>
+
+    <!-- Secondary (grey) text that follows the theme; use this from code instead of looking up a brush. -->
+    <Style x:Key="PaperySecondaryTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="SectionHeaderStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyStrongTextBlockStyle}">
+        <Setter Property="Margin" Value="2,20,0,6" />
+    </Style>
+</ResourceDictionary>

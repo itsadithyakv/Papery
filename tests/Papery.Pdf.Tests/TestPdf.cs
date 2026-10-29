@@ -50,6 +50,44 @@ internal sealed class TestPdf : IDisposable
         return path;
     }
 
+    /// <summary>
+    /// 3 pages with metadata, a 2-level outline, an internal link on page 1 (to page 3)
+    /// and a web link annotation, plus a plain-text URL.
+    /// </summary>
+    public string CreateNavigable(string name = "nav.pdf")
+    {
+        var doc = new PdfSharp.Pdf.PdfDocument();
+        doc.Info.Title = "Navigation test";
+        doc.Info.Author = "Papery Tests";
+        var font = new XFont("Arial", 14);
+        var pages = new List<PdfSharp.Pdf.PdfPage>();
+        for (int n = 1; n <= 3; n++)
+        {
+            var page = doc.AddPage();
+            page.Width = XUnit.FromPoint(595.28);
+            page.Height = XUnit.FromPoint(841.89);
+            pages.Add(page);
+            using var g = XGraphics.FromPdfPage(page);
+            g.DrawString($"Page {n} lighthouse", font, XBrushes.Black, 72, 72, XStringFormats.TopLeft);
+            if (n == 1)
+            {
+                g.DrawString("Go to page three", font, XBrushes.Black, 72, 200, XStringFormats.TopLeft);
+                page.AddDocumentLink(new PdfSharp.Pdf.PdfRectangle(g.Transformer.WorldToDefaultPage(new XRect(72, 200, 200, 20))), 3);
+                g.DrawString("Web", font, XBrushes.Black, 72, 300, XStringFormats.TopLeft);
+                page.AddWebLink(new PdfSharp.Pdf.PdfRectangle(g.Transformer.WorldToDefaultPage(new XRect(72, 300, 100, 20))), "https://example.com/annot");
+                g.DrawString("See https://example.org/plain for more", font, XBrushes.Black, 72, 400, XStringFormats.TopLeft);
+            }
+        }
+
+        var chapter = doc.Outlines.Add("Chapter One", pages[0], true);
+        chapter.Outlines.Add("Section 1.1", pages[1], false);
+        doc.Outlines.Add("Chapter Two", pages[2], false);
+
+        string path = Path.Combine(Folder, name);
+        doc.Save(path);
+        return path;
+    }
+
     public string CreateRaw(string name, byte[] bytes)
     {
         string path = Path.Combine(Folder, name);

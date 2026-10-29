@@ -1,0 +1,318 @@
+<UserControl
+    x:Class="Papery.Views.DocumentView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Papery.Views"
+    xmlns:controls="using:Papery.Controls"
+    KeyboardAcceleratorPlacementMode="Hidden">
+
+    <UserControl.KeyboardAccelerators>
+        <KeyboardAccelerator Modifiers="Control" Key="F" Invoked="OnFindShortcut" />
+        <KeyboardAccelerator Key="F3" Invoked="OnFindNextShortcut" />
+        <KeyboardAccelerator Modifiers="Shift" Key="F3" Invoked="OnFindPreviousShortcut" />
+        <KeyboardAccelerator Modifiers="Control" Key="P" Invoked="OnPrintShortcut" />
+        <KeyboardAccelerator Modifiers="Control" Key="C" Invoked="OnCopyShortcut" />
+        <KeyboardAccelerator Modifiers="Control" Key="A" Invoked="OnSelectAllShortcut" />
+        <KeyboardAccelerator Modifiers="Control" Key="D" Invoked="OnPropertiesShortcut" />
+        <KeyboardAccelerator Modifiers="Control" Key="G" Invoked="OnGoToPageShortcut" />
+        <KeyboardAccelerator Modifiers="Control" Key="Number0" Invoked="OnFitPageShortcut" />
+        <KeyboardAccelerator Modifiers="Control" Key="Number1" Invoked="OnActualSizeShortcut" />
+        <KeyboardAccelerator Modifiers="Control" Key="Number2" Invoked="OnFitWidthShortcut" />
+        <KeyboardAccelerator Modifiers="Control" Key="Add" Invoked="OnZoomInShortcut" />
+        <KeyboardAccelerator Modifiers="Control" Key="Subtract" Invoked="OnZoomOutShortcut" />
+        <KeyboardAccelerator Key="F5" Invoked="OnPresentShortcut" />
+        <KeyboardAccelerator Key="Escape" Invoked="OnEscapeShortcut" />
+    </UserControl.KeyboardAccelerators>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ============ Mode bar: the big, clear modes (pills; arrow keys move between them) ============ -->
+        <Grid x:Name="ModeBar" Padding="12,8,12,6" Background="{ThemeResource PaperySurfaceBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                <StackPanel x:Name="Modes" Orientation="Horizontal" Spacing="4"
+                            XYFocusKeyboardNavigation="Enabled" TabFocusNavigation="Once" AutomationProperties.Name="Modes">
+                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="View" IsChecked="True" Checked="OnModeChecked" AutomationProperties.Name="View">
+                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE890;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="View" /></StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Organise" Checked="OnModeChecked" AutomationProperties.Name="Organise">
+                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8A9;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Organise" /></StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Annotate" Checked="OnModeChecked" AutomationProperties.Name="Annotate">
+                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE7E6;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Annotate" /></StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Edit" Checked="OnModeChecked" AutomationProperties.Name="Edit">
+                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8D2;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Edit" /></StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Fill &amp; Sign" Checked="OnModeChecked" AutomationProperties.Name="Fill and Sign">
+                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE70F;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Fill &amp; Sign" /></StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Convert" Checked="OnModeChecked" AutomationProperties.Name="Convert">
+                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8AB;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Convert" /></StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Protect" Checked="OnModeChecked" AutomationProperties.Name="Protect">
+                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72E;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Protect" /></StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Tools" Checked="OnModeChecked" AutomationProperties.Name="Tools">
+                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE90F;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Tools" /></StackPanel>
+                    </RadioButton>
+                </StackPanel>
+            </ScrollViewer>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" Margin="8,0,0,0">
+                <Button x:Name="SearchButton" Style="{StaticResource ToolButtonStyle}" Click="OnSearchClick" AutomationProperties.Name="Search" ToolTipService.ToolTip="Search (Ctrl+F)">
+                    <FontIcon Glyph="&#xE721;" Style="{StaticResource ToolIconStyle}" />
+                </Button>
+                <Button x:Name="PrintButton" Style="{StaticResource ToolButtonStyle}" Click="OnPrintClick" AutomationProperties.Name="Print" ToolTipService.ToolTip="Print (Ctrl+P)">
+                    <FontIcon Glyph="&#xE749;" Style="{StaticResource ToolIconStyle}" />
+                </Button>
+                <Button x:Name="MoreButton" Style="{StaticResource ToolButtonStyle}" AutomationProperties.Name="More options" ToolTipService.ToolTip="More options">
+                    <FontIcon Glyph="&#xE712;" Style="{StaticResource ToolIconStyle}" />
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuFlyoutItem Text="Present" Click="OnPresentClick" KeyboardAcceleratorTextOverride="F5">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE786;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Properties" Click="OnPropertiesClick" KeyboardAcceleratorTextOverride="Ctrl+D">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE946;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Show in folder" Click="OnShowInFolderClick">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE838;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Take the tour" Click="OnTourClick">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7BE;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Keyboard shortcuts" Click="OnHelpClick" KeyboardAcceleratorTextOverride="F1">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE765;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Settings" Click="OnSettingsClick" KeyboardAcceleratorTextOverride="Ctrl+,">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE713;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ============ Secondary toolbar for the current mode ============ -->
+        <Border Grid.Row="1" BorderThickness="0,0,0,1" BorderBrush="{ThemeResource PaperyDividerBrush}"
+                Background="{ThemeResource PaperySurfaceBrush}" x:Name="ToolbarArea">
+            <Grid MinHeight="{StaticResource PaperyToolbarHeight}" Padding="8,0">
+                <!-- View tools -->
+                <Grid x:Name="ViewToolbar">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" Spacing="2">
+                        <ToggleButton x:Name="SidebarToggle" Style="{StaticResource ToolToggleButtonStyle}" Click="OnSidebarToggle"
+                                      AutomationProperties.Name="Show sidebar" ToolTipService.ToolTip="Show or hide the sidebar">
+                            <FontIcon Glyph="&#xE8A0;" Style="{StaticResource ToolIconStyle}" />
+                        </ToggleButton>
+                        <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnPreviousPage" AutomationProperties.Name="Previous page" ToolTipService.ToolTip="Previous page">
+                            <FontIcon Glyph="&#xE70E;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <TextBox x:Name="PageBox" Width="64" VerticalAlignment="Center" TextAlignment="Center"
+                                 KeyDown="OnPageBoxKeyDown" LostFocus="OnPageBoxLostFocus" GotFocus="OnPageBoxGotFocus"
+                                 AutomationProperties.Name="Page number" ToolTipService.ToolTip="Go to page (Ctrl+G)" />
+                        <TextBlock x:Name="PageCountText" VerticalAlignment="Center" Margin="6,0,2,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnNextPage" AutomationProperties.Name="Next page" ToolTipService.ToolTip="Next page">
+                            <FontIcon Glyph="&#xE70D;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnZoomOut" AutomationProperties.Name="Zoom out" ToolTipService.ToolTip="Zoom out (Ctrl+-)">
+                            <FontIcon Glyph="&#xE71F;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <DropDownButton x:Name="ZoomButton" Style="{StaticResource ToolDropDownStyle}" MinWidth="88" AutomationProperties.Name="Zoom level">
+                            <DropDownButton.Flyout>
+                                <MenuFlyout x:Name="ZoomMenu">
+                                    <MenuFlyoutItem Text="Fit width" Click="OnFitWidth" KeyboardAcceleratorTextOverride="Ctrl+2" />
+                                    <MenuFlyoutItem Text="Fit page" Click="OnFitPage" KeyboardAcceleratorTextOverride="Ctrl+0" />
+                                    <MenuFlyoutItem Text="Actual size" Click="OnActualSize" KeyboardAcceleratorTextOverride="Ctrl+1" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="50%" Tag="0.5" Click="OnZoomPreset" />
+                                    <MenuFlyoutItem Text="75%" Tag="0.75" Click="OnZoomPreset" />
+                                    <MenuFlyoutItem Text="100%" Tag="1" Click="OnZoomPreset" />
+                                    <MenuFlyoutItem Text="125%" Tag="1.25" Click="OnZoomPreset" />
+                                    <MenuFlyoutItem Text="150%" Tag="1.5" Click="OnZoomPreset" />
+                                    <MenuFlyoutItem Text="200%" Tag="2" Click="OnZoomPreset" />
+                                    <MenuFlyoutItem Text="400%" Tag="4" Click="OnZoomPreset" />
+                                </MenuFlyout>
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnZoomIn" AutomationProperties.Name="Zoom in" ToolTipService.ToolTip="Zoom in (Ctrl++)">
+                            <FontIcon Glyph="&#xE8A3;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+
+                        <DropDownButton x:Name="LayoutButton" Style="{StaticResource ToolDropDownStyle}" AutomationProperties.Name="Page layout" ToolTipService.ToolTip="Page layout">
+                            <FontIcon x:Name="LayoutIcon" Glyph="&#xE8A1;" Style="{StaticResource ToolIconStyle}" />
+                            <DropDownButton.Flyout>
+                                <MenuFlyout>
+                                    <RadioMenuFlyoutItem x:Name="LayoutSingle" Text="Single page" GroupName="layout" Click="OnLayoutClick" Tag="SinglePage" />
+                                    <RadioMenuFlyoutItem x:Name="LayoutContinuous" Text="Continuous scrolling" GroupName="layout" Click="OnLayoutClick" Tag="Continuous" />
+                                    <RadioMenuFlyoutItem x:Name="LayoutTwoPage" Text="Two pages side by side" GroupName="layout" Click="OnLayoutClick" Tag="TwoPage" />
+                                    <RadioMenuFlyoutItem x:Name="LayoutBook" Text="Book (cover page alone)" GroupName="layout" Click="OnLayoutClick" Tag="Book" />
+                                </MenuFlyout>
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
+                        <DropDownButton x:Name="ReadingButton" Style="{StaticResource ToolDropDownStyle}" AutomationProperties.Name="Reading mode" ToolTipService.ToolTip="Reading mode: page colours">
+                            <FontIcon Glyph="&#xE793;" Style="{StaticResource ToolIconStyle}" />
+                            <DropDownButton.Flyout>
+                                <MenuFlyout>
+                                    <RadioMenuFlyoutItem x:Name="ReadingLight" Text="Light (original colours)" GroupName="reading" Click="OnReadingClick" Tag="Light" />
+                                    <RadioMenuFlyoutItem x:Name="ReadingDark" Text="Dark" GroupName="reading" Click="OnReadingClick" Tag="Dark" />
+                                    <RadioMenuFlyoutItem x:Name="ReadingSepia" Text="Sepia" GroupName="reading" Click="OnReadingClick" Tag="Sepia" />
+                                </MenuFlyout>
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnPresentClick" AutomationProperties.Name="Present" ToolTipService.ToolTip="Present full screen (F5)">
+                            <FontIcon Glyph="&#xE786;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Placeholder for modes built in later stages -->
+                <TextBlock x:Name="ComingSoonText" VerticalAlignment="Center" Margin="8,0" Visibility="Collapsed"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Grid>
+        </Border>
+
+        <!-- ============ Sidebar + pages ============ -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid x:Name="Sidebar" Width="264" BorderThickness="0,0,1,0" BorderBrush="{ThemeResource PaperyDividerBrush}"
+                  Background="{ThemeResource PaperySidebarBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel x:Name="SidebarTabs" Orientation="Horizontal" Spacing="2" Margin="10,10,10,4"
+                            XYFocusKeyboardNavigation="Enabled" TabFocusNavigation="Once" AutomationProperties.Name="Sidebar">
+                    <RadioButton x:Name="PagesTab" Content="Pages" Style="{StaticResource PaperyPillStyle}" GroupName="sidebar" Padding="12,4" MinHeight="30" IsChecked="True" Checked="OnSidebarTabChecked" />
+                    <RadioButton x:Name="BookmarksTab" Content="Bookmarks" Style="{StaticResource PaperyPillStyle}" GroupName="sidebar" Padding="12,4" MinHeight="30" Checked="OnSidebarTabChecked" />
+                    <RadioButton x:Name="SearchTab" Content="Search" Style="{StaticResource PaperyPillStyle}" GroupName="sidebar" Padding="12,4" MinHeight="30" Checked="OnSidebarTabChecked" />
+                </StackPanel>
+
+                <!-- Page thumbnails (virtualised: only visible ones are rendered) -->
+                <ListView x:Name="ThumbnailList" Grid.Row="1" SelectionMode="Single" Padding="0,8"
+                          ContainerContentChanging="OnThumbnailContainerChanging" SelectionChanged="OnThumbnailSelected"
+                          AutomationProperties.Name="Page thumbnails">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                            <Setter Property="HorizontalContentAlignment" Value="Center" />
+                            <Setter Property="Padding" Value="8" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="local:ThumbnailItem">
+                            <StackPanel Spacing="4" AutomationProperties.Name="{x:Bind AccessibleName}">
+                                <Border Width="{x:Bind Width}" Height="{x:Bind Height}" Background="{ThemeResource PaperyCardBrush}" CornerRadius="2"
+                                        BorderThickness="1" BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}">
+                                    <Image Source="{x:Bind Image, Mode=OneWay}" Stretch="Uniform" />
+                                </Border>
+                                <TextBlock Text="{x:Bind Label}" HorizontalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <!-- Bookmarks (outline) -->
+                <Grid x:Name="BookmarksPanel" Grid.Row="1" Visibility="Collapsed">
+                    <TreeView x:Name="OutlineTree" SelectionMode="None" ItemInvoked="OnOutlineInvoked" AutomationProperties.Name="Bookmarks">
+                        <TreeView.ItemTemplate>
+                            <DataTemplate x:DataType="local:OutlineNode">
+                                <TreeViewItem ItemsSource="{x:Bind Children}" IsExpanded="{x:Bind IsExpanded}"
+                                              AutomationProperties.Name="{x:Bind Title}">
+                                    <TextBlock Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
+                                </TreeViewItem>
+                            </DataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                    <TextBlock x:Name="NoBookmarksText" Text="This document has no bookmarks." Margin="16" TextWrapping="Wrap"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" />
+                </Grid>
+
+                <!-- Search -->
+                <Grid x:Name="SearchPanel" Grid.Row="1" Visibility="Collapsed" Padding="12,8,12,0" RowSpacing="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBox x:Name="SearchBox" PlaceholderText="Search this document" KeyDown="OnSearchBoxKeyDown"
+                             AutomationProperties.Name="Search text" />
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12">
+                        <CheckBox x:Name="MatchCaseBox" Content="Match case" MinWidth="0" Click="OnSearchOptionChanged" />
+                        <CheckBox x:Name="WholeWordBox" Content="Whole words" MinWidth="0" Click="OnSearchOptionChanged" />
+                    </StackPanel>
+                    <Grid Grid.Row="2">
+                        <TextBlock x:Name="SearchStatus" VerticalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,72,0" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnFindPrevious" AutomationProperties.Name="Previous result" ToolTipService.ToolTip="Previous result (Shift+F3)">
+                                <FontIcon Glyph="&#xE70E;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnFindNext" AutomationProperties.Name="Next result" ToolTipService.ToolTip="Next result (F3)">
+                                <FontIcon Glyph="&#xE70D;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <ListView x:Name="SearchResults" Grid.Row="3" SelectionMode="Single" IsItemClickEnabled="True"
+                              ItemClick="OnSearchResultClick" AutomationProperties.Name="Search results" Margin="-12,0">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="local:SearchResultItem">
+                                <StackPanel Padding="0,6" AutomationProperties.Name="{x:Bind AccessibleName}">
+                                    <TextBlock Text="{x:Bind PageLabel}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="{x:Bind Context}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </Grid>
+
+            <controls:PdfViewer x:Name="Viewer" Grid.Column="1">
+                <controls:PdfViewer.ContextFlyout>
+                    <MenuFlyout Opening="OnViewerMenuOpening">
+                        <MenuFlyoutItem x:Name="CopyMenuItem" Text="Copy" Click="OnCopyClick" KeyboardAcceleratorTextOverride="Ctrl+C">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8C8;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Select all text on this page" Click="OnSelectAllClick" KeyboardAcceleratorTextOverride="Ctrl+A" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="Print..." Click="OnPrintClick">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE749;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Properties" Click="OnPropertiesClick">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE946;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </controls:PdfViewer.ContextFlyout>
+            </controls:PdfViewer>
+
+            <!-- Notices float over the page, so they get a solid card background to stay readable. -->
+            <InfoBar x:Name="Notice" Grid.Column="1" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="16,12" MaxWidth="640" IsOpen="False"
+                     Background="{ThemeResource PaperyCardBrush}" BorderBrush="{ThemeResource PaperyCardBorderBrush}" BorderThickness="1" CornerRadius="12" />
+        </Grid>
+    </Grid>
+</UserControl>

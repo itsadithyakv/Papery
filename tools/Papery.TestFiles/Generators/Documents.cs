@@ -1,4 +1,4 @@
-﻿using static Papery.TestFiles.Layout;
+using static Papery.TestFiles.Layout;
 
 namespace Papery.TestFiles.Generators;
 
@@ -50,7 +50,7 @@ internal static class Documents
                 using var image = XImage.FromStream(new MemoryStream(jpeg));
                 double imageSize = Math.Min(page.Width.Point - (2 * Margin), page.Height.Point - y - 80);
                 g.DrawImage(image, Margin, y + 10, imageSize, imageSize);
-                DrawFooter(g, page, $"Papery test file Â· page {n}");
+                DrawFooter(g, page, $"Papery test file · page {n}");
             }
 
             if ((n - 1) % 50 == 0)
@@ -133,7 +133,7 @@ internal static class Documents
             var page = doc.Pages[i];
             using var g = XGraphics.FromPdfPage(page);
             var rect = new XRect(Margin, page.Height.Point - 60, 140, 14);
-            g.DrawString("â† Back to contents", LabelFont, Coral, rect.X, rect.Y, XStringFormats.TopLeft);
+            g.DrawString("← Back to contents", LabelFont, Coral, rect.X, rect.Y, XStringFormats.TopLeft);
             page.AddDocumentLink(new PdfRectangle(g.Transformer.WorldToDefaultPage(rect)), 1);
         }
 
@@ -146,13 +146,13 @@ internal static class Documents
         var specs = new (string Name, XSize Size, int Rotate)[]
         {
             ("A4 portrait, no rotation", A4, 0),
-            ("US Letter, rotated 90Â°", Letter, 90),
+            ("US Letter, rotated 90°", Letter, 90),
             ("A3 landscape, no rotation", new XSize(A3.Height, A3.Width), 0),
-            ("A5, rotated 180Â°", A5, 180),
-            ("US Legal, rotated 270Â°", Legal, 270),
-            ("Business card 3.5Ã—2 in", new XSize(252, 144), 0),
-            ("Poster 70Ã—100 cm", new XSize(1984.25, 2834.65), 0),
-            ("A4 landscape, rotated 90Â°", new XSize(A4.Height, A4.Width), 90),
+            ("A5, rotated 180°", A5, 180),
+            ("US Legal, rotated 270°", Legal, 270),
+            ("Business card 3.5×2 in", new XSize(252, 144), 0),
+            ("Poster 70×100 cm", new XSize(1984.25, 2834.65), 0),
+            ("A4 landscape, rotated 90°", new XSize(A4.Height, A4.Width), 90),
         };
 
         var doc = new SharpDoc();
@@ -167,9 +167,9 @@ internal static class Documents
                 double fontSize = Math.Clamp(Math.Min(w, h) / 14, 9, 60);
                 var font = new XFont("Arial", fontSize, XFontStyleEx.Bold);
                 g.DrawString(name, font, Ink, new XRect(0, (h / 2) - fontSize, w, fontSize * 1.4), XStringFormats.Center);
-                g.DrawString(Inv($"{w:0} Ã— {h:0} pt, /Rotate {rotate}"), new XFont("Arial", fontSize * 0.5), Muted,
+                g.DrawString(Inv($"{w:0} × {h:0} pt, /Rotate {rotate}"), new XFont("Arial", fontSize * 0.5), Muted,
                     new XRect(0, (h / 2) + (fontSize * 0.6), w, fontSize), XStringFormats.Center);
-                g.DrawString("â–² TOP OF CONTENT", new XFont("Arial", fontSize * 0.5, XFontStyleEx.Bold), Coral,
+                g.DrawString("▲ TOP OF CONTENT", new XFont("Arial", fontSize * 0.5, XFontStyleEx.Bold), Coral,
                     new XRect(0, 12, w, fontSize), XStringFormats.Center);
             }
 
