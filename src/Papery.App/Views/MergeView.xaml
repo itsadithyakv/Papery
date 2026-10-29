@@ -1,0 +1,131 @@
+<!--
+  Merge: drop or add PDFs, drag them into order, optionally pick pages from each, then Merge.
+  The inputs are only read; the result is a new file.
+-->
+<UserControl
+    x:Class="Papery.Views.MergeView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Papery.Views"
+    xmlns:controls="using:Papery.Controls"
+    AllowDrop="True" DragOver="OnDragOver" Drop="OnDrop">
+
+    <Grid Background="{ThemeResource PaperySurfaceBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer>
+            <StackPanel MaxWidth="820" Padding="40,28,40,32" Spacing="18">
+                <!-- Header -->
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <controls:Mascot x:Name="Character" Width="56" Height="66" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="Merge" FontSize="28" FontWeight="SemiBold" />
+                        <TextBlock Text="Top to bottom becomes first to last." Style="{StaticResource PaperySecondaryTextStyle}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Style="{StaticResource PaperySecondaryButtonStyle}" Click="OnAddClick" VerticalAlignment="Center" ToolTipService.ToolTip="Add PDFs">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE710;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
+                            <TextBlock Text="Add files" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <!-- Empty: one big friendly target -->
+                <Grid x:Name="EmptyState" Height="220">
+                    <Rectangle x:Name="DropOutline" RadiusX="18" RadiusY="18" StrokeThickness="1.5" StrokeDashArray="5,4"
+                               Stroke="{ThemeResource PaperyCoralBrush}" Fill="{ThemeResource PaperyCoralSubtleBrush}" />
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                        <Border Width="60" Height="60" CornerRadius="30" Background="{ThemeResource PaperyCardBrush}" HorizontalAlignment="Center">
+                            <FontIcon Glyph="&#xE8F1;" FontSize="24" Foreground="{ThemeResource PaperyCoralBrush}" FontFamily="{StaticResource PaperyIcons}" />
+                        </Border>
+                        <TextBlock Text="Drop two or more PDFs here" FontSize="19" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                        <Button Content="Choose files" Style="{StaticResource PaperyPrimaryButtonStyle}" HorizontalAlignment="Center" Click="OnAddClick" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- The files, in order. Drag to reorder. -->
+                <ListView x:Name="FileList" SelectionMode="None" CanDragItems="True" CanReorderItems="True" AllowDrop="True"
+                          Visibility="Collapsed" AutomationProperties.Name="Files to merge, in order"
+                          ScrollViewer.VerticalScrollMode="Disabled" DragItemsCompleted="OnReordered">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0,0,0,8" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="local:MergeFile">
+                            <Border Style="{StaticResource PaperyCardStyle}" Padding="12,10" AutomationProperties.Name="{x:Bind AccessibleName, Mode=OneWay}">
+                                <Grid ColumnSpacing="14">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xE76F;" FontSize="14" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontFamily="{StaticResource PaperyIcons}" />
+                                    <Border Grid.Column="1" Width="46" Height="60" CornerRadius="3" Background="White"
+                                            BorderThickness="1" BorderBrush="{ThemeResource PaperyCardBorderBrush}">
+                                        <Image Source="{x:Bind Thumbnail, Mode=OneWay}" Stretch="Uniform" />
+                                    </Border>
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Path}" />
+                                        <TextBlock Text="{x:Bind Info, Mode=OneWay}" Style="{StaticResource PaperySecondaryTextStyle}" FontSize="12" />
+                                        <TextBlock Text="{x:Bind Error, Mode=OneWay}" Foreground="{ThemeResource SystemFillColorCriticalBrush}" FontSize="12"
+                                                   TextWrapping="Wrap" Visibility="{x:Bind HasError, Mode=OneWay}" />
+                                    </StackPanel>
+                                    <TextBox Grid.Column="3" Width="130" VerticalAlignment="Center" PlaceholderText="All pages"
+                                             Text="{x:Bind Pages, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             AutomationProperties.Name="Pages to include" ToolTipService.ToolTip="Pages to include, e.g. 1-3, 5. Empty = all pages." />
+                                    <Button Grid.Column="4" Style="{StaticResource PaperyQuietButtonStyle}" Click="OnRemoveClick" Tag="{x:Bind}"
+                                            AutomationProperties.Name="Remove from the list" ToolTipService.ToolTip="Remove from the list">
+                                        <FontIcon Glyph="&#xE711;" FontSize="12" FontFamily="{StaticResource PaperyIcons}" />
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <!-- Options -->
+                <StackPanel x:Name="Options" Spacing="2" Visibility="Collapsed">
+                    <ToggleSwitch x:Name="BookmarkPerFile" IsOn="True" OnContent="A bookmark for each file" OffContent="A bookmark for each file" />
+                    <ToggleSwitch x:Name="KeepBookmarks" IsOn="True" OnContent="Keep the files' own bookmarks" OffContent="Keep the files' own bookmarks" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer: the count and the one big action -->
+        <Grid Grid.Row="1" Padding="40,12" Background="{ThemeResource PaperySidebarBrush}" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource PaperyDividerBrush}">
+            <TextBlock x:Name="TotalText" VerticalAlignment="Center" Style="{StaticResource PaperySecondaryTextStyle}" />
+            <Button x:Name="MergeButton" HorizontalAlignment="Right" Style="{StaticResource PaperyPrimaryButtonStyle}" Click="OnMergeClick" IsEnabled="False">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE8F1;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
+                    <TextBlock Text="Merge" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Working -->
+        <Grid x:Name="BusyOverlay" Grid.RowSpan="2" Visibility="Collapsed" Background="{ThemeResource PaperySurfaceBrush}" Opacity="0.96">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14" Width="280">
+                <controls:Mascot Width="64" Height="76" HorizontalAlignment="Center" />
+                <TextBlock Text="Merging" HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold" />
+                <ProgressBar x:Name="BusyProgress" Maximum="1" />
+                <Button Content="Cancel" HorizontalAlignment="Center" Style="{StaticResource PaperyQuietButtonStyle}" Click="OnCancelClick" />
+            </StackPanel>
+        </Grid>
+
+        <controls:Toast x:Name="Toaster" />
+    </Grid>
+</UserControl>

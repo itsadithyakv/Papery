@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using Papery.Core.Pages;
 
 namespace Papery.Core.Printing;
 
@@ -33,85 +33,9 @@ public static class PrintLayout
 {
     public static readonly IReadOnlyList<int> PagesPerSheetChoices = [1, 2, 4, 6, 9, 16];
 
-    /// <summary>
-    /// Parses a page range such as "1-3, 5, 8-" (8 to the end) or "-4" (start to 4).
-    /// Pages are 1-based in the text and 0-based in the result. Duplicates are kept,
-    /// so "1, 1" prints page one twice, like other apps.
-    /// </summary>
-    /// <returns>False with a friendly <paramref name="error"/> if the text can't be understood.</returns>
-    public static bool TryParseRange(string? text, int pageCount, out IReadOnlyList<int> pages, out string? error)
-    {
-        var result = new List<int>();
-        pages = result;
-        error = null;
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            error = "Enter the pages to print, for example 1-3, 5.";
-            return false;
-        }
-
-        foreach (string rawPart in text.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            string part = rawPart.Replace(" ", string.Empty, StringComparison.Ordinal).Replace('–', '-');
-            int dash = part.IndexOf('-', StringComparison.Ordinal);
-            int from, to;
-            if (dash < 0)
-            {
-                if (!TryPage(part, out from))
-                {
-                    error = $"\"{rawPart}\" isn't a page number.";
-                    return false;
-                }
-
-                to = from;
-            }
-            else
-            {
-                string left = part[..dash], right = part[(dash + 1)..];
-                if (left.Length == 0 && right.Length == 0)
-                {
-                    error = "Add a page number before or after the dash, for example 3-7.";
-                    return false;
-                }
-
-                from = left.Length == 0 ? 1 : TryPage(left, out int l) ? l : -1;
-                to = right.Length == 0 ? pageCount : TryPage(right, out int r) ? r : -1;
-                if (from < 0 || to < 0)
-                {
-                    error = $"\"{rawPart}\" isn't a page range.";
-                    return false;
-                }
-            }
-
-            if (from < 1 || to > pageCount || from > pageCount)
-            {
-                error = $"This document has pages 1 to {pageCount}.";
-                return false;
-            }
-
-            if (from > to)
-            {
-                error = $"\"{rawPart}\" goes backwards. Write it as {to}-{from}.";
-                return false;
-            }
-
-            for (int p = from; p <= to; p++)
-            {
-                result.Add(p - 1);
-            }
-        }
-
-        if (result.Count == 0)
-        {
-            error = "Enter the pages to print, for example 1-3, 5.";
-            return false;
-        }
-
-        return true;
-
-        static bool TryPage(string s, out int page) =>
-            int.TryParse(s, NumberStyles.None, CultureInfo.InvariantCulture, out page) && page >= 1;
-    }
+    /// <summary>Parses the pages to print, e.g. "1-3, 5, 8-". See <see cref="PageRanges.TryParse"/>.</summary>
+    public static bool TryParseRange(string? text, int pageCount, out IReadOnlyList<int> pages, out string? error) =>
+        PageRanges.TryParse(text, pageCount, out pages, out error, "Enter the pages to print, for example 1-3, 5.");
 
     /// <summary>Columns × rows for N pages per sheet. On landscape paper the grid is wider than tall.</summary>
     public static (int Columns, int Rows) Grid(int pagesPerSheet, bool landscapePaper)

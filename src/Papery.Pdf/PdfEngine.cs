@@ -1,3 +1,5 @@
+using Papery.Pdf.Editing;
+
 namespace Papery.Pdf;
 
 /// <summary>
@@ -17,4 +19,16 @@ public sealed class PdfEngine
     /// <summary>Opens a PDF. Throws <see cref="PdfOpenException"/> with a clear reason on failure.</summary>
     public Task<PdfDocument> OpenAsync(string path, string? password = null, CancellationToken cancellationToken = default) =>
         PdfDocument.OpenAsync(this, path, password, cancellationToken);
+
+    /// <summary>
+    /// Builds a PDF from pages of other PDFs and saves it to <paramref name="outputPath"/> without
+    /// ever leaving a half-written file. Throws <see cref="PdfOpenException"/> for unreadable inputs
+    /// and <see cref="PdfEditException"/> for everything else.
+    /// </summary>
+    public Task<PdfComposeResult> ComposeAsync(
+        PdfComposeRequest request,
+        string outputPath,
+        IProgress<double>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        PdfComposer.ComposeAsync(Thread, request, outputPath, progress, cancellationToken);
 }

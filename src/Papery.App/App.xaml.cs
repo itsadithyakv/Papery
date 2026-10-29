@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using Papery.Services;
 using Windows.ApplicationModel.Activation;
@@ -41,24 +41,39 @@ public partial class App : Application
                 .Select(Path.GetFullPath).ToList();
         }
 
-        Log.Info($"Started ({activation.Kind}), {files.Count} file(s) to open");
-        if (files.Count > 0)
+        bool merge = WantsMerge(activation) || Environment.GetCommandLineArgs().Contains(MergeSwitch, StringComparer.OrdinalIgnoreCase);
+        Log.Info($"Started ({activation.Kind}), {files.Count} file(s) to {(merge ? "merge" : "open")}");
+        Open(window, files, merge);
+    }
+
+    /// <summary>"papery.exe --merge a.pdf b.pdf" opens a Merge tab (used by Explorer's "Merge with Papery").</summary>
+    private const string MergeSwitch = "--merge";
+
+    private static void Open(MainWindow window, List<string> files, bool merge)
+    {
+        if (merge)
+        {
+            window.ShowMerge(files);
+        }
+        else if (files.Count > 0)
         {
             _ = window.OpenFilesAsync(files);
         }
     }
 
+    private static bool WantsMerge(AppActivationArguments args) =>
+        args.Kind == ExtendedActivationKind.Launch && args.Data is ILaunchActivatedEventArgs launch
+        && (launch.Arguments ?? string.Empty).Contains(MergeSwitch, StringComparison.OrdinalIgnoreCase);
+
     private static void OnRedirectedActivation(object? sender, AppActivationArguments args)
     {
         var files = FilesFrom(args);
+        bool merge = WantsMerge(args);
         var window = WindowManager.Active ?? (WindowManager.Count > 0 ? WindowManager.All[0] : null);
         window?.DispatcherQueue.TryEnqueue(() =>
         {
             window.BringToFront();
-            if (files.Count > 0)
-            {
-                _ = window.OpenFilesAsync(files);
-            }
+            Open(window, files, merge);
         });
     }
 

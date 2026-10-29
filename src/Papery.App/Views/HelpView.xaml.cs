@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
@@ -45,6 +45,18 @@ public sealed partial class HelpView : UserControl
             ("Ctrl + C", "Copy the selected text"),
             ("Ctrl + F", "Search the document"),
             ("F3 / Shift + F3", "Next / previous result"),
+        ]),
+        ("Organising pages",
+        [
+            ("Drag a page", "Move it (several selected pages move together)"),
+            ("Ctrl + R / Ctrl + L", "Turn right / left"),
+            ("Delete", "Remove the selected pages"),
+            ("Ctrl + D", "Duplicate the selected pages"),
+            ("Ctrl + Z / Ctrl + Y", "Undo / redo"),
+            ("Ctrl + mouse wheel", "Bigger or smaller pages"),
+            ("Drop PDFs on the pages", "Add their pages right there"),
+            ("Ctrl + S", "Save"),
+            ("Esc", "Back to reading"),
         ]),
         ("Anything else",
         [

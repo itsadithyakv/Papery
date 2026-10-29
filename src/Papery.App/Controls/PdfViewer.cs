@@ -1,4 +1,4 @@
-using Microsoft.UI.Dispatching;
+﻿using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -221,6 +221,20 @@ public sealed partial class PdfViewer : UserControl
     // ---------------------------------------------------------------- navigation
 
     /// <summary>Scrolls so a page (optionally a point on it, as a fraction from the top) is at the top of the view.</summary>
+    /// <summary>Call after the viewer was hidden (e.g. by Organise): re-fits and redraws the pages in view.</summary>
+    public void Redraw()
+    {
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            if (FitMode != FitMode.None && _document != null)
+            {
+                ApplyFit();
+            }
+
+            UpdateVisibleRange(settled: true);
+        });
+    }
+
     public void GoToPage(int pageIndex, double? fractionFromTop = null)
     {
         if (_document == null || _document.PageCount == 0)
@@ -250,6 +264,10 @@ public sealed partial class PdfViewer : UserControl
         if (rect.Width * zoom > _scroll.ViewportWidth)
         {
             x = fractionFromTop is null ? rect.X * zoom : null; // keep horizontal position for in-page jumps
+        }
+        else if (!IsHorizontallyVisible(rect.X, rect.Right, zoom))
+        {
+            x = CentredOffset(rect.X, rect.Right, zoom); // a narrow page beside a wide one: bring it into view
         }
 
         _scroll.ChangeView(x, Math.Max(0, y * zoom), (float)zoom, true);
@@ -320,9 +338,21 @@ public sealed partial class PdfViewer : UserControl
 
         double zoom = FitMode == FitMode.Page ? FitForCurrentRow() : FitWidthForCurrentRow();
         _pendingZoom = zoom;
-        _scroll.ChangeView(null, null, (float)zoom, true);
+
+        // The scroll area is as wide as the widest page. When a narrower page is fitted, centre it,
+        // otherwise a document with one wide page shows empty space beside the page being read.
+        var row = _layout.RowPages(_currentPage).Select(p => _layout[p]).OfType<LayoutRect>().ToList();
+        double? x = row.Count > 0 ? CentredOffset(row.Min(r => r.X), row.Max(r => r.Right), zoom) : null;
+        _scroll.ChangeView(x, null, (float)zoom, true);
         _renderedZoom = 0; // force re-render at the new size
     }
+
+    /// <summary>Horizontal scroll offset that puts content from <paramref name="left"/> to <paramref name="right"/> in the middle.</summary>
+    private double CentredOffset(double left, double right, double zoom) =>
+        Math.Max(0, (((left + right) / 2) * zoom) - (_scroll.ViewportWidth / 2));
+
+    private bool IsHorizontallyVisible(double left, double right, double zoom) =>
+        left * zoom >= _scroll.HorizontalOffset - 1 && right * zoom <= _scroll.HorizontalOffset + _scroll.ViewportWidth + 1;
 
     /// <summary>
     /// Fit width uses the page (or spread) being read, not the widest page in the file, so one

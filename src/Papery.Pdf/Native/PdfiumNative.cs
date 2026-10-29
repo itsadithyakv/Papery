@@ -300,6 +300,51 @@ internal static unsafe partial class PdfiumNative
     [LibraryImport(Dll)]
     internal static partial nint FPDFFormObj_GetObject(nint formObject, uint index);
 
+    // ---- Page organising (fpdf_edit.h, fpdf_ppo.h) ----
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDF_CreateNewDocument();
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFPage_New(nint document, int pageIndex, double width, double height);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFPage_Delete(nint document, int pageIndex);
+
+    // Moves the listed pages (no duplicates) so they appear in that order starting at destPageIndex.
+    [LibraryImport(Dll)]
+    internal static partial int FPDF_MovePages(nint document, int* pageIndices, uint length, int destPageIndex);
+
+    // Rotation in quarter turns clockwise: 0..3.
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPage_GetRotation(nint page);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFPage_SetRotation(nint page, int rotate);
+
+    // Deep-copies pages (and everything they use) from one document into another.
+    [LibraryImport(Dll)]
+    internal static partial int FPDF_ImportPagesByIndex(nint destDocument, nint sourceDocument, int* pageIndices, uint length, int index);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDF_CopyViewerPreferences(nint destDocument, nint sourceDocument);
+
+    // ---- Saving (fpdf_save.h) ----
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct FPDF_FILEWRITE
+    {
+        public int version; // must be 1
+        public delegate* unmanaged[Cdecl]<FPDF_FILEWRITE*, byte*, uint, int> WriteBlock;
+    }
+
+    internal const uint FPDF_INCREMENTAL = 1 << 0;
+    internal const uint FPDF_NO_INCREMENTAL = 1 << 1;
+    internal const uint FPDF_REMOVE_SECURITY = 1 << 2;
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDF_SaveAsCopy(nint document, FPDF_FILEWRITE* fileWrite, uint flags);
+
     // ---- Error codes returned by FPDF_GetLastError ----
     internal const uint FPDF_ERR_SUCCESS = 0;
     internal const uint FPDF_ERR_UNKNOWN = 1;

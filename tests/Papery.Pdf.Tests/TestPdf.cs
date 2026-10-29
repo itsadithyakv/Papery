@@ -1,4 +1,4 @@
-using PdfSharp.Drawing;
+﻿using PdfSharp.Drawing;
 using PdfSharp.Fonts;
 
 namespace Papery.Pdf.Tests;
@@ -83,6 +83,48 @@ internal sealed class TestPdf : IDisposable
         chapter.Outlines.Add("Section 1.1", pages[1], false);
         doc.Outlines.Add("Chapter Two", pages[2], false);
 
+        string path = Path.Combine(Folder, name);
+        doc.Save(path);
+        return path;
+    }
+
+    /// <summary>3 pages; page 2 is stuffed with ~150 KB of unique random text, so whether it is gone shows in the file size.</summary>
+    public string CreateWithHeavyMiddlePage(string name = "heavy.pdf")
+    {
+        var doc = new PdfSharp.Pdf.PdfDocument();
+        var font = new XFont("Courier New", 4);
+        var random = new Random(42);
+        for (int n = 1; n <= 3; n++)
+        {
+            var page = doc.AddPage();
+            using var g = XGraphics.FromPdfPage(page);
+            g.DrawString($"Page {n}", new XFont("Arial", 18), XBrushes.Black, 72, 72, XStringFormats.TopLeft);
+            if (n == 2)
+            {
+                for (int line = 0; line < 3000; line++)
+                {
+                    string text = Convert.ToHexString(BitConverter.GetBytes(random.NextInt64())) + Convert.ToHexString(BitConverter.GetBytes(random.NextInt64()));
+                    g.DrawString(text, font, XBrushes.Black, 20 + (line % 4 * 140), 100 + (line / 4 * 0.9), XStringFormats.TopLeft);
+                }
+            }
+        }
+
+        string path = Path.Combine(Folder, name);
+        doc.Save(path);
+        return path;
+    }
+
+    /// <summary>A PDF anyone can open, whose owner forbids changes (page assembly, editing, copying).</summary>
+    public string CreateRestricted(string name = "restricted.pdf")
+    {
+        var doc = new PdfSharp.Pdf.PdfDocument();
+        doc.AddPage();
+        doc.AddPage();
+        doc.SecurityHandler.SetEncryptionToV5();
+        doc.SecuritySettings.OwnerPassword = "owner";
+        doc.SecuritySettings.PermitAssembleDocument = false;
+        doc.SecuritySettings.PermitModifyDocument = false;
+        doc.SecuritySettings.PermitExtractContent = false;
         string path = Path.Combine(Folder, name);
         doc.Save(path);
         return path;

@@ -12,6 +12,8 @@
 
   <ItemGroup>
     <PackageReference Include="bblanchon.PDFium.Win32" />
+    <!-- Writes bookmarks into new documents (PDFium can't). Pinned to 6.2.4, the last MIT release. -->
+    <PackageReference Include="PDFsharp" />
   </ItemGroup>
 
   <ItemGroup>

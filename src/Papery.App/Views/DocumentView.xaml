@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
     x:Class="Papery.Views.DocumentView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -24,7 +24,7 @@
         <KeyboardAccelerator Key="Escape" Invoked="OnEscapeShortcut" />
     </UserControl.KeyboardAccelerators>
 
-    <Grid>
+    <Grid x:Name="LayoutRoot">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -169,7 +169,7 @@
         </Border>
 
         <!-- ============ Sidebar + pages ============ -->
-        <Grid Grid.Row="2">
+        <Grid x:Name="ReadingArea" Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />

@@ -46,9 +46,9 @@ internal static class ToolCatalog
 {
     public static readonly IReadOnlyList<ToolInfo> All =
     [
-        new("organise", "Organise pages", "Reorder, rotate, delete", "", ToolFamily.Pages, IsPro: true, IsBuilt: false),
-        new("merge", "Merge", "Many files into one", "", ToolFamily.Pages, IsPro: true, IsBuilt: false),
-        new("split", "Split", "One file into many", "", ToolFamily.Pages, IsPro: true, IsBuilt: false),
+        new("organise", "Organise pages", "Reorder, rotate, delete", "", ToolFamily.Pages, IsPro: true, IsBuilt: true),
+        new("merge", "Merge", "Many files into one", "", ToolFamily.Pages, IsPro: true, IsBuilt: true),
+        new("split", "Split", "One file into many", "", ToolFamily.Pages, IsPro: true, IsBuilt: true),
         new("crop", "Crop & resize", "Trim margins, change size", "", ToolFamily.Pages, IsPro: true, IsBuilt: false),
         new("compress", "Compress", "Smaller files to share", "", ToolFamily.Size, IsPro: true, IsBuilt: false),
         new("annotate", "Highlight & comment", "Mark up and add notes", "", ToolFamily.Markup, IsPro: false, IsBuilt: false),

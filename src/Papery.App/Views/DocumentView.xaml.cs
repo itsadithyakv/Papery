@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -190,6 +190,8 @@ public sealed partial class DocumentView : UserControl
     /// <summary>Saves where the user was, stops background work and closes the file.</summary>
     public async Task CloseAsync()
     {
+        _closingTab = true;
+        await ExitOrganiseAsync(saved: false);
         _saveTimer.Stop();
         SaveState();
         _searchCts?.Cancel();
@@ -246,6 +248,7 @@ public sealed partial class DocumentView : UserControl
             new("Document properties", "", () => _ = ShowPropertiesAsync(), "Ctrl+D", "info details metadata author", hasDoc),
             new("Show in folder", "", ShowInFolder, Keywords: "explorer location", CanExecute: hasDoc),
             new("Take the tour", "", StartTour, Keywords: "help tutorial guide learn", CanExecute: hasDoc),
+            .. PageToolCommands(),
         ];
     }
 
@@ -395,20 +398,12 @@ public sealed partial class DocumentView : UserControl
             Modes.AddItem(name, glyph, name, name.Replace("&", "and", StringComparison.Ordinal));
         }
 
-        Modes.SelectionChanged += (_, index) => OnModeChanged(modes[index].Name);
+        Modes.SelectionChanged += (_, index) => OnModeSelected(index, modes[index].Name);
 
         SidebarTabs.AddItem("Pages");
         SidebarTabs.AddItem("Bookmarks");
         SidebarTabs.AddItem("Search");
         SidebarTabs.SelectionChanged += (_, _) => OnSidebarTabChanged();
-    }
-
-    private void OnModeChanged(string mode)
-    {
-        bool view = mode == "View";
-        ViewToolbar.Visibility = view ? Visibility.Visible : Visibility.Collapsed;
-        ComingSoonText.Visibility = view ? Visibility.Collapsed : Visibility.Visible;
-        ComingSoonText.Text = $"The {mode} tools arrive in a later stage of this build.";
     }
 
     // ================================================================= sidebar
@@ -807,13 +802,7 @@ public sealed partial class DocumentView : UserControl
         }
     }
 
-    private void ShowInFolder()
-    {
-        if (File.Exists(FilePath))
-        {
-            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{FilePath}\"") { UseShellExecute = true });
-        }
-    }
+    private void ShowInFolder() => Shell.ShowInFolder(FilePath);
 
     private void OnPrintClick(object sender, RoutedEventArgs e) => _ = PrintAsync();
 

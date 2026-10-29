@@ -1,4 +1,4 @@
-using Microsoft.UI;
+﻿using Microsoft.UI;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Papery.Core.Storage;
@@ -288,12 +288,7 @@ public sealed partial class PdfViewer
         return task;
     }
 
-    private Color PaperColor() => _readingMode switch
-    {
-        ReadingMode.Dark => Color.FromArgb(255, 0x1E, 0x1E, 0x1E),
-        ReadingMode.Sepia => Color.FromArgb(255, 250, 238, 217),
-        _ => Colors.White,
-    };
+    private Color PaperColor() => PageBitmaps.PaperColor(_readingMode);
 
     private void ClearCaches()
     {

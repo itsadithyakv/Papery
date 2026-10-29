@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using Papery.Pdf.Editing;
 using Papery.Pdf.Native;
 
 namespace Papery.Pdf;
@@ -17,16 +17,17 @@ public sealed partial class PdfDocument : IAsyncDisposable
     private const int PageCacheSize = 6;
 
     private readonly PdfiumThread _thread;
-    private readonly PdfFileSource _source;
+    private readonly RawPdf _raw;
     private readonly LinkedList<(int Index, nint Handle)> _pageCache = new(); // most recent first; PDFium thread only
     private nint _handle;
 
-    private unsafe PdfDocument(PdfiumThread thread, PdfFileSource source, nint handle, string path)
+    private unsafe PdfDocument(PdfiumThread thread, RawPdf raw, string? password)
     {
         _thread = thread;
-        _source = source;
-        _handle = handle;
-        FilePath = path;
+        Password = password;
+        _raw = raw;
+        nint handle = _handle = raw.Handle;
+        FilePath = raw.FilePath;
 
         // Everything below is cheap: none of it parses page contents.
         int pageCount = PdfiumNative.FPDF_GetPageCount(handle);
@@ -52,7 +53,7 @@ public sealed partial class PdfDocument : IAsyncDisposable
 
     public string FilePath { get; }
 
-    public long FileSize => _source.Length;
+    public long FileSize => _raw.FileLength;
 
     public int PageCount => PageSizes.Count;
 
@@ -75,6 +76,12 @@ public sealed partial class PdfDocument : IAsyncDisposable
     /// <summary>Bit 5 of the permissions: copying text allowed.</summary>
     public bool CanCopy => (Permissions & (1 << 4)) != 0;
 
+    /// <summary>Bits 4 or 11: inserting, rotating and deleting pages allowed.</summary>
+    public bool CanAssemble => (Permissions & ((1 << 3) | (1 << 10))) != 0;
+
+    /// <summary>The password the file was opened with (kept so edits can re-open and re-save it), or null.</summary>
+    public string? Password { get; }
+
     /// <summary>True when the cross-reference table was broken and PDFium rebuilt it.</summary>
     public bool WasRepaired { get; }
 
@@ -82,48 +89,13 @@ public sealed partial class PdfDocument : IAsyncDisposable
 
     public bool HasOutline { get; }
 
-    internal static unsafe Task<PdfDocument> OpenAsync(
+    internal static Task<PdfDocument> OpenAsync(
         PdfEngine engine, string path, string? password, CancellationToken cancellationToken)
     {
-        return engine.Thread.InvokeAsync(() =>
-        {
-            PdfFileSource source;
-            try
-            {
-                source = new PdfFileSource(path);
-            }
-            catch (PdfOpenException)
-            {
-                throw;
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                throw new PdfOpenException(PdfOpenError.FileUnreadable, path, ex);
-            }
-
-            if (source.Length == 0)
-            {
-                source.Dispose();
-                throw new PdfOpenException(PdfOpenError.Damaged, path);
-            }
-
-            // PDFium accepts UTF-8 passwords and converts them for older encryption itself.
-            byte[] passwordBytes = Encoding.UTF8.GetBytes((password ?? string.Empty) + '\0');
-            nint handle;
-            fixed (byte* pw = passwordBytes)
-            {
-                handle = PdfiumNative.FPDF_LoadCustomDocument(source.Access, pw);
-            }
-
-            if (handle == 0)
-            {
-                uint error = PdfiumNative.FPDF_GetLastError();
-                source.Dispose();
-                throw new PdfOpenException(MapError(error), path);
-            }
-
-            return new PdfDocument(engine.Thread, source, handle, path);
-        }, PdfWorkPriority.Visible, cancellationToken);
+        return engine.Thread.InvokeAsync(
+            () => new PdfDocument(engine.Thread, RawPdf.Load(path, password), password),
+            PdfWorkPriority.Visible,
+            cancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -142,12 +114,9 @@ public sealed partial class PdfDocument : IAsyncDisposable
             }
 
             _pageCache.Clear();
-            PdfiumNative.FPDF_CloseDocument(_handle);
+            _raw.Dispose(); // closes the handle, then the file
             _handle = 0;
         }).ConfigureAwait(false);
-
-        // Only free the file access struct after PDFium has let go of it.
-        _source.Dispose();
     }
 
     /// <summary>Runs work on the PDFium thread with a loaded page. Must only be called from inside the thread.</summary>
@@ -204,13 +173,4 @@ public sealed partial class PdfDocument : IAsyncDisposable
         double x = Math.Min(x1, x2) / (double)Scale, y = Math.Min(y1, y2) / (double)Scale;
         return new NormalizedRect(x, y, Math.Abs(x2 - x1) / (double)Scale, Math.Abs(y2 - y1) / (double)Scale);
     }
-
-    private static PdfOpenError MapError(uint error) => error switch
-    {
-        PdfiumNative.FPDF_ERR_FILE => PdfOpenError.FileUnreadable,
-        PdfiumNative.FPDF_ERR_FORMAT => PdfOpenError.Damaged,
-        PdfiumNative.FPDF_ERR_PASSWORD => PdfOpenError.PasswordRequired,
-        PdfiumNative.FPDF_ERR_SECURITY => PdfOpenError.UnsupportedSecurity,
-        _ => PdfOpenError.Unknown,
-    };
 }

@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices.WindowsRuntime;
+﻿using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Papery.Core.Storage;
 using Papery.Pdf;
@@ -17,6 +17,14 @@ internal static class PageBitmaps
     private static readonly (int B, int G, int R) SepiaInk = (28, 40, 60);
 
     /// <summary>Must be called on the UI thread.</summary>
+    /// <summary>The colour of blank paper in each reading mode (behind pages while they render).</summary>
+    public static Windows.UI.Color PaperColor(ReadingMode mode) => mode switch
+    {
+        ReadingMode.Dark => Windows.UI.Color.FromArgb(255, 0x1E, 0x1E, 0x1E),
+        ReadingMode.Sepia => Windows.UI.Color.FromArgb(255, 250, 238, 217),
+        _ => Microsoft.UI.Colors.White,
+    };
+
     public static WriteableBitmap ToWriteableBitmap(PdfBitmap bitmap)
     {
         var result = new WriteableBitmap(bitmap.Width, bitmap.Height);

@@ -1,4 +1,4 @@
-using Microsoft.UI;
+﻿using Microsoft.UI;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -39,6 +39,9 @@ public sealed partial class MainWindow : Window
         RestoreSize();
 
         AppWindow.Closing += OnClosing;
+        Activated += (_, e) => _active = e.WindowActivationState != WindowActivationState.Deactivated;
+        Guard.Failed += OnGuardFailed;
+        Closed += (_, _) => Guard.Failed -= OnGuardFailed;
         AppServices.Settings.Changed += OnSettingsChanged;
         Closed += (_, _) => AppServices.Settings.Changed -= OnSettingsChanged;
         Root.Loaded += (_, _) => UpdateCaptionInset();
@@ -51,6 +54,18 @@ public sealed partial class MainWindow : Window
     }
 
     public nint Hwnd { get; }
+
+    private bool _active;
+
+    /// <summary>A tool hit a bug: say so calmly in the window the user is working in.</summary>
+    private void OnGuardFailed(object? sender, string what)
+    {
+        if (_active && Root.XamlRoot != null)
+        {
+            _ = Dialogs.ShowMessageAsync(Root.XamlRoot, "Something went wrong",
+                "Papery hit a problem and stopped what it was doing. Your files have not been changed.", Controls.MascotMood.Oops);
+        }
+    }
 
     internal IEnumerable<DocumentView> Documents =>
         Tabs.TabItems.OfType<TabViewItem>().Select(t => t.Content).OfType<DocumentView>();
@@ -127,7 +142,11 @@ public sealed partial class MainWindow : Window
 
             view.Load(document); // before selecting, so the window title can show the file name
             Tabs.SelectedItem = tab;
-            if (tool is { IsBuilt: false })
+            if (tool is { IsBuilt: true })
+            {
+                view.StartTool(tool);
+            }
+            else if (tool != null)
             {
                 view.ShowNotice($"{tool.Name} is on its way", $"The {tool.Name} tool arrives in a later stage of this build. The file is open so you can read it.");
             }
@@ -183,14 +202,32 @@ public sealed partial class MainWindow : Window
         var home = new HomeView();
         home.OpenRequested += async (_, tool) =>
         {
-            if (await AllowToolAsync(tool))
+            if (!await AllowToolAsync(tool))
+            {
+                return;
+            }
+
+            if (tool?.Key == "merge")
+            {
+                ShowMerge([]); // Merge has its own place to add files
+            }
+            else
             {
                 await PickAndOpenAsync(tool);
             }
         };
         home.FilesChosen += async (_, e) =>
         {
-            if (await AllowToolAsync(e.Tool))
+            if (!await AllowToolAsync(e.Tool))
+            {
+                return;
+            }
+
+            if (e.Tool?.Key == "merge")
+            {
+                ShowMerge(e.Files);
+            }
+            else
             {
                 await OpenFilesAsync(e.Files, e.Tool);
             }
@@ -205,6 +242,21 @@ public sealed partial class MainWindow : Window
     /// <summary>Free tools always pass. Pro tools show the unlock screen when Pro isn't unlocked yet.</summary>
     private async Task<bool> AllowToolAsync(ToolInfo? tool) =>
         tool is not { IsPro: true } || await ProDialogs.RequireProAsync(Root.XamlRoot, tool);
+
+    /// <summary>Opens a Merge tab, starting with <paramref name="paths"/>.</summary>
+    public void ShowMerge(IReadOnlyList<string> paths)
+    {
+        var merge = new MergeView { GetWindowHandle = () => Hwnd };
+        merge.OpenRequested += (_, path) => _ = OpenFilesAsync([path]);
+        var tab = CreateTab(merge, "Merge", ToolCatalog.All.First(t => t.Key == "merge").Glyph);
+        int at = Tabs.SelectedIndex >= 0 ? Tabs.SelectedIndex + 1 : Tabs.TabItems.Count;
+        Tabs.TabItems.Insert(Math.Min(at, Tabs.TabItems.Count), tab);
+        Tabs.SelectedItem = tab;
+        if (paths.Count > 0)
+        {
+            _ = merge.AddFilesAsync(paths);
+        }
+    }
 
     private void ShowHelp()
     {
@@ -268,6 +320,8 @@ public sealed partial class MainWindow : Window
         {
             WindowManager.WindowFor((DocumentView)sender!)?.SetPresenting((DocumentView)sender!, enter);
         };
+        view.OpenFileRequested += (sender, path) => _ = WindowManager.WindowFor((DocumentView)sender!)?.OpenFilesAsync([path]);
+        view.MergeRequested += (sender, path) => WindowManager.WindowFor((DocumentView)sender!)?.ShowMerge([path]);
         view.NavigationRequested += (sender, target) =>
         {
             var window = WindowManager.WindowFor((DocumentView)sender!);
@@ -286,7 +340,22 @@ public sealed partial class MainWindow : Window
     {
         if (tab.Content is DocumentView view)
         {
+            Tabs.SelectedItem = tab;
+            if (!await view.ConfirmCloseAsync())
+            {
+                return;
+            }
+
             await view.CloseAsync();
+        }
+        else if (tab.Content is MergeView merge)
+        {
+            if (merge.IsBusy && !await Dialogs.ConfirmAsync(Root.XamlRoot, "Stop merging?", "The merge isn't finished. Nothing will be saved if you stop now.", "Stop", "Keep going"))
+            {
+                return;
+            }
+
+            await merge.CloseAsync();
         }
 
         Tabs.TabItems.Remove(tab);
@@ -586,9 +655,25 @@ public sealed partial class MainWindow : Window
             });
         }
 
+        // Unsaved page changes: show each tab and ask; Cancel keeps the window open.
+        foreach (var view in Documents.Where(d => d.HasUnsavedChanges).ToList())
+        {
+            Tabs.SelectedItem = Tabs.TabItems.OfType<TabViewItem>().First(t => ReferenceEquals(t.Content, view));
+            if (!await view.ConfirmCloseAsync())
+            {
+                _closing = false;
+                return;
+            }
+        }
+
         foreach (var view in Documents.ToList())
         {
             await view.CloseAsync();
+        }
+
+        foreach (var merge in Tabs.TabItems.OfType<TabViewItem>().Select(t => t.Content).OfType<MergeView>().ToList())
+        {
+            await merge.CloseAsync();
         }
 
         await AppServices.ViewState.SaveAsync();
