@@ -1,0 +1,20 @@
+<!--
+  Settings shared by every project in the solution.
+  Individual .csproj files only add what is specific to them.
+-->
+<Project>
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <Deterministic>true</Deterministic>
+
+    <Company>Papery</Company>
+    <Product>Papery – PDF Editor, Merge &amp; Sign</Product>
+    <Copyright>© Papery</Copyright>
+
+    <!-- Papery talks to native PDFium through unsafe pointers in Papery.Pdf only. -->
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+  </PropertyGroup>
+</Project>

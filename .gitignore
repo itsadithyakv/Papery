@@ -1,0 +1,23 @@
+# Build output
+bin/
+obj/
+TestResults/
+*.binlog
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+# MSIX packaging output
+AppPackages/
+BundleArtifacts/
+*.msix
+*.msixbundle
+*.msixupload
+*.appxsym
+
+# Generated test PDFs (~350 MB). Recreate with:
+#   dotnet run --project tools/Papery.TestFiles -c Release
+PaperyTestFiles/

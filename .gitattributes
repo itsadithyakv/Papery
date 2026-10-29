@@ -1,0 +1,9 @@
+# Normalise line endings in the repo; Windows checkouts get CRLF.
+* text=auto
+
+# Binary files: never touch.
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
+*.dll binary

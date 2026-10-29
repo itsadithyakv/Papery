@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Papery.Pdf/Papery.Pdf.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Papery.Pdf.Tests/Papery.Pdf.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Papery.TestFiles/Papery.TestFiles.csproj" />
+  </Folder>
+</Solution>

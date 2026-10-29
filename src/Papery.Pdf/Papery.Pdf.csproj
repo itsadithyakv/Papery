@@ -1,0 +1,20 @@
+<!--
+  Papery.Pdf: the PDF engine layer.
+  Wraps native PDFium (rendering, text, search, forms, annotations) behind a small,
+  thread-safe C# API. Nothing in here knows about the UI.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Papery.Pdf</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="bblanchon.PDFium.Win32" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Papery.Pdf.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,30 @@
+<!--
+  Central list of every third-party package and its version.
+  LICENCE RULE: only MIT / BSD / Apache 2.0 packages may be added here.
+  Each entry notes its licence; update docs/THIRD-PARTY-NOTICES.txt when adding one.
+-->
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Lets us override vulnerable versions of indirect dependencies below. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- PDFium native binaries for win-x86 / win-x64 / win-arm64. PDFium: BSD-3-Clause + Apache-2.0. -->
+    <PackageVersion Include="bblanchon.PDFium.Win32" Version="158.0.8125" />
+
+    <!--
+      PDF structure writing: bookmarks, metadata, form fields, encryption.
+      PINNED to exactly 6.2.4, the last MIT release. PDFsharp 6.5.0 (Oct 2026) and later
+      are AGPL-3.0 and must NOT be used. The [ ] brackets stop NuGet from ever upgrading it.
+    -->
+    <PackageVersion Include="PDFsharp" Version="[6.2.4]" />
+
+    <!-- Indirect dependency of PDFsharp; pinned up from 8.0.1, which has known vulnerabilities. MIT. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+
+    <!-- Tests only. xUnit v3: Apache-2.0. Runs on Microsoft.Testing.Platform (see global.json). -->
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+  </ItemGroup>
+</Project>

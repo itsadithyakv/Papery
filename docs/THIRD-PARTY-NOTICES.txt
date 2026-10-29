@@ -1,0 +1,29 @@
+PAPERY – THIRD-PARTY NOTICES
+============================
+
+Papery uses the following open-source components. All are under permissive licences
+that allow use in closed-source commercial software. This file ships with the app
+(full licence texts are added in the packaging stage).
+
+PDFium
+  https://pdfium.googlesource.com/pdfium/
+  Licence: BSD-3-Clause and Apache-2.0
+  Binaries from bblanchon/pdfium-binaries (package bblanchon.PDFium.Win32, Apache-2.0).
+  PDFium includes these third-party libraries, all under permissive licences:
+    FreeType          FreeType Licence (FTL) – "Portions of this software are copyright
+                      © The FreeType Project (www.freetype.org). All rights reserved."
+    libjpeg-turbo     IJG Licence / BSD-3-Clause / zlib
+    OpenJPEG          BSD-2-Clause
+    Little CMS        MIT
+    zlib              zlib Licence
+    libpng            libpng Licence
+    Abseil            Apache-2.0
+
+PDFsharp 6.2.4
+  https://github.com/empira/PDFsharp
+  Licence: MIT. Copyright (c) 2005-2025 empira Software GmbH, Troisdorf (Cologne Area), Germany.
+  NOTE: pinned to 6.2.4. PDFsharp 6.5.0 and later are AGPL-3.0 and are NOT used.
+
+.NET runtime and libraries
+  https://github.com/dotnet/runtime
+  Licence: MIT. Copyright (c) .NET Foundation and Contributors.
