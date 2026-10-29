@@ -115,7 +115,8 @@ public static class SplitPlanner
         return result;
     }
 
-    private static string PartName(int index, int count)
+    /// <summary>"part 03": numbers padded to the count so files sort in order.</summary>
+    public static string PartName(int index, int count)
     {
         int digits = Math.Max(2, count.ToString(CultureInfo.InvariantCulture).Length);
         return "part " + (index + 1).ToString(CultureInfo.InvariantCulture).PadLeft(digits, '0');

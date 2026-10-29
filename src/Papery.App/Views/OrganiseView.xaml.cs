@@ -321,18 +321,19 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         }
     }
 
-    private void InsertBlank()
+    /// <param name="size">A paper size, or null for the same size as the page it follows.</param>
+    private void InsertBlank(PdfPageSize? size = null)
     {
         if (_busy != null)
         {
             return;
         }
 
-        // Same size and orientation as the page it follows, so it doesn't stand out when printed.
+        // By default the same size and orientation as the page it follows, so it doesn't stand out when printed.
         int index = InsertionIndex();
-        var size = index > 0 ? _pages[index - 1].TurnedSize : _pages.Count > 0 ? _pages[0].TurnedSize : A4;
+        size ??= index > 0 ? _pages[index - 1].TurnedSize : _pages.Count > 0 ? _pages[0].TurnedSize : A4;
         RememberForUndo();
-        var blank = NewPage(PageRef.Blank(size), null, null, size);
+        var blank = NewPage(PageRef.Blank(size.Value), null, null, size.Value);
         _pages.Insert(index, blank);
         AfterChange();
         Board.ScrollIntoView(blank);
@@ -343,23 +344,12 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         var added = new List<OrganisePage>();
         foreach (string path in paths.Where(DropFiles.IsPdf))
         {
-            var document = await DocumentOpener.OpenAsync(path, XamlRoot);
-            if (document == null)
+            if (await OpenSourceAsync(path) is not { } opened)
             {
                 continue;
             }
 
-            if (!document.CanAssemble)
-            {
-                await document.DisposeAsync();
-                var (title, message) = EditErrors.Explain(new PdfEditException(PdfEditError.NotAllowed, path));
-                await Dialogs.ShowMessageAsync(XamlRoot, title, message, MascotMood.Oops);
-                continue;
-            }
-
-            int source = _sources.Count;
-            _sources.Add(new PdfInputFile(path, document.Password));
-            _sourceDocuments.Add(document);
+            var (source, document) = opened;
             string name = Path.GetFileName(path);
             for (int i = 0; i < document.PageCount; i++)
             {
@@ -383,6 +373,123 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         Board.SelectedItems.Clear();
         Board.ScrollIntoView(added[0]);
         Toaster.Show(added.Count == 1 ? "1 page added" : $"{added.Count:N0} pages added", "", "Undo", Undo);
+    }
+
+    /// <summary>Moves the selected pages, keeping their order, to the start or the end.</summary>
+    private void MoveSelected(bool toStart)
+    {
+        var selected = SelectedInOrder();
+        if (selected.Count == 0 || selected.Count == _pages.Count || _busy != null)
+        {
+            return;
+        }
+
+        RememberForUndo();
+        for (int i = 0; i < selected.Count; i++)
+        {
+            int from = _pages.IndexOf(selected[i]);
+            int to = toStart ? i : _pages.Count - selected.Count + i;
+            _pages.Move(from, to);
+        }
+
+        AfterChange();
+        Board.ScrollIntoView(selected[0]);
+    }
+
+    /// <summary>Reverses the selected pages among themselves, or the whole document when fewer than two are selected.</summary>
+    private void Reverse()
+    {
+        var pages = Board.SelectedItems.Count > 1 ? SelectedInOrder() : _pages.ToList();
+        if (pages.Count < 2 || _busy != null)
+        {
+            return;
+        }
+
+        RememberForUndo();
+        var slots = pages.Select(p => p.Position).ToList(); // the same places, filled in reverse
+        var reversed = Enumerable.Reverse(pages).ToList();
+        for (int i = 0; i < slots.Count; i++)
+        {
+            _pages.Move(_pages.IndexOf(reversed[i]), slots[i]);
+        }
+
+        AfterChange();
+    }
+
+    /// <summary>Swaps the selected pages for pages of another PDF, starting at a page the user picks.</summary>
+    private async Task ReplaceAsync()
+    {
+        var selected = SelectedInOrder();
+        if (selected.Count == 0 || _busy != null)
+        {
+            return;
+        }
+
+        var paths = await Pickers.PickPdfsAsync(GetWindowHandle(), multiple: false);
+        if (paths.Count == 0 || await OpenSourceAsync(paths[0]) is not { } added)
+        {
+            return;
+        }
+
+        var (source, document) = added;
+        int first = 0;
+        if (document.PageCount > 1)
+        {
+            var box = new NumberBox { Minimum = 1, Maximum = document.PageCount, Value = 1, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline, Width = 160 };
+            var dialog = new ContentDialog
+            {
+                Title = selected.Count == 1 ? "Which page should go in?" : $"Which page should the {selected.Count} new pages start from?",
+                Content = box,
+                PrimaryButtonText = "Replace",
+                CloseButtonText = "Cancel",
+            };
+            if (await Dialogs.ShowAsync(dialog, XamlRoot) != ContentDialogResult.Primary || double.IsNaN(box.Value))
+            {
+                return;
+            }
+
+            first = (int)box.Value - 1;
+        }
+
+        string name = Path.GetFileName(paths[0]);
+        RememberForUndo();
+        int replaced = 0;
+        foreach (var old in selected)
+        {
+            int page = first + replaced;
+            if (page >= document.PageCount)
+            {
+                break; // the other file ran out of pages; the rest stay as they were
+            }
+
+            _pages[_pages.IndexOf(old)] = NewPage(new PageRef(source, page), document, name, document.PageSizes[page]);
+            replaced++;
+        }
+
+        AfterChange();
+        Toaster.Show(replaced == 1 ? "1 page replaced" : $"{replaced} pages replaced", "\uE8AB", "Undo", Undo);
+    }
+
+    /// <summary>Opens another PDF as a page source (asking for its password if needed). Null if it can't be used.</summary>
+    private async Task<(int Source, PdfDocument Document)?> OpenSourceAsync(string path)
+    {
+        var document = await DocumentOpener.OpenAsync(path, XamlRoot);
+        if (document == null)
+        {
+            return null;
+        }
+
+        if (!document.CanAssemble)
+        {
+            await document.DisposeAsync();
+            var (title, message) = EditErrors.Explain(new PdfEditException(PdfEditError.NotAllowed, path));
+            await Dialogs.ShowMessageAsync(XamlRoot, title, message, MascotMood.Oops);
+            return null;
+        }
+
+        _sources.Add(new PdfInputFile(path, document.Password));
+        _sourceDocuments.Add(document);
+        return (_sources.Count - 1, document);
     }
 
     // ================================================================= saving
@@ -743,6 +850,32 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
     private void OnDuplicate(object sender, RoutedEventArgs e) => Duplicate();
 
     private void OnInsertBlank(object sender, RoutedEventArgs e) => InsertBlank();
+
+    private void OnInsertBlankSized(object sender, RoutedEventArgs e)
+    {
+        var parts = ((string)((FrameworkElement)sender).Tag).Split(',');
+        InsertBlank(new PdfPageSize(
+            float.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture),
+            float.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture)));
+    }
+
+    private void OnMoreMenuOpening(object sender, object e)
+    {
+        bool any = Board.SelectedItems.Count > 0 && _busy == null;
+        Rotate180Item.IsEnabled = ReplaceItem.IsEnabled = any;
+        MoveStartItem.IsEnabled = MoveEndItem.IsEnabled = any && Board.SelectedItems.Count < _pages.Count;
+        ReverseItem.Text = Board.SelectedItems.Count > 1 ? "Reverse the selected pages" : "Reverse all pages";
+    }
+
+    private void OnRotate180(object sender, RoutedEventArgs e) => Rotate(SelectedInOrder(), 2);
+
+    private void OnMoveToStart(object sender, RoutedEventArgs e) => MoveSelected(toStart: true);
+
+    private void OnMoveToEnd(object sender, RoutedEventArgs e) => MoveSelected(toStart: false);
+
+    private void OnReverse(object sender, RoutedEventArgs e) => Reverse();
+
+    private void OnReplace(object sender, RoutedEventArgs e) => Guard.Run(ReplaceAsync, "Replacing pages");
 
     private void OnInsertFile(object sender, RoutedEventArgs e) => Guard.Run(async () =>
     {

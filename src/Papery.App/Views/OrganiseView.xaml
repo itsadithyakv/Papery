@@ -66,6 +66,39 @@
                         <Button x:Name="SplitButton" Style="{StaticResource ToolButtonStyle}" Click="OnSplit" AutomationProperties.Name="Split into several PDFs" ToolTipService.ToolTip="Split into several PDFs">
                             <FontIcon Glyph="&#xE8C6;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
+                        <DropDownButton Style="{StaticResource ToolDropDownStyle}" AutomationProperties.Name="More page actions" ToolTipService.ToolTip="More page actions">
+                            <FontIcon Glyph="&#xE712;" Style="{StaticResource ToolIconStyle}" />
+                            <DropDownButton.Flyout>
+                                <MenuFlyout x:Name="MoreMenu" Opening="OnMoreMenuOpening">
+                                    <MenuFlyoutItem x:Name="Rotate180Item" Text="Turn upside down" Click="OnRotate180">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7AD;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem x:Name="MoveStartItem" Text="Move to the start" Click="OnMoveToStart">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74A;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem x:Name="MoveEndItem" Text="Move to the end" Click="OnMoveToEnd">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74B;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem x:Name="ReverseItem" Text="Reverse all pages" Click="OnReverse">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8CB;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem x:Name="ReplaceItem" Text="Replace with pages from another PDF..." Click="OnReplace">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8AB;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutSubItem Text="Add a blank page">
+                                        <MenuFlyoutSubItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutSubItem.Icon>
+                                        <MenuFlyoutItem Text="Same size as the page before" Click="OnInsertBlank" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem Text="A4" Tag="595.28,841.89" Click="OnInsertBlankSized" />
+                                        <MenuFlyoutItem Text="A5" Tag="419.53,595.28" Click="OnInsertBlankSized" />
+                                        <MenuFlyoutItem Text="A3" Tag="841.89,1190.55" Click="OnInsertBlankSized" />
+                                        <MenuFlyoutItem Text="US Letter" Tag="612,792" Click="OnInsertBlankSized" />
+                                        <MenuFlyoutItem Text="US Legal" Tag="612,1008" Click="OnInsertBlankSized" />
+                                    </MenuFlyoutSubItem>
+                                </MenuFlyout>
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
                         <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
                         <Button x:Name="UndoButton" Style="{StaticResource ToolButtonStyle}" Click="OnUndo" AutomationProperties.Name="Undo" ToolTipService.ToolTip="Undo (Ctrl+Z)">
                             <FontIcon Glyph="&#xE7A7;" Style="{StaticResource ToolIconStyle}" />

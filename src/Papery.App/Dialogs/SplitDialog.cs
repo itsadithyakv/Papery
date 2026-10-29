@@ -38,6 +38,7 @@ internal static class SplitDialog
             methods.AddItem("Chapters", "", "chapters", "By chapter (bookmarks)");
         }
 
+        methods.AddItem("Size", "", "size", "By file size, for email limits");
         methods.AddItem("Each page", "", "each", "Every page on its own");
         panel.Children.Add(methods);
 
@@ -53,9 +54,19 @@ internal static class SplitDialog
         var rangesBox = new TextBox { PlaceholderText = "1-3, 4-10, 11-", Width = 260 };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(rangesBox, "Page ranges, one file per range");
         var rangesRow = Row("one file each", rangesBox);
+        var sizeBox = new NumberBox
+        {
+            Minimum = 1,
+            Maximum = 4000,
+            Value = 10,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
+            Width = 140,
+        };
+        var sizeRow = Row("MB at most per file", sizeBox);
         var settings = new Grid { MinHeight = 34 };
         settings.Children.Add(everyRow);
         settings.Children.Add(rangesRow);
+        settings.Children.Add(sizeRow);
         panel.Children.Add(settings);
 
         var summary = new TextBlock { FontSize = 20, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
@@ -94,11 +105,33 @@ internal static class SplitDialog
 
         // ---- live preview ----
         IReadOnlyList<SplitPart> parts = [];
+        bool bySize = false;
+        long SizeLimit() => (long)(Math.Clamp(double.IsNaN(sizeBox.Value) ? 10 : sizeBox.Value, 1, 4000) * 1024 * 1024);
         void Refresh()
         {
             string method = (string)methods.Items[Math.Max(0, methods.SelectedIndex)].Tag;
             everyRow.Visibility = method == "every" ? Visibility.Visible : Visibility.Collapsed;
             rangesRow.Visibility = method == "ranges" ? Visibility.Visible : Visibility.Collapsed;
+            sizeRow.Visibility = method == "size" ? Visibility.Visible : Visibility.Collapsed;
+            folderText.Text = folder;
+            ToolTipService.SetToolTip(folderText, folder);
+            preview.Children.Clear();
+            if (method == "size")
+            {
+                // Pages share fonts and images, so a page's share of the file can't be known in advance:
+                // the parts are found while splitting. The estimate is only for the preview.
+                bySize = true;
+                parts = [];
+                long limit = SizeLimit();
+                long estimate = Math.Max(1, (document.FileSize + limit - 1) / limit);
+                summary.Text = estimate == 1 ? "Probably 1 file" : $"About {estimate:N0} files";
+                preview.Children.Add(Secondary($"Each file stays under {sizeBox.Value:N0} MB. Papery works out where to cut while splitting."));
+                dialog.IsPrimaryButtonEnabled = !double.IsNaN(sizeBox.Value);
+                dialog.PrimaryButtonText = "Split";
+                return;
+            }
+
+            bySize = false;
             string? error = null;
             parts = method switch
             {
@@ -108,7 +141,6 @@ internal static class SplitDialog
                 _ => SplitPlanner.EveryNPages(pageCount, 1),
             };
 
-            preview.Children.Clear();
             if (parts.Count == 0)
             {
                 summary.Text = "No files yet";
@@ -128,8 +160,6 @@ internal static class SplitDialog
                 }
             }
 
-            folderText.Text = folder;
-            ToolTipService.SetToolTip(folderText, folder);
             dialog.IsPrimaryButtonEnabled = parts.Count > 0;
             dialog.PrimaryButtonText = parts.Count > 1 ? $"Split into {parts.Count:N0} files" : "Split";
         }
@@ -137,6 +167,7 @@ internal static class SplitDialog
         methods.SelectionChanged += (_, _) => Refresh();
         everyBox.ValueChanged += (_, _) => Refresh();
         rangesBox.TextChanged += (_, _) => Refresh();
+        sizeBox.ValueChanged += (_, _) => Refresh();
         changeFolder.Click += async (_, _) =>
         {
             if (await Pickers.PickFolderAsync(hwnd) is { } picked)
@@ -164,18 +195,36 @@ internal static class SplitDialog
             try
             {
                 var source = new PdfInputFile(document.FilePath, document.Password);
-                for (int i = 0; i < parts.Count; i++)
+                PdfComposeRequest Request(IReadOnlyList<int> pages)
+                {
+                    var map = pages.Select((page, index) => (page, index)).GroupBy(x => x.page).ToDictionary(g => g.Key, g => g.First().index);
+                    return new PdfComposeRequest(
+                        [source],
+                        pages.Select(p => new PageRef(0, p)).ToArray(),
+                        Outline: SplitPlanner.RemapOutline(outline, p => map.TryGetValue(p, out int at) ? at : null));
+                }
+
+                if (bySize)
+                {
+                    await SizeSplitter.SplitAsync(
+                        PdfEngine.Shared,
+                        pageCount,
+                        SizeLimit(),
+                        document.FileSize,
+                        Request,
+                        part => SplitPlanner.UniquePath(Path.Combine(folder, SplitPlanner.FileName(fileName, part))),
+                        written,
+                        new Progress<double>(v => progress.Value = v),
+                        running.Token);
+                }
+
+                for (int i = 0; i < parts.Count && !bySize; i++)
                 {
                     var part = parts[i];
-                    var map = part.Pages.Select((page, index) => (page, index)).GroupBy(x => x.page).ToDictionary(g => g.Key, g => g.First().index);
-                    var request = new PdfComposeRequest(
-                        [source],
-                        part.Pages.Select(p => new PageRef(0, p)).ToArray(),
-                        Outline: SplitPlanner.RemapOutline(outline, p => map.TryGetValue(p, out int at) ? at : null));
                     string path = SplitPlanner.UniquePath(Path.Combine(folder, SplitPlanner.FileName(fileName, part)));
                     int done = i;
                     var step = new Progress<double>(v => progress.Value = (done + v) / parts.Count);
-                    await PdfEngine.Shared.ComposeAsync(request, path, step, running.Token);
+                    await PdfEngine.Shared.ComposeAsync(Request(part.Pages), path, step, running.Token);
                     written.Add(path);
                 }
 
