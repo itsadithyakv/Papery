@@ -28,6 +28,9 @@ public partial class App : Application
         var window = WindowManager.Create();
         window.Activate();
 
+        // Pro already works from the local record; this just confirms with the Store in the background.
+        AppServices.StartLicenseChecks(window.Hwnd);
+
         var activation = AppInstance.GetCurrent().GetActivatedEventArgs();
         var files = FilesFrom(activation);
         if (files.Count == 0)

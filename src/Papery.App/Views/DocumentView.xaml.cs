@@ -41,6 +41,7 @@ public sealed partial class DocumentView : UserControl
     {
         InitializeComponent();
         ThumbnailList.ItemsSource = _thumbnails;
+        BuildSwitchers();
         SearchResults.ItemsSource = _results;
 
         Viewer.CurrentPageChanged += (_, _) => OnCurrentPageChanged();
@@ -240,7 +241,7 @@ public sealed partial class DocumentView : UserControl
             new("Reading mode: Sepia", "", () => SetReadingMode(ReadingMode.Sepia), Keywords: "warm colour", CanExecute: hasDoc),
             new("Present full screen", "", EnterPresentation, "F5", "slideshow fullscreen presentation", hasDoc),
             new("Show or hide sidebar", "", () => SetSidebarOpen(Sidebar.Visibility != Visibility.Visible), Keywords: "thumbnails pane panel", CanExecute: hasDoc),
-            new("Bookmarks", "", () => { SetSidebarOpen(true); BookmarksTab.IsChecked = true; }, Keywords: "outline chapters contents", CanExecute: hasDoc),
+            new("Bookmarks", "", () => { SetSidebarOpen(true); SidebarTabs.SelectedIndex = BookmarksTabIndex; }, Keywords: "outline chapters contents", CanExecute: hasDoc),
             new("Copy selected text", "", CopySelection, "Ctrl+C", "clipboard", () => Viewer.Selection != null),
             new("Document properties", "", () => _ = ShowPropertiesAsync(), "Ctrl+D", "info details metadata author", hasDoc),
             new("Show in folder", "", ShowInFolder, Keywords: "explorer location", CanExecute: hasDoc),
@@ -376,14 +377,34 @@ public sealed partial class DocumentView : UserControl
         ReadingSepia.IsChecked = Viewer.ReadingMode == ReadingMode.Sepia;
     }
 
-    private void OnModeChecked(object sender, RoutedEventArgs e)
+    // Sidebar tabs, in PillBar order.
+    private const int PagesTabIndex = 0;
+    private const int BookmarksTabIndex = 1;
+    private const int SearchTabIndex = 2;
+
+    /// <summary>Fills the mode bar and sidebar tabs (PillBars) and hooks up their selection.</summary>
+    private void BuildSwitchers()
     {
-        if (ViewToolbar == null)
+        (string Name, string Glyph)[] modes =
+        [
+            ("View", ""), ("Organise", ""), ("Annotate", ""), ("Edit", ""),
+            ("Fill & Sign", ""), ("Convert", ""), ("Protect", ""), ("Tools", ""),
+        ];
+        foreach (var (name, glyph) in modes)
         {
-            return; // still loading
+            Modes.AddItem(name, glyph, name, name.Replace("&", "and", StringComparison.Ordinal));
         }
 
-        string mode = (string)((FrameworkElement)sender).Tag;
+        Modes.SelectionChanged += (_, index) => OnModeChanged(modes[index].Name);
+
+        SidebarTabs.AddItem("Pages");
+        SidebarTabs.AddItem("Bookmarks");
+        SidebarTabs.AddItem("Search");
+        SidebarTabs.SelectionChanged += (_, _) => OnSidebarTabChanged();
+    }
+
+    private void OnModeChanged(string mode)
+    {
         bool view = mode == "View";
         ViewToolbar.Visibility = view ? Visibility.Visible : Visibility.Collapsed;
         ComingSoonText.Visibility = view ? Visibility.Collapsed : Visibility.Visible;
@@ -404,17 +425,13 @@ public sealed partial class DocumentView : UserControl
         }
     }
 
-    private void OnSidebarTabChecked(object sender, RoutedEventArgs e)
+    private void OnSidebarTabChanged()
     {
-        if (ThumbnailList == null)
-        {
-            return; // still loading
-        }
-
-        ThumbnailList.Visibility = PagesTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        BookmarksPanel.Visibility = BookmarksTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        SearchPanel.Visibility = SearchTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        if (PagesTab.IsChecked == true && _document != null)
+        int tab = SidebarTabs.SelectedIndex;
+        ThumbnailList.Visibility = tab == PagesTabIndex ? Visibility.Visible : Visibility.Collapsed;
+        BookmarksPanel.Visibility = tab == BookmarksTabIndex ? Visibility.Visible : Visibility.Collapsed;
+        SearchPanel.Visibility = tab == SearchTabIndex ? Visibility.Visible : Visibility.Collapsed;
+        if (tab == PagesTabIndex && _document != null)
         {
             OnCurrentPageChanged();
         }
@@ -528,7 +545,7 @@ public sealed partial class DocumentView : UserControl
     private void ShowSearch()
     {
         SetSidebarOpen(true);
-        SearchTab.IsChecked = true;
+        SidebarTabs.SelectedIndex = SearchTabIndex;
         if (Viewer.Selection is { Text.Length: > 0 and < 80 } selection)
         {
             SearchBox.Text = selection.Text.Trim(); // search for the selected words, like other apps

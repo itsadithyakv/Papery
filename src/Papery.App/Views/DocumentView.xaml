@@ -38,33 +38,8 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
-                <StackPanel x:Name="Modes" Orientation="Horizontal" Spacing="4"
-                            XYFocusKeyboardNavigation="Enabled" TabFocusNavigation="Once" AutomationProperties.Name="Modes">
-                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="View" IsChecked="True" Checked="OnModeChecked" AutomationProperties.Name="View">
-                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE890;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="View" /></StackPanel>
-                    </RadioButton>
-                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Organise" Checked="OnModeChecked" AutomationProperties.Name="Organise">
-                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8A9;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Organise" /></StackPanel>
-                    </RadioButton>
-                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Annotate" Checked="OnModeChecked" AutomationProperties.Name="Annotate">
-                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE7E6;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Annotate" /></StackPanel>
-                    </RadioButton>
-                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Edit" Checked="OnModeChecked" AutomationProperties.Name="Edit">
-                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8D2;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Edit" /></StackPanel>
-                    </RadioButton>
-                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Fill &amp; Sign" Checked="OnModeChecked" AutomationProperties.Name="Fill and Sign">
-                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE70F;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Fill &amp; Sign" /></StackPanel>
-                    </RadioButton>
-                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Convert" Checked="OnModeChecked" AutomationProperties.Name="Convert">
-                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8AB;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Convert" /></StackPanel>
-                    </RadioButton>
-                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Protect" Checked="OnModeChecked" AutomationProperties.Name="Protect">
-                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72E;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Protect" /></StackPanel>
-                    </RadioButton>
-                    <RadioButton Style="{StaticResource PaperyPillStyle}" GroupName="modes" Tag="Tools" Checked="OnModeChecked" AutomationProperties.Name="Tools">
-                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE90F;" Style="{StaticResource ToolIconStyle}" /><TextBlock Text="Tools" /></StackPanel>
-                    </RadioButton>
-                </StackPanel>
+                <!-- Modes: items are added in DocumentView.xaml.cs; the coral blob slides between them. -->
+                <controls:PillBar x:Name="Modes" AutomationProperties.Name="Modes" />
             </ScrollViewer>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" Margin="8,0,0,0">
@@ -200,18 +175,13 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Grid x:Name="Sidebar" Width="264" BorderThickness="0,0,1,0" BorderBrush="{ThemeResource PaperyDividerBrush}"
+            <Grid x:Name="Sidebar" Width="280" BorderThickness="0,0,1,0" BorderBrush="{ThemeResource PaperyDividerBrush}"
                   Background="{ThemeResource PaperySidebarBrush}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <StackPanel x:Name="SidebarTabs" Orientation="Horizontal" Spacing="2" Margin="10,10,10,4"
-                            XYFocusKeyboardNavigation="Enabled" TabFocusNavigation="Once" AutomationProperties.Name="Sidebar">
-                    <RadioButton x:Name="PagesTab" Content="Pages" Style="{StaticResource PaperyPillStyle}" GroupName="sidebar" Padding="12,4" MinHeight="30" IsChecked="True" Checked="OnSidebarTabChecked" />
-                    <RadioButton x:Name="BookmarksTab" Content="Bookmarks" Style="{StaticResource PaperyPillStyle}" GroupName="sidebar" Padding="12,4" MinHeight="30" Checked="OnSidebarTabChecked" />
-                    <RadioButton x:Name="SearchTab" Content="Search" Style="{StaticResource PaperyPillStyle}" GroupName="sidebar" Padding="12,4" MinHeight="30" Checked="OnSidebarTabChecked" />
-                </StackPanel>
+                <controls:PillBar x:Name="SidebarTabs" EqualWidths="True" Margin="12,12,12,6" AutomationProperties.Name="Sidebar" />
 
                 <!-- Page thumbnails (virtualised: only visible ones are rendered) -->
                 <ListView x:Name="ThumbnailList" Grid.Row="1" SelectionMode="Single" Padding="0,8"

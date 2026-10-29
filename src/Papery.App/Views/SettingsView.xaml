@@ -2,12 +2,48 @@
     x:Class="Papery.Views.SettingsView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Papery.Controls"
     Background="{ThemeResource PaperySurfaceBrush}">
 
     <ScrollViewer>
         <StackPanel MaxWidth="820" Padding="32,28,32,40" Spacing="4">
             <TextBlock Text="Settings" Style="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,8" />
 
+            <!-- Papery Pro: status, Buy, and Restore purchase (backup for the automatic check at start-up). -->
+            <TextBlock Text="Papery Pro" Style="{StaticResource SectionHeaderStyle}" />
+            <Border Style="{StaticResource SettingsCardStyle}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <controls:Mascot x:Name="ProMascot" Width="40" Height="48" IsFloating="False" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock x:Name="ProTitle" FontWeight="SemiBold" />
+                        <TextBlock x:Name="ProSubtitle" Style="{StaticResource PaperySecondaryTextStyle}" FontSize="12" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <Button x:Name="RestoreButton" Content="Restore purchase" Style="{StaticResource PaperySecondaryButtonStyle}" Click="OnRestoreClick" />
+                        <Button x:Name="BuyButton" Content="Get Papery Pro" Style="{StaticResource PaperyPrimaryButtonStyle}" Click="OnBuyClick" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Developer builds only (made visible in code inside #if DEBUG; absent from Store builds). -->
+            <StackPanel x:Name="DeveloperSection" Visibility="Collapsed" Spacing="4">
+                <TextBlock Text="Developer (Debug builds only)" Style="{StaticResource SectionHeaderStyle}" />
+                <Border Style="{StaticResource SettingsCardStyle}">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Pretend licence" />
+                            <TextBlock Text="Test the locks and the unlock screen without buying. Not in Store builds." Style="{StaticResource PaperySecondaryTextStyle}" FontSize="12" />
+                        </StackPanel>
+                        <ComboBox x:Name="DebugLicenseBox" Grid.Column="1" Width="220" VerticalAlignment="Center" SelectionChanged="OnDebugLicenseChanged" AutomationProperties.Name="Pretend licence">
+                            <x:String>Real (ask the Store)</x:String>
+                            <x:String>Pretend Free</x:String>
+                            <x:String>Pretend Pro</x:String>
+                        </ComboBox>
+                    </Grid>
+                </Border>
+            </StackPanel>
             <TextBlock Text="Appearance" Style="{StaticResource SectionHeaderStyle}" />
             <Border Style="{StaticResource SettingsCardStyle}">
                 <Grid ColumnSpacing="16">

@@ -125,23 +125,27 @@
                         <UniformGridLayout MinItemWidth="230" MinItemHeight="76" MinRowSpacing="12" MinColumnSpacing="12" ItemsStretch="Fill" />
                     </ItemsRepeater.Layout>
                     <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="commands:ToolInfo">
-                            <Button Style="{StaticResource ToolCardStyle}" Tag="{x:Bind}" Click="OnToolClick" Padding="14,12"
+                        <DataTemplate x:DataType="local:ToolTile">
+                            <Button Style="{StaticResource ToolCardStyle}" Tag="{x:Bind Tool}" Click="OnToolClick" Padding="14,12"
                                     AllowDrop="True" DragOver="OnDragOver" Drop="OnToolDrop"
                                     AutomationProperties.Name="{x:Bind AccessibleName}">
                                 <Grid ColumnSpacing="14">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <Border Width="46" Height="46" CornerRadius="14" Background="{x:Bind TintSubtleBrush}" VerticalAlignment="Center">
-                                        <FontIcon Glyph="{x:Bind Glyph}" FontSize="20" Foreground="{x:Bind TintBrush}" FontFamily="{StaticResource PaperyIcons}" />
+                                    <Border Width="46" Height="46" CornerRadius="14" Background="{x:Bind Tool.TintSubtleBrush}" VerticalAlignment="Center">
+                                        <FontIcon Glyph="{x:Bind Tool.Glyph}" FontSize="20" Foreground="{x:Bind Tool.TintBrush}" FontFamily="{StaticResource PaperyIcons}" />
                                     </Border>
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
-                                        <TextBlock Text="{x:Bind Name}" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                        <TextBlock Text="{x:Bind Description}" TextTrimming="CharacterEllipsis"
+                                        <TextBlock Text="{x:Bind Tool.Name}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                        <TextBlock Text="{x:Bind Tool.Description}" TextTrimming="CharacterEllipsis"
                                                    Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
+                                    <!-- Small, calm lock for Pro tools (never red, never flashing). -->
+                                    <FontIcon Grid.Column="2" Glyph="&#xE72E;" FontSize="12" VerticalAlignment="Top" Opacity="0.55"
+                                              Visibility="{x:Bind LockVisibility}" FontFamily="{StaticResource PaperyIcons}" />
                                 </Grid>
                             </Button>
                         </DataTemplate>

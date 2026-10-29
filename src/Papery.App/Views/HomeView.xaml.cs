@@ -25,6 +25,15 @@ public sealed partial class RecentFileItem(string path) : ObservableObject
     public partial string StatusGlyph { get; set; } = string.Empty;
 }
 
+/// <summary>A tool card on the home screen: the tool plus whether it shows a lock right now.</summary>
+public sealed record ToolTile(ToolInfo Tool, bool Locked)
+{
+    public Visibility LockVisibility => Locked ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>Narrator says "Pro feature" for locked tools.</summary>
+    public string AccessibleName => Locked ? $"{Tool.Name}, Pro feature. {Tool.Description}" : Tool.AccessibleName;
+}
+
 /// <summary>The home screen shown when no file is open.</summary>
 public sealed partial class HomeView : UserControl
 {
@@ -46,7 +55,7 @@ public sealed partial class HomeView : UserControl
     public HomeView()
     {
         InitializeComponent();
-        ToolGrid.ItemsSource = ToolCatalog.All;
+        RefreshTools();
         Greeting.Text = DateTime.Now.Hour switch { < 12 => "Good morning", < 18 => "Good afternoon", _ => "Good evening" };
         foreach (var key in new[] { "Ctrl", "O" })
         {
@@ -63,6 +72,8 @@ public sealed partial class HomeView : UserControl
             RefreshRecent();
             GettingStarted.Visibility = AppServices.Settings.Current.ShowGettingStarted ? Visibility.Visible : Visibility.Collapsed;
             AppServices.ViewState.RecentFilesChanged += OnRecentFilesChanged;
+            AppServices.Pro.Changed += OnProChanged;
+            RefreshTools();
             OpenButton.Focus(FocusState.Programmatic);
             if (!_entranceDone)
             {
@@ -73,7 +84,21 @@ public sealed partial class HomeView : UserControl
                 Motion.Entrance(RecentSection, 160);
             }
         };
-        Unloaded += (_, _) => AppServices.ViewState.RecentFilesChanged -= OnRecentFilesChanged;
+        Unloaded += (_, _) =>
+        {
+            AppServices.ViewState.RecentFilesChanged -= OnRecentFilesChanged;
+            AppServices.Pro.Changed -= OnProChanged;
+        };
+    }
+
+    // Pro can change on a background thread (the Store check), so hop to the UI thread.
+    private void OnProChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(RefreshTools);
+
+    /// <summary>Locks appear on Pro tools only while Pro isn't unlocked.</summary>
+    private void RefreshTools()
+    {
+        bool pro = AppServices.Pro.IsPro;
+        ToolGrid.ItemsSource = ToolCatalog.All.Select(t => new ToolTile(t, t.IsPro && !pro)).ToList();
     }
 
     /// <summary>The user wants to choose a file to open (optionally with a tool in mind).</summary>
@@ -148,7 +173,7 @@ public sealed partial class HomeView : UserControl
     {
         if (_animated.Add(args.Element) && args.Element is Control card)
         {
-            HighlightOnHover(card, null);
+            HighlightOnHover(card, () => null);
             Motion.Entrance(card, 180 + (Math.Min(args.Index, 8) * 30));
         }
     }
@@ -174,7 +199,7 @@ public sealed partial class HomeView : UserControl
     {
         if (_animated.Add(args.Element) && args.Element is Control card)
         {
-            HighlightOnHover(card, ((ToolInfo)card.Tag).TintBrush);
+            HighlightOnHover(card, () => (card.Tag as ToolInfo)?.TintBrush);
             Motion.Entrance(card, 220 + (Math.Min(args.Index, 16) * 22));
         }
     }
@@ -183,9 +208,10 @@ public sealed partial class HomeView : UserControl
     /// Calm hover: the card doesn't move, its outline just takes the tool's colour (coral when null).
     /// Clearing the local value hands the border back to the theme style.
     /// </summary>
-    private static void HighlightOnHover(Control card, Brush? tint)
+    private static void HighlightOnHover(Control card, Func<Brush?> tint)
     {
-        card.PointerEntered += (_, _) => card.BorderBrush = tint ?? ThemeResources.Brush(card, "PaperyCoralBrush");
+        // Looked up at hover time: list cards are recycled for different tools as you scroll.
+        card.PointerEntered += (_, _) => card.BorderBrush = tint() ?? ThemeResources.Brush(card, "PaperyCoralBrush");
         card.PointerExited += (_, _) => card.ClearValue(Control.BorderBrushProperty);
         card.PointerCanceled += (_, _) => card.ClearValue(Control.BorderBrushProperty);
     }

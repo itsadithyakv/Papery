@@ -181,14 +181,30 @@ public sealed partial class MainWindow : Window
     private void AddHomeTab()
     {
         var home = new HomeView();
-        home.OpenRequested += (_, tool) => _ = PickAndOpenAsync(tool);
-        home.FilesChosen += (_, e) => _ = OpenFilesAsync(e.Files, e.Tool);
+        home.OpenRequested += async (_, tool) =>
+        {
+            if (await AllowToolAsync(tool))
+            {
+                await PickAndOpenAsync(tool);
+            }
+        };
+        home.FilesChosen += async (_, e) =>
+        {
+            if (await AllowToolAsync(e.Tool))
+            {
+                await OpenFilesAsync(e.Files, e.Tool);
+            }
+        };
         home.SettingsRequested += (_, _) => ShowSettings();
         home.HelpRequested += (_, _) => ShowHelp();
         var tab = CreateTab(home, "Home", "");
         Tabs.TabItems.Add(tab);
         Tabs.SelectedItem = tab;
     }
+
+    /// <summary>Free tools always pass. Pro tools show the unlock screen when Pro isn't unlocked yet.</summary>
+    private async Task<bool> AllowToolAsync(ToolInfo? tool) =>
+        tool is not { IsPro: true } || await ProDialogs.RequireProAsync(Root.XamlRoot, tool);
 
     private void ShowHelp()
     {

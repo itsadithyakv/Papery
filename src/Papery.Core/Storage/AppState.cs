@@ -37,6 +37,9 @@ public sealed class AppSettings
     /// <summary>The one-time "Take a tour" note in the first document has been shown.</summary>
     public bool ViewerTourOffered { get; set; }
 
+    /// <summary>Developer builds only: pretend Free / Pro. Release builds never read this.</summary>
+    public Licensing.DebugLicenseMode DebugLicenseMode { get; set; }
+
     /// <summary>Window size in physical pixels when last closed (0 = never saved).</summary>
     public int WindowWidth { get; set; }
 

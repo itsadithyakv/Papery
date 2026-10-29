@@ -21,7 +21,68 @@ public sealed partial class SettingsView : UserControl
         LayoutBox.SelectedIndex = (int)s.DefaultViewMode;
         RememberSwitch.IsOn = s.RememberPosition;
         VersionText.Text = $"Version {AppVersion()}";
+#if DEBUG
+        // The Free/Pro switch exists only in developer builds; Release (Store) builds don't compile this.
+        DeveloperSection.Visibility = Visibility.Visible;
+        DebugLicenseBox.SelectedIndex = (int)AppServices.Pro.DebugMode;
+#endif
+        UpdateProCard();
+        Loaded += (_, _) => AppServices.Pro.Changed += OnProChanged;
+        Unloaded += (_, _) => AppServices.Pro.Changed -= OnProChanged;
         _loading = false;
+    }
+
+    private void OnProChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(UpdateProCard);
+
+    private void UpdateProCard()
+    {
+        bool pro = AppServices.Pro.IsPro;
+        ProMascot.Mood = pro ? Controls.MascotMood.Excited : Controls.MascotMood.Happy;
+        ProTitle.Text = pro ? "Papery Pro is unlocked" : "Free version";
+        ProSubtitle.Text = pro
+            ? "Thank you! Every tool is yours, on every PC signed in with your Microsoft account."
+            : "Unlock every tool once. No subscription, ever.";
+        BuyButton.Visibility = pro ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private async void OnBuyClick(object sender, RoutedEventArgs e) => await ProDialogs.RequireProAsync(XamlRoot, null);
+
+    private async void OnRestoreClick(object sender, RoutedEventArgs e)
+    {
+        RestoreButton.IsEnabled = false;
+        RestoreButton.Content = "Checking…";
+        var result = await AppServices.Store.CheckAsync();
+        AppServices.Pro.Apply(result);
+        RestoreButton.Content = "Restore purchase";
+        RestoreButton.IsEnabled = true;
+        UpdateProCard();
+        if (AppServices.Pro.IsPro)
+        {
+            ProSubtitle.Text = "Restored. Welcome back!";
+            ProMascot.Bounce();
+        }
+        else
+        {
+            ProSubtitle.Text = !Core.Licensing.StoreIds.IsConfigured
+                ? "This build isn't connected to the Microsoft Store yet (Store ID placeholder)."
+                : result == Core.Licensing.StoreCheckResult.Unknown
+                    ? "Couldn't reach the Microsoft Store. Check your connection and try again."
+                    : "No Papery Pro purchase found for the Microsoft account signed in to the Store.";
+        }
+    }
+
+    private void OnDebugLicenseChanged(object sender, SelectionChangedEventArgs e)
+    {
+#if DEBUG
+        if (_loading)
+        {
+            return;
+        }
+
+        var mode = (Core.Licensing.DebugLicenseMode)DebugLicenseBox.SelectedIndex;
+        AppServices.Settings.Update(s => s.DebugLicenseMode = mode);
+        AppServices.Pro.SetDebugMode(mode);
+#endif
     }
 
     private void OnThemeChanged(object sender, SelectionChangedEventArgs e) =>
