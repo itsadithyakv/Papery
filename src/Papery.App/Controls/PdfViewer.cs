@@ -48,6 +48,12 @@ public sealed partial class PdfViewer : UserControl
     private double _renderedZoom;
     private bool _presenting;
 
+    // ScrollViewer.ChangeView is asynchronous: a zoom we've asked for isn't in ZoomFactor yet.
+    // A second ChangeView (e.g. "scroll to page") must carry that zoom, or it cancels it.
+    private double? _pendingZoom;
+
+    private double TargetZoom => _pendingZoom ?? _scroll.ZoomFactor;
+
     public PdfViewer()
     {
         _surface = new Canvas { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top };
@@ -238,7 +244,7 @@ public sealed partial class PdfViewer : UserControl
             return;
         }
 
-        double zoom = _scroll.ZoomFactor;
+        double zoom = TargetZoom;
         double y = fractionFromTop is double f ? rect.Y + (f * rect.Height) - 24 : rect.Y - _layout.Gap;
         double? x = null;
         if (rect.Width * zoom > _scroll.ViewportWidth)
@@ -246,13 +252,14 @@ public sealed partial class PdfViewer : UserControl
             x = fractionFromTop is null ? rect.X * zoom : null; // keep horizontal position for in-page jumps
         }
 
-        _scroll.ChangeView(x, Math.Max(0, y * zoom), null, true);
+        _scroll.ChangeView(x, Math.Max(0, y * zoom), (float)zoom, true);
         SetCurrentPage(pageIndex);
     }
 
-    public void NextPage() => GoToPage(_layout?.StepPage(_currentPage, 1) ?? _currentPage + 1);
+    // Single page view only lays out the current page, so it steps by page number instead of by row.
+    public void NextPage() => GoToPage(_viewMode == ViewMode.SinglePage || _layout == null ? _currentPage + 1 : _layout.StepPage(_currentPage, 1));
 
-    public void PreviousPage() => GoToPage(_layout?.StepPage(_currentPage, -1) ?? _currentPage - 1);
+    public void PreviousPage() => GoToPage(_viewMode == ViewMode.SinglePage || _layout == null ? _currentPage - 1 : _layout.StepPage(_currentPage, -1));
 
     // ---------------------------------------------------------------- zoom
 
@@ -295,6 +302,7 @@ public sealed partial class PdfViewer : UserControl
     {
         zoom = Zoom.Clamp(zoom);
         double old = _scroll.ZoomFactor;
+        _pendingZoom = zoom;
         var a = anchor ?? new Point(_scroll.ViewportWidth / 2, _scroll.ViewportHeight / 2);
 
         // Keep the content under the anchor point in place.
@@ -311,6 +319,7 @@ public sealed partial class PdfViewer : UserControl
         }
 
         double zoom = FitMode == FitMode.Page ? FitForCurrentRow() : FitWidthForCurrentRow();
+        _pendingZoom = zoom;
         _scroll.ChangeView(null, null, (float)zoom, true);
         _renderedZoom = 0; // force re-render at the new size
     }
@@ -322,8 +331,8 @@ public sealed partial class PdfViewer : UserControl
     private double FitWidthForCurrentRow()
     {
         var rows = _layout!.RowPages(_currentPage);
-        double width = rows.Sum(p => _layout[p]?.Width ?? 0) + (_layout.Gap * (rows.Count + 1));
-        return Zoom.FitWidth(_scroll.ViewportWidth - 2, width);
+        double width = rows.Sum(p => _layout[p]?.Width ?? 0) + (_layout.Gap * (rows.Count - 1));
+        return Zoom.FitWidth(_scroll.ViewportWidth - (2 * ScreenMargin), width);
     }
 
     private double FitForCurrentRow()
@@ -331,16 +340,30 @@ public sealed partial class PdfViewer : UserControl
         var rows = _layout!.RowPages(_currentPage);
         double width = rows.Sum(p => _layout[p]?.Width ?? 0) + (_layout.Gap * (rows.Count - 1));
         double height = rows.Max(p => _layout[p]?.Height ?? 0);
-        return Zoom.FitPage(_scroll.ViewportWidth, _scroll.ViewportHeight, width, height, _presenting ? 0 : _layout.Gap);
+        double margin = _presenting ? 0 : ScreenMargin;
+        return Zoom.FitPage(_scroll.ViewportWidth - (2 * margin), _scroll.ViewportHeight - (2 * margin), width, height, 0);
     }
+
+    /// <summary>
+    /// Breathing room left and right of a fitted page, in screen pixels (so it's the same at any zoom),
+    /// wide enough that Windows' overlay scrollbar never sits on the page.
+    /// </summary>
+    private const double ScreenMargin = 32;
 
     private void OnViewportResized()
     {
         if (FitMode != FitMode.None && _document != null)
         {
+            // Wait until layout has settled: ViewportWidth isn't updated yet when SizeChanged fires.
             int page = _currentPage;
-            ApplyFit();
-            GoToPage(page);
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                if (FitMode != FitMode.None && _document != null)
+                {
+                    ApplyFit();
+                    GoToPage(page);
+                }
+            });
         }
 
         UpdateVisibleRange(settled: false);
@@ -361,13 +384,18 @@ public sealed partial class PdfViewer : UserControl
         }
 
         var sizes = _document.PageSizes.Select(s => ((double)s.Width, (double)s.Height)).ToList();
-        _layout = DocumentLayout.Compute(sizes, _viewMode, _currentPage, gap: _presenting ? 0 : 12);
+        _layout = DocumentLayout.Compute(sizes, _viewMode, _currentPage, gap: _presenting ? 0 : 16);
         _surface.Width = _layout.Width;
         _surface.Height = _layout.Height;
     }
 
     private void OnViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
     {
+        if (!e.IsIntermediate)
+        {
+            _pendingZoom = null; // the requested zoom has arrived
+        }
+
         UpdateVisibleRange(settled: false);
         UpdateCurrentPageFromScroll();
 

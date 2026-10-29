@@ -1,0 +1,36 @@
+<!--
+  A small card that slides up from the bottom for good news ("Sent to the printer",
+  "Compressed: 24 MB → 3 MB"), with an optional action, then slips away by itself.
+  Warnings and errors stay in the InfoBar / dialogs, which don't disappear on their own.
+-->
+<UserControl
+    x:Class="Papery.Controls.Toast"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    HorizontalAlignment="Center"
+    VerticalAlignment="Bottom"
+    Margin="16,0,16,28"
+    Visibility="Collapsed">
+
+    <Border x:Name="Card" Background="{ThemeResource PaperyCardBrush}" BorderBrush="{ThemeResource PaperyCardBorderBrush}"
+            BorderThickness="1" CornerRadius="14" Padding="10,8,8,8" MinWidth="260" MaxWidth="560">
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Border x:Name="IconCircle" Width="32" Height="32" CornerRadius="16" Background="{ThemeResource PaperyCoralSubtleBrush}" VerticalAlignment="Center">
+                <FontIcon x:Name="Icon" Glyph="&#xE73E;" FontSize="15" Foreground="{ThemeResource PaperyCoralBrush}" FontFamily="{StaticResource PaperyIcons}" />
+            </Border>
+            <TextBlock x:Name="MessageText" Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap" FontWeight="SemiBold" />
+            <Button x:Name="ActionButton" Grid.Column="2" Style="{StaticResource PaperySecondaryButtonStyle}" Padding="12,5" MinHeight="30"
+                    Visibility="Collapsed" Click="OnActionClick" />
+            <Button Grid.Column="3" Style="{StaticResource PaperyQuietButtonStyle}" Click="OnCloseClick" MinWidth="30" MinHeight="30" Padding="7"
+                    AutomationProperties.Name="Dismiss" ToolTipService.ToolTip="Dismiss">
+                <FontIcon Glyph="&#xE711;" FontSize="11" FontFamily="{StaticResource PaperyIcons}" />
+            </Button>
+        </Grid>
+    </Border>
+</UserControl>

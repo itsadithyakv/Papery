@@ -248,7 +248,10 @@ public sealed partial class MainWindow : Window
     private static void AttachDocumentView(DocumentView view)
     {
         view.GetWindowHandle = () => WindowManager.WindowFor(view)?.Hwnd ?? 0;
-        view.PresentationRequested += (sender, enter) => WindowManager.WindowFor((DocumentView)sender!)?.SetPresenting((DocumentView)sender!, enter);
+        view.PresentationRequested += (sender, enter) =>
+        {
+            WindowManager.WindowFor((DocumentView)sender!)?.SetPresenting((DocumentView)sender!, enter);
+        };
         view.NavigationRequested += (sender, target) =>
         {
             var window = WindowManager.WindowFor((DocumentView)sender!);
@@ -348,30 +351,51 @@ public sealed partial class MainWindow : Window
 
     // ================================================================= presentation (full screen)
 
+    /// <summary>True if this window currently shows <paramref name="element"/> in one of its tabs.</summary>
+    internal bool Hosts(UIElement element) =>
+        Tabs.TabItems.OfType<TabViewItem>().Any(t => ReferenceEquals(t.Content, element));
+
+    /// <summary>
+    /// Presenting: the document stays in its tab (moving live UI between parents is fragile);
+    /// the window goes full screen and the tab strip is hidden.
+    /// </summary>
     internal void SetPresenting(DocumentView view, bool enter)
     {
-        var tab = Tabs.TabItems.OfType<TabViewItem>().FirstOrDefault(t => ReferenceEquals(t.Content, view));
-        if (enter && tab != null)
+        if (enter && !Hosts(view))
         {
-            tab.Content = null;
-            PresentationHost.Children.Add(view);
-            PresentationHost.Visibility = Visibility.Visible;
-            Tabs.Visibility = Visibility.Collapsed;
-            AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
+            return;
         }
-        else if (!enter)
+
+        var strip = FindByName(Tabs, "TabContainerGrid");
+        if (strip != null)
         {
-            AppWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
-            PresentationHost.Children.Remove(view);
-            PresentationHost.Visibility = Visibility.Collapsed;
-            Tabs.Visibility = Visibility.Visible;
-            var home = Tabs.TabItems.OfType<TabViewItem>().FirstOrDefault(t => t.Content == null);
-            if (home != null)
+            strip.Visibility = enter ? Visibility.Collapsed : Visibility.Visible;
+        }
+        else
+        {
+            Tabs.Margin = enter ? new Thickness(0, -48, 0, 0) : default; // fallback: slide the strip off-screen
+        }
+
+        AppWindow.SetPresenter(enter ? AppWindowPresenterKind.FullScreen : AppWindowPresenterKind.Overlapped);
+    }
+
+    private static FrameworkElement? FindByName(DependencyObject root, string name)
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is FrameworkElement { Name: var n } element && n == name)
             {
-                home.Content = view;
-                Tabs.SelectedItem = home;
+                return element;
+            }
+
+            if (FindByName(child, name) is { } found)
+            {
+                return found;
             }
         }
+
+        return null;
     }
 
     // ================================================================= drag and drop, shortcuts

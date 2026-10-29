@@ -3,26 +3,28 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Papery.Views"
+    xmlns:controls="using:Papery.Controls"
     xmlns:commands="using:Papery.Commands"
-    AllowDrop="True" DragOver="OnDragOver" Drop="OnDrop">
+    AllowDrop="True" DragEnter="OnDragEnter" DragOver="OnDragOver" DragLeave="OnDragLeave" Drop="OnDrop">
 
     <!-- Root Grid also hosts the tour's tips. -->
     <Grid Background="{ThemeResource PaperySurfaceBrush}">
         <ScrollViewer>
-            <StackPanel MaxWidth="1080" Padding="40,32,40,48">
+            <StackPanel MaxWidth="1080" Padding="40,28,40,48">
 
-                <!-- Header -->
-                <Grid ColumnSpacing="16">
+                <!-- Hero: the Papery character says hello -->
+                <Grid x:Name="Hero" ColumnSpacing="18">
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel Spacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="Welcome to Papery" FontSize="30" FontWeight="SemiBold" />
-                        <TextBlock Text="Open a PDF or pick a tool. Your files never leave this PC." TextWrapping="Wrap"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <controls:Mascot x:Name="Character" Width="72" Height="86" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock x:Name="Greeting" FontSize="30" FontWeight="SemiBold" />
+                        <TextBlock Text="What shall we do with your PDFs?" Style="{StaticResource PaperySecondaryTextStyle}" />
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <Button x:Name="HelpButton" Style="{StaticResource PaperyQuietButtonStyle}" Click="OnHelpClick"
                                 AutomationProperties.Name="Help and keyboard shortcuts" ToolTipService.ToolTip="Help and keyboard shortcuts (F1)">
                             <FontIcon Glyph="&#xE897;" FontSize="16" FontFamily="{StaticResource PaperyIcons}" />
@@ -41,105 +43,90 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Drop zone -->
-                <Grid x:Name="DropZone" Height="140" Margin="0,28,0,0">
-                    <Rectangle RadiusX="16" RadiusY="16" StrokeThickness="1.5" StrokeDashArray="5,4"
-                               Stroke="{ThemeResource PaperyCoralBrush}" Fill="{ThemeResource PaperyCoralSubtleBrush}" Opacity="0.9" />
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
-                        <Border Width="44" Height="44" CornerRadius="22" Background="{ThemeResource PaperyCardBrush}" HorizontalAlignment="Center">
-                            <FontIcon Glyph="&#xE896;" FontSize="20" Foreground="{ThemeResource PaperyCoralBrush}" FontFamily="{StaticResource PaperyIcons}" />
+                <!-- Drop zone: reacts when a file is dragged over the window -->
+                <Grid x:Name="DropZone" Height="116" Margin="0,24,0,0">
+                    <Rectangle x:Name="DropOutline" RadiusX="18" RadiusY="18" StrokeThickness="1.5" StrokeDashArray="5,4"
+                               Stroke="{ThemeResource PaperyCoralBrush}" Fill="{ThemeResource PaperyCoralSubtleBrush}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
+                        <Border x:Name="DropIcon" Width="52" Height="52" CornerRadius="26" Background="{ThemeResource PaperyCardBrush}">
+                            <FontIcon Glyph="&#xE896;" FontSize="22" Foreground="{ThemeResource PaperyCoralBrush}" FontFamily="{StaticResource PaperyIcons}" />
                         </Border>
-                        <TextBlock Text="Drop a PDF here to get started" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                        <TextBlock Text="or press Ctrl+O to choose a file" HorizontalAlignment="Center"
-                                   Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <StackPanel VerticalAlignment="Center" Spacing="6">
+                            <TextBlock x:Name="DropTitle" Text="Drop PDFs here" FontSize="19" FontWeight="SemiBold" />
+                            <StackPanel x:Name="DropKeys" Orientation="Horizontal" Spacing="4" AutomationProperties.Name="or press Control O">
+                                <TextBlock Text="or" Style="{StaticResource PaperySecondaryTextStyle}" VerticalAlignment="Center" Margin="0,0,4,0" />
+                            </StackPanel>
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
 
-                <!-- Getting started: friendly tips, hidden for good with one click. Never a pop-up. -->
-                <Border x:Name="GettingStarted" Style="{StaticResource PaperyCardStyle}" Margin="0,20,0,0" Padding="20,16,12,18">
-                    <StackPanel Spacing="14">
-                        <Grid>
-                            <TextBlock Text="Getting started" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
-                            <Button HorizontalAlignment="Right" Style="{StaticResource PaperyQuietButtonStyle}" Click="OnHideTipsClick"
-                                    AutomationProperties.Name="Hide these tips" ToolTipService.ToolTip="Hide these tips">
-                                <FontIcon Glyph="&#xE711;" FontSize="12" FontFamily="{StaticResource PaperyIcons}" />
-                            </Button>
-                        </Grid>
-                        <ItemsRepeater x:Name="TipsList" Margin="0,0,8,0">
-                            <ItemsRepeater.Layout>
-                                <UniformGridLayout MinItemWidth="320" MinRowSpacing="14" MinColumnSpacing="24" ItemsStretch="Fill" MaximumRowsOrColumns="2" />
-                            </ItemsRepeater.Layout>
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate x:DataType="local:TipItem">
-                                    <Grid ColumnSpacing="12" AutomationProperties.Name="{x:Bind AccessibleName}">
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                        <Border Width="32" Height="32" CornerRadius="16" Background="{ThemeResource PaperyCoralSubtleBrush}" VerticalAlignment="Top">
-                                            <FontIcon Glyph="{x:Bind Glyph}" FontSize="14" Foreground="{ThemeResource PaperyCoralBrush}" FontFamily="{StaticResource PaperyIcons}" />
-                                        </Border>
-                                        <StackPanel Grid.Column="1" Spacing="2">
-                                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                            <TextBlock Text="{x:Bind Text}" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                        </StackPanel>
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button x:Name="TourButton" Style="{StaticResource PaperySecondaryButtonStyle}" Click="OnTourClick">
+                <!-- Shortcut chips: show, don't tell. Hidden for good with the X. -->
+                <Grid x:Name="GettingStarted" Margin="0,16,0,0" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                        <StackPanel x:Name="ShortcutChips" Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="TourButton" Style="{StaticResource PaperySecondaryButtonStyle}" Click="OnTourClick" Padding="12,6">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon Glyph="&#xE7BE;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
+                                    <FontIcon Glyph="&#xE7BE;" FontSize="14" Foreground="{ThemeResource PaperyCoralBrush}" FontFamily="{StaticResource PaperyIcons}" />
                                     <TextBlock Text="Take the tour" />
                                 </StackPanel>
                             </Button>
-                            <Button Content="Keyboard shortcuts" Style="{StaticResource PaperySecondaryButtonStyle}" Click="OnHelpClick" />
                         </StackPanel>
-                    </StackPanel>
-                </Border>
+                    </ScrollViewer>
+                    <Button Grid.Column="1" Style="{StaticResource PaperyQuietButtonStyle}" Click="OnHideTipsClick"
+                            AutomationProperties.Name="Hide these tips" ToolTipService.ToolTip="Hide these tips">
+                        <FontIcon Glyph="&#xE711;" FontSize="12" FontFamily="{StaticResource PaperyIcons}" />
+                    </Button>
+                </Grid>
 
-                <!-- Recent files -->
-                <StackPanel x:Name="RecentSection" Margin="0,32,0,0" Spacing="10">
+                <!-- Recent files, as little page previews -->
+                <StackPanel x:Name="RecentSection" Margin="0,30,0,0" Spacing="12">
                     <Grid>
                         <TextBlock Text="Recent" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <HyperlinkButton Content="Clear list" HorizontalAlignment="Right" Click="OnClearRecent" />
+                        <HyperlinkButton Content="Clear" HorizontalAlignment="Right" Click="OnClearRecent" />
                     </Grid>
-                    <Border Style="{StaticResource PaperyCardStyle}" Padding="4">
-                        <ListView x:Name="RecentList" IsItemClickEnabled="True" SelectionMode="None" ItemClick="OnRecentClick"
-                                  AutomationProperties.Name="Recent files" MaxHeight="300">
-                            <ListView.ItemTemplate>
+                    <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" Padding="0,4,0,12">
+                        <ItemsRepeater x:Name="RecentList" ElementPrepared="OnRecentPrepared">
+                            <ItemsRepeater.Layout>
+                                <StackLayout Orientation="Horizontal" Spacing="14" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
                                 <DataTemplate x:DataType="local:RecentFileItem">
-                                    <Grid ColumnSpacing="12" Padding="4,8" AutomationProperties.Name="{x:Bind Name}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <Grid.ContextFlyout>
+                                    <Button Style="{StaticResource ToolCardStyle}" Width="148" Padding="10" Tag="{x:Bind Path}" Click="OnRecentClick"
+                                            AutomationProperties.Name="{x:Bind Name}" ToolTipService.ToolTip="{x:Bind Path}">
+                                        <Button.ContextFlyout>
                                             <MenuFlyout>
                                                 <MenuFlyoutItem Text="Remove from list" Click="OnRemoveRecent" Tag="{x:Bind Path}" />
                                             </MenuFlyout>
-                                        </Grid.ContextFlyout>
-                                        <FontIcon Glyph="&#xE8A5;" FontSize="18" Foreground="{ThemeResource PaperyCoralBrush}" FontFamily="{StaticResource PaperyIcons}" VerticalAlignment="Center" />
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{x:Bind Folder}" TextTrimming="CharacterEllipsis" Style="{StaticResource CaptionTextBlockStyle}"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        </Button.ContextFlyout>
+                                        <StackPanel Spacing="8">
+                                            <Grid Height="156" CornerRadius="6" Background="{ThemeResource PaperyCanvasBrush}">
+                                                <Rectangle x:Name="Placeholder" Fill="{ThemeResource PaperyCardBrush}" Margin="18,12" RadiusX="2" RadiusY="2" />
+                                                <Image Source="{x:Bind Thumbnail, Mode=OneWay}" Stretch="Uniform" Margin="8" />
+                                                <FontIcon Glyph="{x:Bind StatusGlyph, Mode=OneWay}" FontSize="22" Foreground="{ThemeResource PaperyCoralBrush}"
+                                                          FontFamily="{StaticResource PaperyIcons}" />
+                                            </Grid>
+                                            <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
                                         </StackPanel>
-                                    </Grid>
+                                    </Button>
                                 </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
-                    </Border>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </ScrollViewer>
                 </StackPanel>
 
                 <!-- All tools -->
-                <TextBlock Text="All tools" FontSize="18" FontWeight="SemiBold" Margin="0,32,0,12" />
-                <ItemsRepeater x:Name="ToolGrid">
+                <TextBlock Text="All tools" FontSize="18" FontWeight="SemiBold" Margin="0,22,0,12" />
+                <ItemsRepeater x:Name="ToolGrid" ElementPrepared="OnToolPrepared">
                     <ItemsRepeater.Layout>
-                        <UniformGridLayout MinItemWidth="240" MinItemHeight="92" MinRowSpacing="12" MinColumnSpacing="12" ItemsStretch="Fill" />
+                        <UniformGridLayout MinItemWidth="230" MinItemHeight="76" MinRowSpacing="12" MinColumnSpacing="12" ItemsStretch="Fill" />
                     </ItemsRepeater.Layout>
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate x:DataType="commands:ToolInfo">
-                            <Button Style="{StaticResource ToolCardStyle}" Tag="{x:Bind}" Click="OnToolClick"
+                            <Button Style="{StaticResource ToolCardStyle}" Tag="{x:Bind}" Click="OnToolClick" Padding="14,12"
                                     AllowDrop="True" DragOver="OnDragOver" Drop="OnToolDrop"
                                     AutomationProperties.Name="{x:Bind AccessibleName}">
                                 <Grid ColumnSpacing="14">
@@ -147,13 +134,13 @@
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <Border Width="40" Height="40" CornerRadius="10" Background="{ThemeResource PaperyCoralSubtleBrush}" VerticalAlignment="Top">
-                                        <FontIcon Glyph="{x:Bind Glyph}" FontSize="18" Foreground="{ThemeResource PaperyCoralBrush}" FontFamily="{StaticResource PaperyIcons}" />
+                                    <Border Width="46" Height="46" CornerRadius="14" Background="{x:Bind TintSubtleBrush}" VerticalAlignment="Center">
+                                        <FontIcon Glyph="{x:Bind Glyph}" FontSize="20" Foreground="{x:Bind TintBrush}" FontFamily="{StaticResource PaperyIcons}" />
                                     </Border>
-                                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
                                         <TextBlock Text="{x:Bind Name}" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                        <TextBlock Text="{x:Bind Description}" TextWrapping="Wrap" Style="{StaticResource CaptionTextBlockStyle}"
-                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Text="{x:Bind Description}" TextTrimming="CharacterEllipsis"
+                                                   Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                 </Grid>
                             </Button>

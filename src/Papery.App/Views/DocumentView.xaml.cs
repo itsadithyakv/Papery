@@ -55,6 +55,34 @@ public sealed partial class DocumentView : UserControl
         // Ctrl + the main-keyboard +/- keys (XAML can't name these OEM keys).
         AddAccelerator((VirtualKey)187, VirtualKeyModifiers.Control, (_, a) => { Viewer.ZoomIn(); a.Handled = true; });
         AddAccelerator((VirtualKey)189, VirtualKeyModifiers.Control, (_, a) => { Viewer.ZoomOut(); a.Handled = true; });
+
+        // While presenting, these keys always change slides (whatever has focus). Otherwise they're left alone.
+        (VirtualKey Key, bool Forward)[] slideKeys =
+        [
+            (VirtualKey.Right, true), (VirtualKey.Down, true), (VirtualKey.Space, true), (VirtualKey.PageDown, true),
+            (VirtualKey.Left, false), (VirtualKey.Up, false), (VirtualKey.PageUp, false),
+        ];
+        foreach (var (key, forward) in slideKeys)
+        {
+            AddAccelerator(key, VirtualKeyModifiers.None, (_, a) =>
+            {
+                if (!IsPresenting)
+                {
+                    return;
+                }
+
+                if (forward)
+                {
+                    Viewer.NextPage();
+                }
+                else
+                {
+                    Viewer.PreviousPage();
+                }
+
+                a.Handled = true;
+            });
+        }
     }
 
     /// <summary>Asks the window to enter (true) or leave (false) full screen for presenting.</summary>
@@ -740,7 +768,8 @@ public sealed partial class DocumentView : UserControl
         try
         {
             int sides = await PrintService.PrintAsync(_document, FileName, job, progress, cts.Token);
-            ShowNotice("Sent to the printer", $"{sides} side{(sides == 1 ? string.Empty : "s")} of paper.", InfoBarSeverity.Success);
+            Notice.IsOpen = false;
+            Toaster.Show($"Sent to the printer · {sides} side{(sides == 1 ? string.Empty : "s")} of paper", "");
         }
         catch (OperationCanceledException)
         {
@@ -808,6 +837,8 @@ public sealed partial class DocumentView : UserControl
         }
 
         _beforePresenting = null;
+        int presentedPage = Viewer.CurrentPage; // stay on the slide the user stopped at
+        PresentationRequested?.Invoke(this, false); // restore the window first, so fitting uses its real size
         ModeBar.Visibility = ToolbarArea.Visibility = Visibility.Visible;
         SetSidebarOpen(AppServices.Settings.Current.SidebarOpen);
         Viewer.SetPresenting(false);
@@ -821,7 +852,7 @@ public sealed partial class DocumentView : UserControl
             Viewer.SetFitMode(before.Fit);
         }
 
-        PresentationRequested?.Invoke(this, false);
+        Viewer.GoToPage(presentedPage);
         Viewer.FocusPages();
     }
 

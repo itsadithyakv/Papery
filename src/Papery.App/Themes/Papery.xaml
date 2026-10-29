@@ -270,6 +270,25 @@
         <Setter Property="VerticalContentAlignment" Value="Top" />
     </Style>
 
+    <!-- A keyboard key drawn as a keycap (thicker bottom edge, like a real key). -->
+    <Style x:Key="PaperyKeycapStyle" TargetType="Border">
+        <Setter Property="Padding" Value="7,2,7,2" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="BorderThickness" Value="1,1,1,2.5" />
+        <Setter Property="BorderBrush" Value="{ThemeResource ControlStrongStrokeColorDefaultBrush}" />
+        <Setter Property="Background" Value="{ThemeResource ControlFillColorDefaultBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- A soft pill holding keycaps and a word (home screen shortcut chips). -->
+    <Style x:Key="PaperyChipStyle" TargetType="Border">
+        <Setter Property="Padding" Value="10,6,14,6" />
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="{ThemeResource PaperyCardBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource PaperyCardBorderBrush}" />
+    </Style>
+
     <!-- Secondary (grey) text that follows the theme; use this from code instead of looking up a brush. -->
     <Style x:Key="PaperySecondaryTextStyle" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />

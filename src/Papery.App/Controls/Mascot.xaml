@@ -1,0 +1,49 @@
+<!--
+  The Papery character: a folded page with a face. Drawn with shapes so it stays crisp at any
+  size and follows Light / Dark / High Contrast. Moods: Happy, Excited, Oops, Sleepy.
+  Decorative: hidden from Narrator (the surrounding text says what's going on).
+-->
+<UserControl
+    x:Class="Papery.Controls.Mascot"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    AutomationProperties.AccessibilityView="Raw"
+    IsTabStop="False">
+
+    <Viewbox x:Name="Body" Stretch="Uniform">
+        <Canvas Width="64" Height="76">
+            <!-- Soft shadow -->
+            <Ellipse Canvas.Left="14" Canvas.Top="71" Width="36" Height="5" Fill="#000000" Opacity="0.12" />
+
+            <!-- Page with folded corner -->
+            <Path Data="M 11,4 L 42,4 L 56,18 L 56,67 Q 56,70 53,70 L 11,70 Q 8,70 8,67 L 8,7 Q 8,4 11,4 Z"
+                  Fill="{ThemeResource PaperyCardBrush}" Stroke="{ThemeResource PaperyCoralBrush}" StrokeThickness="2.5" StrokeLineJoin="Round" />
+            <Path Data="M 42,4 L 42,15 Q 42,18 45,18 L 56,18 Z"
+                  Fill="{ThemeResource PaperyCoralSubtleBrush}" Stroke="{ThemeResource PaperyCoralBrush}" StrokeThickness="2.5" StrokeLineJoin="Round" />
+
+            <!-- Cheeks -->
+            <Ellipse Canvas.Left="13" Canvas.Top="42" Width="7" Height="4.5" Fill="{ThemeResource PaperyCoralBrush}" Opacity="0.35" />
+            <Ellipse Canvas.Left="44" Canvas.Top="42" Width="7" Height="4.5" Fill="{ThemeResource PaperyCoralBrush}" Opacity="0.35" />
+
+            <!-- Eyes (open: ellipses that blink; excited: happy arcs; sleepy: lines) -->
+            <Canvas x:Name="OpenEyes" Width="64" Height="76">
+                <Ellipse Canvas.Left="20" Canvas.Top="30" Width="5.5" Height="7.5" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                <Ellipse Canvas.Left="38.5" Canvas.Top="30" Width="5.5" Height="7.5" Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+            </Canvas>
+            <Path x:Name="HappyEyes" Visibility="Collapsed" Data="M 19,35 Q 22.75,29 26.5,35 M 37.5,35 Q 41.25,29 45,35"
+                  Stroke="{ThemeResource TextFillColorPrimaryBrush}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+            <Path x:Name="SleepyEyes" Visibility="Collapsed" Data="M 19,34 L 26.5,34 M 37.5,34 L 45,34"
+                  Stroke="{ThemeResource TextFillColorPrimaryBrush}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+
+            <!-- Mouths -->
+            <Path x:Name="SmileMouth" Data="M 26.5,45 Q 32,51 37.5,45"
+                  Stroke="{ThemeResource TextFillColorPrimaryBrush}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+            <Path x:Name="ExcitedMouth" Visibility="Collapsed" Data="M 26,44 Q 32,55 38,44 Z"
+                  Fill="{ThemeResource TextFillColorPrimaryBrush}" StrokeLineJoin="Round" />
+            <Path x:Name="OopsMouth" Visibility="Collapsed" Data="M 27,50 Q 32,44.5 37,50"
+                  Stroke="{ThemeResource TextFillColorPrimaryBrush}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+            <Path x:Name="SleepyMouth" Visibility="Collapsed" Data="M 29,48 L 35,48"
+                  Stroke="{ThemeResource TextFillColorPrimaryBrush}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+        </Canvas>
+    </Viewbox>
+</UserControl>

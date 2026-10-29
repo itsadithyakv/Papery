@@ -39,13 +39,13 @@ internal static class DocumentOpener
             catch (PdfOpenException ex)
             {
                 Log.Info($"Open failed: {ex.Error}");
-                await Dialogs.ShowMessageAsync(root, "Papery can't open this file", Explain(ex.Error, name));
+                await Dialogs.ShowMessageAsync(root, "Papery can't open this file", Explain(ex.Error, name), Controls.MascotMood.Oops);
                 return null;
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
                 Log.Error("Open failed unexpectedly", ex);
-                await Dialogs.ShowMessageAsync(root, "Papery can't open this file", Explain(PdfOpenError.Unknown, name));
+                await Dialogs.ShowMessageAsync(root, "Papery can't open this file", Explain(PdfOpenError.Unknown, name), Controls.MascotMood.Oops);
                 return null;
             }
         }

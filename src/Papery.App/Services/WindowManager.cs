@@ -41,5 +41,6 @@ internal static class WindowManager
 
     /// <summary>The window an element is currently shown in (elements can move between windows with their tab).</summary>
     public static MainWindow? WindowFor(UIElement element) =>
-        Windows.FirstOrDefault(w => w.Content?.XamlRoot != null && w.Content.XamlRoot == element.XamlRoot);
+        Windows.FirstOrDefault(w => w.Hosts(element))
+        ?? Windows.FirstOrDefault(w => w.Content?.XamlRoot != null && ReferenceEquals(w.Content.XamlRoot, element.XamlRoot));
 }

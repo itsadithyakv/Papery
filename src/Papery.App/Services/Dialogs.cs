@@ -37,8 +37,20 @@ internal static class Dialogs
         }
     }
 
-    public static Task ShowMessageAsync(XamlRoot root, string title, string message) =>
-        ShowAsync(new ContentDialog { Title = title, Content = Wrap(message), CloseButtonText = "OK", DefaultButton = ContentDialogButton.Close }, root);
+    /// <param name="mood">Optionally show the Papery character, e.g. Oops for a file that can't be opened.</param>
+    public static Task ShowMessageAsync(XamlRoot root, string title, string message, Controls.MascotMood? mood = null)
+    {
+        object content = Wrap(message);
+        if (mood is { } m)
+        {
+            var panel = new StackPanel { Spacing = 14 };
+            panel.Children.Add(new Controls.Mascot { Mood = m, Width = 56, Height = 66, IsFloating = false, HorizontalAlignment = HorizontalAlignment.Left });
+            panel.Children.Add(Wrap(message));
+            content = panel;
+        }
+
+        return ShowAsync(new ContentDialog { Title = title, Content = content, CloseButtonText = "OK", DefaultButton = ContentDialogButton.Close }, root);
+    }
 
     public static async Task<bool> ConfirmAsync(XamlRoot root, string title, string message, string primaryText, string closeText = "Cancel") =>
         await ShowAsync(new ContentDialog { Title = title, Content = Wrap(message), PrimaryButtonText = primaryText, CloseButtonText = closeText }, root)

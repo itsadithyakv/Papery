@@ -32,8 +32,8 @@
                  ExternalTornOutTabsDropping="OnExternalTabsDropping"
                  ExternalTornOutTabsDropped="OnExternalTabsDropped">
             <TabView.TabStripHeader>
-                <Image Source="ms-appx:///Assets/AppIcon-32.png" Width="16" Height="16" Margin="12,0,4,0"
-                       VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" />
+                <!-- Just a little space before the first tab (no icon: the taskbar already shows it). -->
+                <Border Width="8" />
             </TabView.TabStripHeader>
             <TabView.TabStripFooter>
                 <!--
@@ -43,8 +43,5 @@
                 <Grid x:Name="DragRegion" Background="Transparent" MinWidth="188" />
             </TabView.TabStripFooter>
         </TabView>
-
-        <!-- Presentation mode: the document is moved here so it can fill the whole screen. -->
-        <Grid x:Name="PresentationHost" Visibility="Collapsed" Background="Black" />
     </Grid>
 </Window>

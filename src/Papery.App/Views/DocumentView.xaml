@@ -248,8 +248,11 @@
                             </DataTemplate>
                         </TreeView.ItemTemplate>
                     </TreeView>
-                    <TextBlock x:Name="NoBookmarksText" Text="This document has no bookmarks." Margin="16" TextWrapping="Wrap"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" />
+                    <!-- Empty state: a sleepy character instead of a bare sentence. -->
+                    <StackPanel x:Name="NoBookmarksText" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Margin="16">
+                        <controls:Mascot Mood="Sleepy" Width="56" Height="66" IsFloating="False" />
+                        <TextBlock Text="No bookmarks here" HorizontalAlignment="Center" Style="{StaticResource PaperySecondaryTextStyle}" />
+                    </StackPanel>
                 </Grid>
 
                 <!-- Search -->
@@ -311,6 +314,7 @@
             </controls:PdfViewer>
 
             <!-- Notices float over the page, so they get a solid card background to stay readable. -->
+            <controls:Toast x:Name="Toaster" Grid.Column="1" />
             <InfoBar x:Name="Notice" Grid.Column="1" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="16,12" MaxWidth="640" IsOpen="False"
                      Background="{ThemeResource PaperyCardBrush}" BorderBrush="{ThemeResource PaperyCardBorderBrush}" BorderThickness="1" CornerRadius="12" />
         </Grid>
