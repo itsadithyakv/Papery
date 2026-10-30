@@ -335,6 +335,38 @@
                     </StackPanel>
                 </Grid>
 
+                <!-- Convert: pages and pictures out, new PDFs in -->
+                <ScrollViewer x:Name="ConvertToolbar" Visibility="Collapsed" HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                    <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnSavePagesAsImages" AutomationProperties.Name="Save pages as pictures" ToolTipService.ToolTip="Save pages as pictures">
+                            <FontIcon Glyph="&#xEB9F;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <ToggleButton x:Name="ConvertSnapshot" Style="{StaticResource ToolToggleButtonStyle}" Click="OnSnapshot" AutomationProperties.Name="Snapshot" ToolTipService.ToolTip="Snapshot: copy part of a page as a picture">
+                            <FontIcon Glyph="&#xE7A8;" Style="{StaticResource ToolIconStyle}" />
+                        </ToggleButton>
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnExtractPictures" AutomationProperties.Name="Save the pictures in this PDF" ToolTipService.ToolTip="Save the pictures in this PDF">
+                            <FontIcon Glyph="&#xE8B9;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnSaveText" AutomationProperties.Name="Save as text" ToolTipService.ToolTip="Save as text">
+                            <FontIcon Glyph="&#xE8A5;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnCopyAllText" AutomationProperties.Name="Copy all the text" ToolTipService.ToolTip="Copy all the text">
+                            <FontIcon Glyph="&#xE8C8;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnImagesToPdf" AutomationProperties.Name="Images to PDF" ToolTipService.ToolTip="Make a PDF from pictures">
+                            <FontIcon Glyph="&#xE7C5;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnScan" AutomationProperties.Name="Scan to PDF" ToolTipService.ToolTip="Scan to PDF">
+                            <FontIcon Glyph="&#xE8FE;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnPrintToPdfHelp" AutomationProperties.Name="Make a PDF from any app" ToolTipService.ToolTip="Make a PDF from any app">
+                            <FontIcon Glyph="&#xE749;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                    </StackPanel>
+                </ScrollViewer>
+
                 <!-- Placeholder for modes built in later stages -->
                 <TextBlock x:Name="ComingSoonText" VerticalAlignment="Center" Margin="8,0" Visibility="Collapsed"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />

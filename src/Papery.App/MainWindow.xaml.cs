@@ -211,6 +211,10 @@ public sealed partial class MainWindow : Window
             {
                 ShowMerge([]); // Merge has its own place to add files
             }
+            else if (tool?.Key is "images-to-pdf" or "scan")
+            {
+                await MakeNewPdfAsync(tool.Key, []); // these start with pictures, not a PDF
+            }
             else
             {
                 await PickAndOpenAsync(tool);
@@ -227,6 +231,10 @@ public sealed partial class MainWindow : Window
             {
                 ShowMerge(e.Files);
             }
+            else if (e.Tool?.Key is "images-to-pdf" or "scan")
+            {
+                await MakeNewPdfAsync(e.Tool.Key, e.Files);
+            }
             else
             {
                 await OpenFilesAsync(e.Files, e.Tool);
@@ -242,6 +250,17 @@ public sealed partial class MainWindow : Window
     /// <summary>Free tools always pass. Pro tools show the unlock screen when Pro isn't unlocked yet.</summary>
     private async Task<bool> AllowToolAsync(ToolInfo? tool) =>
         tool is not { IsPro: true } || await ProDialogs.RequireProAsync(Root.XamlRoot, tool);
+
+    private async Task MakeNewPdfAsync(string key, IReadOnlyList<string> pictures)
+    {
+        string? made = key == "scan"
+            ? await Views.Convert.ScanDialog.ShowAsync(Root.XamlRoot, Hwnd)
+            : await Views.Convert.ImagesToPdfDialog.ShowAsync(Root.XamlRoot, Hwnd, pictures);
+        if (made != null)
+        {
+            await OpenFilesAsync([made]);
+        }
+    }
 
     /// <summary>Opens a Merge tab, starting with <paramref name="paths"/>.</summary>
     public void ShowMerge(IReadOnlyList<string> paths)
@@ -322,6 +341,7 @@ public sealed partial class MainWindow : Window
         };
         view.OpenFileRequested += (sender, path) => _ = WindowManager.WindowFor((DocumentView)sender!)?.OpenFilesAsync([path]);
         view.MergeRequested += (sender, path) => WindowManager.WindowFor((DocumentView)sender!)?.ShowMerge([path]);
+        view.NewPdfMade += (sender, path) => _ = WindowManager.WindowFor((DocumentView)sender!)?.OpenFilesAsync([path]);
         view.NavigationRequested += (sender, target) =>
         {
             var window = WindowManager.WindowFor((DocumentView)sender!);

@@ -59,6 +59,9 @@ public sealed partial class DocumentView
             case "edit":
                 Modes.SelectedIndex = EditModeIndex;
                 break;
+            case "pdf-to-images":
+                Modes.SelectedIndex = ConvertModeIndex;
+                break;
         }
     }
 
@@ -136,6 +139,7 @@ public sealed partial class DocumentView
         LeaveAnnotateMode();
         LeaveFillMode();
         LeaveEditMode();
+        LeaveConvertMode();
         Viewer.Tool = null;
         SetFormFieldsActive(index is not (AnnotateModeIndex or EditModeIndex));
         if (index == FillModeIndex)
@@ -158,6 +162,12 @@ public sealed partial class DocumentView
         if (index == EditModeIndex)
         {
             EnterEditMode();
+            return;
+        }
+
+        if (index == ConvertModeIndex)
+        {
+            EnterConvertMode();
             return;
         }
 
