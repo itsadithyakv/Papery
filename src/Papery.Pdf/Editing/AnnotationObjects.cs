@@ -197,6 +197,21 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
         Append(image);
     }
 
+    /// <summary>Places a picture that's already a JPEG, without decoding it. Returns false if PDFium won't take it.</summary>
+    public bool PictureFromJpeg(byte[] jpeg, NormalizedRect area)
+    {
+        nint image = PdfiumNative.FPDFPageObj_NewImageObj(document);
+        if (image == 0 || !ImageToPdfWriter.SetPixels(image, new PdfImageData(jpeg, null)))
+        {
+            return false;
+        }
+
+        var (origin, ax, ay, dx, dy) = PictureFrame(area, 0);
+        _ = PdfiumNative.FPDFImageObj_SetMatrix(image, ax, ay, -dx, -dy, origin.X + dx, origin.Y + dy);
+        Append(image);
+        return true;
+    }
+
     /// <summary>Top-left corner of a turned area, and its across and down edges, in user space.</summary>
     private (UserPoint Origin, double Ax, double Ay, double Dx, double Dy) PictureFrame(NormalizedRect area, float degrees)
     {

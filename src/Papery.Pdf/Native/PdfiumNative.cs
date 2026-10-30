@@ -631,6 +631,27 @@ internal static unsafe partial class PdfiumNative
     }
 
     [LibraryImport(Dll)]
+    internal static partial uint FPDFText_GetUnicode(nint textPage, int index);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFText_GetCharBox(nint textPage, int index, double* left, double* right, double* bottom, double* top);
+
+    [LibraryImport(Dll)]
+    internal static partial double FPDFText_GetFontSize(nint textPage, int index);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFText_GetFontWeight(nint textPage, int index);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFText_GetFontInfo(nint textPage, int index, byte* buffer, uint length, int* flags);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFText_GetFillColor(nint textPage, int index, uint* r, uint* g, uint* b, uint* a);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPage_RemoveObject(nint page, nint pageObject);
+
+    [LibraryImport(Dll)]
     internal static partial int FPDFImageObj_GetImageMetadata(nint imageObject, nint page, FPDF_IMAGEOBJ_METADATA* metadata);
 
     [LibraryImport(Dll)]

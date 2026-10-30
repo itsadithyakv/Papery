@@ -139,7 +139,7 @@ internal static class ImageToPdfWriter
         return index;
     }
 
-    private static unsafe bool SetPixels(nint image, PdfImageData data)
+    internal static unsafe bool SetPixels(nint image, PdfImageData data)
     {
         // Original JPEG bytes go in untouched: no quality lost, and the file stays about the size of the photos.
         if (data.Jpeg is { } jpeg)

@@ -40,6 +40,34 @@ public sealed class PdfEngine
     public Task FlattenAsync(PdfInputFile input, string outputPath, CancellationToken cancellationToken = default) =>
         PdfComposer.FlattenAsync(Thread, input, outputPath, Native.PdfiumNative.FLAT_NORMALDISPLAY, cancellationToken);
 
+    /// <summary>Permanently removes everything in the boxes, then checks that it's gone. PDFs with a password need it taken off first.</summary>
+    public Task RedactAsync(PdfInputFile input, IReadOnlyList<RedactionArea> areas, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfRedactor.ApplyAsync(Thread, input, areas, [], outputPath, cancellationToken);
+
+    /// <summary>Locks a PDF with a password (AES-256) and optional limits.</summary>
+    public Task ProtectAsync(PdfInputFile input, PdfProtection protection, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfSecurity.ProtectAsync(Thread, input, protection, outputPath, cancellationToken);
+
+    /// <summary>Takes a password off, given the password.</summary>
+    public Task RemovePasswordAsync(PdfInputFile input, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfSecurity.RemovePasswordAsync(Thread, input, outputPath, cancellationToken);
+
+    /// <summary>Rebuilds a damaged PDF into a new file. Throws if nothing readable can be saved.</summary>
+    public Task RepairAsync(string inputPath, string? password, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfSecurity.RepairAsync(Thread, inputPath, password, outputPath, cancellationToken);
+
+    /// <summary>Changes the title, author, subject and keywords.</summary>
+    public Task SetMetadataAsync(PdfInputFile input, PdfDescription metadata, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfSecurity.SetMetadataAsync(Thread, input, metadata, outputPath, cancellationToken);
+
+    /// <summary>Looks for metadata, comments, attachments, hidden layers and scripts.</summary>
+    public Task<PdfHiddenData> InspectHiddenDataAsync(PdfInputFile input, CancellationToken cancellationToken = default) =>
+        PdfSecurity.InspectAsync(input, cancellationToken);
+
+    /// <summary>Takes the chosen hidden things out of the file for good.</summary>
+    public Task RemoveHiddenDataAsync(PdfInputFile input, PdfHiddenDataChoice choice, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfSecurity.RemoveHiddenDataAsync(Thread, input, choice, outputPath, cancellationToken);
+
     /// <summary>Makes a smaller copy. If nothing smaller is possible, the output isn't written and the result says so.</summary>
     public Task<CompressResult> CompressAsync(PdfInputFile input, CompressOptions options, string outputPath, CancellationToken cancellationToken = default) =>
         PdfCompressor.CompressAsync(Thread, input, options, outputPath, cancellationToken);

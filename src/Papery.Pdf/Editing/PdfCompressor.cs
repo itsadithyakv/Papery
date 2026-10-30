@@ -108,7 +108,12 @@ internal static class PdfCompressor
             using var doc = RawPdf.Load(input.Path, input.Password);
             return doc.PageCount;
         }, PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
+        await CommitAsync(thread, built, input.Password, pages, outputPath, cancellationToken).ConfigureAwait(false);
+    }
 
+    /// <summary>Checks a finished private copy, then swaps it into place.</summary>
+    internal static async Task CommitAsync(PdfiumThread thread, string built, string? password, int pages, string outputPath, CancellationToken cancellationToken)
+    {
         outputPath = Path.GetFullPath(outputPath);
         string temp = SafeFile.CreateTemp(outputPath);
         try
@@ -120,7 +125,7 @@ internal static class PdfCompressor
                 await from.CopyToAsync(to, cancellationToken).ConfigureAwait(false);
             }
 
-            await thread.InvokeAsync(() => PdfComposer.Verify(temp, input.Password, pages, outputPath), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
+            await thread.InvokeAsync(() => PdfComposer.Verify(temp, password, pages, outputPath), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             SafeFile.Commit(temp, outputPath);
         }
@@ -176,7 +181,7 @@ internal static class PdfCompressor
             await thread.InvokeAsync(() => doc?.Dispose(), PdfWorkPriority.Visible, CancellationToken.None).ConfigureAwait(false);
         }
 
-        await QpdfTool.ShrinkAsync(pictures, final, input.Password, input.Path, cancellationToken).ConfigureAwait(false);
+        await QpdfTool.RunAsync(QpdfTool.Tight(QpdfTool.Job(pictures, final, input.Password)), input.Path, cancellationToken).ConfigureAwait(false);
         await thread.InvokeAsync(() => PdfComposer.Verify(final, input.Password, PageCountOf(input), input.Path), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
         return final;
     }
@@ -401,7 +406,7 @@ internal static class PdfCompressor
 
     private static string NewWorkFolder() => Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "Papery", "compress", Guid.NewGuid().ToString("N"))).FullName;
 
-    private static void DeleteFolder(string folder)
+    internal static void DeleteFolder(string folder)
     {
         try
         {
