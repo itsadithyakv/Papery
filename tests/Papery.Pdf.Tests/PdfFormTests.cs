@@ -111,6 +111,112 @@ public sealed class PdfFormTests : IDisposable
     }
 
     [Fact]
+    public async Task An_answer_shows_straight_away_on_the_open_document()
+    {
+        await using var doc = await Engine.OpenAsync(CreateForm());
+        var fields = await doc.GetFormFieldsAsync(0);
+        var bounds = Field(fields, "agree").Bounds;
+        int before = await NonPaper(doc, bounds);
+
+        await doc.SetFieldCheckedAsync(0, Field(fields, "agree").Index, true);
+
+        Assert.True(await NonPaper(doc, bounds) > before, "the tick is drawn");
+    }
+
+    [Fact]
+    public async Task The_print_copy_has_the_answers_burned_in_and_no_fields()
+    {
+        await using var doc = await Engine.OpenAsync(CreateForm());
+        var fields = await doc.GetFormFieldsAsync(0);
+        await doc.SetFieldTextAsync(0, Field(fields, "name").Index, "Printed Answer");
+
+        string copy = await doc.CreatePrintCopyAsync();
+        try
+        {
+            await using var printable = await Engine.OpenAsync(copy);
+            Assert.Contains("Printed Answer", await printable.GetPageTextAsync(0), StringComparison.Ordinal);
+            Assert.Empty(await printable.GetFormFieldsAsync(0));
+        }
+        finally
+        {
+            File.Delete(copy);
+        }
+
+        Assert.False(File.Exists(copy + ".src"));
+    }
+
+    private static async Task<int> NonPaper(PdfDocument doc, NormalizedRect bounds)
+    {
+        var page = await doc.RenderPageAsync(0, 1000, 1414);
+        int count = 0;
+        for (int y = (int)(bounds.Y * 1414); y < bounds.Bottom * 1414; y++)
+        {
+            for (int x = (int)(bounds.X * 1000); x < bounds.Right * 1000; x++)
+            {
+                count += page.Pixels[(y * page.Stride) + (x * 4)] < 100 ? 1 : 0;
+            }
+        }
+
+        return count;
+    }
+
+    [Fact]
+    public async Task New_fields_can_be_added_to_a_flat_pdf_and_filled()
+    {
+        string path = _files.Create(2, "Flat");
+        NewFormField[] wanted =
+        [
+            new(0, PdfFormFieldKind.Text, new NormalizedRect(0.1, 0.3, 0.5, 0.03), "name"),
+            new(0, PdfFormFieldKind.CheckBox, new NormalizedRect(0.1, 0.4, 0.03, 0.02), "agree"),
+            new(1, PdfFormFieldKind.ComboBox, new NormalizedRect(0.1, 0.5, 0.3, 0.03), "pick", ["One", "Two"]),
+            new(1, PdfFormFieldKind.Signature, new NormalizedRect(0.1, 0.6, 0.4, 0.08), "sign"),
+        ];
+
+        await Engine.AddFormFieldsAsync(new PdfInputFile(path), wanted, path);
+
+        await using var doc = await Engine.OpenAsync(path);
+        Assert.Equal(PdfFormType.AcroForm, doc.FormType);
+        var page1 = await doc.GetFormFieldsAsync(0);
+        var name = Field(page1, "name");
+        Assert.InRange(name.Bounds.X, 0.09, 0.11);
+        Assert.InRange(name.Bounds.Y, 0.29, 0.31);
+        Assert.Equal(PdfFormFieldKind.CheckBox, Field(page1, "agree").Kind);
+        var page2 = await doc.GetFormFieldsAsync(1);
+        Assert.Equal(["One", "Two"], Field(page2, "pick").Options);
+        Assert.Equal(PdfFormFieldKind.Signature, Field(page2, "sign").Kind);
+
+        await doc.SetFieldTextAsync(0, name.Index, "Typed in");
+        Assert.Equal("Typed in", Field(await doc.GetFormFieldsAsync(0), "name").Value);
+    }
+
+    [Fact]
+    public async Task New_fields_join_an_existing_form()
+    {
+        string path = CreateForm();
+
+        await Engine.AddFormFieldsAsync(new PdfInputFile(path), [new(0, PdfFormFieldKind.Text, new NormalizedRect(0.1, 0.7, 0.5, 0.03), "extra")], path);
+
+        await using var doc = await Engine.OpenAsync(path);
+        var fields = await doc.GetFormFieldsAsync(0);
+        Assert.Contains(fields, f => f.Name == "extra");
+        Assert.Contains(fields, f => f.Name == "name");
+    }
+
+    [Fact]
+    public async Task New_fields_land_correctly_on_a_turned_page()
+    {
+        string path = _files.Create(1, "Flat");
+        await Engine.ComposeAsync(new PdfComposeRequest([new PdfInputFile(path)], [new PageRef(0, 0, QuarterTurns: 1)], EditInPlaceOf: 0), path);
+
+        await Engine.AddFormFieldsAsync(new PdfInputFile(path), [new(0, PdfFormFieldKind.Text, new NormalizedRect(0.2, 0.3, 0.4, 0.05), "turned")], path);
+
+        await using var doc = await Engine.OpenAsync(path);
+        var field = Assert.Single(await doc.GetFormFieldsAsync(0));
+        Assert.InRange(field.Bounds.X, 0.19, 0.21);
+        Assert.InRange(field.Bounds.Y, 0.29, 0.31);
+    }
+
+    [Fact]
     public async Task Fields_on_a_page_without_a_form_are_none()
     {
         await using var doc = await Engine.OpenAsync(_files.Create(1));

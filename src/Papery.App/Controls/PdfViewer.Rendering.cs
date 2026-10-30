@@ -64,6 +64,8 @@ public sealed partial class PdfViewer
                 _surface.Children.Add(visual);
                 _visuals[page] = visual;
                 RefreshHighlights(visual);
+                visual.FormLayer.Visibility = _formFieldsActive ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+                PageShown?.Invoke(this, new PageShownArgs(page, visual.FormLayer, rect.Width, rect.Height));
             }
 
             bool onScreen = _layout[page]!.Value.IntersectsVertically(top, top + height);

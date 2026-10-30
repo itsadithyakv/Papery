@@ -122,6 +122,9 @@ public sealed class AcroFormBuilder
         Register(page, field);
     }
 
+    /// <summary>When on, rectangles are PDF user space (X, Y = bottom-left corner), not top-left page coordinates.</summary>
+    public bool RectsInPdfSpace { get; set; }
+
     private PdfDictionary NewWidget(PdfPage page, XRect rect, string? name)
     {
         double h = page.Height.Point;
@@ -129,7 +132,9 @@ public sealed class AcroFormBuilder
         widget.Elements.SetName("/Type", "/Annot");
         widget.Elements.SetName("/Subtype", "/Widget");
         widget.Elements.SetInteger("/F", 4); // print
-        widget.Elements["/Rect"] = new PdfRectangle(new XPoint(rect.Left, h - rect.Bottom), new XPoint(rect.Right, h - rect.Top));
+        widget.Elements["/Rect"] = RectsInPdfSpace
+            ? new PdfRectangle(new XPoint(rect.Left, rect.Top), new XPoint(rect.Right, rect.Bottom))
+            : new PdfRectangle(new XPoint(rect.Left, h - rect.Bottom), new XPoint(rect.Right, h - rect.Top));
         widget.Elements.SetReference("/P", page);
         if (name != null)
         {

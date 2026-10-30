@@ -156,6 +156,12 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+                        <Button x:Name="ViewSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="0,0,6,0" Click="OnAnnotateSave" Visibility="Collapsed" ToolTipService.ToolTip="Save your changes into this file (Ctrl+S)">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE74E;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
+                                <TextBlock Text="Save" />
+                            </StackPanel>
+                        </Button>
                         <Button Style="{StaticResource ToolButtonStyle}" Click="OnPresentClick" AutomationProperties.Name="Present" ToolTipService.ToolTip="Present full screen (F5)">
                             <FontIcon Glyph="&#xE786;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
@@ -182,6 +188,77 @@
                             <FontIcon Glyph="&#xE7A6;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
                         <Button x:Name="AnnotateSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="6,0,0,0" Click="OnAnnotateSave" IsEnabled="False" ToolTipService.ToolTip="Save annotations into this file (Ctrl+S)">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE74E;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
+                                <TextBlock Text="Save" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Fill & Sign tools -->
+                <Grid x:Name="FillToolbar" Visibility="Collapsed" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                        <StackPanel x:Name="FillTools" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                            <ToggleButton Style="{StaticResource ToolToggleButtonStyle}" Click="OnTypeHere" AutomationProperties.Name="Type on the page" ToolTipService.ToolTip="Type on the page">
+                                <FontIcon Glyph="&#xE8D2;" Style="{StaticResource ToolIconStyle}" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource ToolToggleButtonStyle}" Click="OnTick" AutomationProperties.Name="Tick" ToolTipService.ToolTip="Tick">
+                                <FontIcon Glyph="&#xE73E;" Style="{StaticResource ToolIconStyle}" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource ToolToggleButtonStyle}" Click="OnCross" AutomationProperties.Name="Cross" ToolTipService.ToolTip="Cross">
+                                <FontIcon Glyph="&#xE711;" Style="{StaticResource ToolIconStyle}" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource ToolToggleButtonStyle}" Click="OnDot" AutomationProperties.Name="Dot" ToolTipService.ToolTip="Dot">
+                                <FontIcon Glyph="&#xF127;" Style="{StaticResource ToolIconStyle}" />
+                            </ToggleButton>
+                            <ToggleButton Style="{StaticResource ToolToggleButtonStyle}" Click="OnDate" AutomationProperties.Name="Today's date" ToolTipService.ToolTip="Today's date">
+                                <FontIcon Glyph="&#xE787;" Style="{StaticResource ToolIconStyle}" />
+                            </ToggleButton>
+                            <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+                            <Button Style="{StaticResource PaperySecondaryButtonStyle}" AutomationProperties.Name="Sign" ToolTipService.ToolTip="Signatures and initials">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xEE56;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
+                                    <TextBlock Text="Sign" />
+                                </StackPanel>
+                                <Button.Flyout>
+                                    <Flyout x:Name="SignFlyout" Opening="OnSignMenuOpening">
+                                        <StackPanel x:Name="SignMenu" Spacing="4" />
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                            <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+                            <DropDownButton Style="{StaticResource ToolDropDownStyle}" AutomationProperties.Name="Add a form field" ToolTipService.ToolTip="Add a form field">
+                                <FontIcon Glyph="&#xE710;" Style="{StaticResource ToolIconStyle}" />
+                                <DropDownButton.Flyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Text field" Tag="Text" Click="OnAddField" />
+                                        <MenuFlyoutItem Text="Tick box" Tag="CheckBox" Click="OnAddField" />
+                                        <MenuFlyoutItem Text="Dropdown" Tag="ComboBox" Click="OnAddField" />
+                                        <MenuFlyoutItem Text="Signature field" Tag="Signature" Click="OnAddField" />
+                                    </MenuFlyout>
+                                </DropDownButton.Flyout>
+                            </DropDownButton>
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnFindFields" AutomationProperties.Name="Find fields on this printed form" ToolTipService.ToolTip="Find fields on this printed form">
+                                <FontIcon Glyph="&#xE721;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnFlatten" AutomationProperties.Name="Make answers permanent" ToolTipService.ToolTip="Make answers permanent (flatten)">
+                                <FontIcon Glyph="&#xE72E;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                        <Button x:Name="FillUndo" Style="{StaticResource ToolButtonStyle}" Click="OnAnnotateUndo" IsEnabled="False" AutomationProperties.Name="Undo" ToolTipService.ToolTip="Undo (Ctrl+Z)">
+                            <FontIcon Glyph="&#xE7A7;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button x:Name="FillRedo" Style="{StaticResource ToolButtonStyle}" Click="OnAnnotateRedo" IsEnabled="False" AutomationProperties.Name="Redo" ToolTipService.ToolTip="Redo (Ctrl+Y)">
+                            <FontIcon Glyph="&#xE7A6;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button x:Name="FillSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="6,0,0,0" Click="OnAnnotateSave" IsEnabled="False" ToolTipService.ToolTip="Save into this file (Ctrl+S)">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE74E;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
                                 <TextBlock Text="Save" />

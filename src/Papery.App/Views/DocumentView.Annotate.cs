@@ -120,10 +120,10 @@ public sealed partial class DocumentView
         }
 
         Viewer.TextMarked += (_, selection) => Guard.Run(() => MarkTextAsync(selection), "Marking text");
-        AddAccelerator(VirtualKey.Z, VirtualKeyModifiers.Control, (_, a) => { if (_modeIndex == AnnotateModeIndex) { Guard.Run(UndoAnnotationAsync, "Undo"); a.Handled = true; } });
-        AddAccelerator(VirtualKey.Y, VirtualKeyModifiers.Control, (_, a) => { if (_modeIndex == AnnotateModeIndex) { Guard.Run(RedoAnnotationAsync, "Redo"); a.Handled = true; } });
+        AddAccelerator(VirtualKey.Z, VirtualKeyModifiers.Control, (_, a) => { if (_modeIndex is AnnotateModeIndex or FillModeIndex) { Guard.Run(UndoAnnotationAsync, "Undo"); a.Handled = true; } });
+        AddAccelerator(VirtualKey.Y, VirtualKeyModifiers.Control, (_, a) => { if (_modeIndex is AnnotateModeIndex or FillModeIndex) { Guard.Run(RedoAnnotationAsync, "Redo"); a.Handled = true; } });
         AddAccelerator(VirtualKey.Delete, VirtualKeyModifiers.None, (_, a) => { if (_modeIndex == AnnotateModeIndex && _picker?.Selected != null) { Guard.Run(DeleteSelectedAnnotationAsync, "Delete"); a.Handled = true; } });
-        AddAccelerator(VirtualKey.S, VirtualKeyModifiers.Control, (_, a) => { if (_document is { HasAnnotationChanges: true }) { Guard.Run(() => SaveAnnotationsAsync(), "Saving"); a.Handled = true; } });
+        AddAccelerator(VirtualKey.S, VirtualKeyModifiers.Control, (_, a) => { if (_document != null) { Guard.Run(SaveIfChangedAsync, "Saving"); a.Handled = true; } });
         Viewer.CurrentPageChanged += (_, _) =>
         {
             if (_modeIndex == AnnotateModeIndex)
@@ -431,6 +431,10 @@ public sealed partial class DocumentView
         AnnotateUndo.IsEnabled = _annotationUndo.Count > 0;
         AnnotateRedo.IsEnabled = _annotationRedo.Count > 0;
         AnnotateSave.IsEnabled = _document is { HasAnnotationChanges: true };
+        FillUndo.IsEnabled = AnnotateUndo.IsEnabled;
+        FillRedo.IsEnabled = AnnotateRedo.IsEnabled;
+        FillSave.IsEnabled = AnnotateSave.IsEnabled;
+        ViewSave.Visibility = AnnotateSave.IsEnabled ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OnAnnotateUndo(object sender, RoutedEventArgs e) => Guard.Run(UndoAnnotationAsync, "Undo");
@@ -440,6 +444,19 @@ public sealed partial class DocumentView
     private void OnAnnotateSave(object sender, RoutedEventArgs e) => Guard.Run(() => SaveAnnotationsAsync(), "Saving");
 
     // ================================================================= saving
+
+    private async Task SaveIfChangedAsync()
+    {
+        if (_formOverlay != null && XamlRoot != null)
+        {
+            await _formOverlay.FlushAsync(XamlRoot); // the last words typed may be the only change
+        }
+
+        if (_document is { HasAnnotationChanges: true })
+        {
+            await SaveAnnotationsAsync();
+        }
+    }
 
     /// <summary>Saves annotations into the file and reopens it. Returns false if it couldn't.</summary>
     private async Task<bool> SaveAnnotationsAsync(bool reload = true)
@@ -452,6 +469,11 @@ public sealed partial class DocumentView
         AnnotateSave.IsEnabled = false;
         try
         {
+            if (_formOverlay != null && XamlRoot != null)
+            {
+                await _formOverlay.FlushAsync(XamlRoot);
+            }
+
             await document.SaveAsync(FilePath);
         }
         catch (Exception ex) when (ex is PdfEditException or IOException or UnauthorizedAccessException)
@@ -487,7 +509,7 @@ public sealed partial class DocumentView
             return true;
         }
 
-        bool save = await Dialogs.ConfirmAsync(XamlRoot, "Save your annotations first?", $"{action} works on the saved file, so your annotations need saving first.", "Save", "Cancel");
+        bool save = await Dialogs.ConfirmAsync(XamlRoot, "Save your changes first?", $"{action} works on the saved file, so your changes need saving first.", "Save", "Cancel");
         return save && await SaveAnnotationsAsync();
     }
 
@@ -501,8 +523,8 @@ public sealed partial class DocumentView
 
         var dialog = new ContentDialog
         {
-            Title = "Save your annotations?",
-            Content = Dialogs.Wrap($"Your annotations on \"{FileName}\" haven't been saved yet."),
+            Title = "Save your changes?",
+            Content = Dialogs.Wrap($"Your changes to \"{FileName}\" haven't been saved yet."),
             PrimaryButtonText = "Save",
             SecondaryButtonText = "Don't save",
             CloseButtonText = "Cancel",

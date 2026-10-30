@@ -20,8 +20,12 @@ public interface IPageTool
     void Release(PageToolInput input);
 }
 
+/// <summary>A page came on screen, with the layer that form controls go on.</summary>
+public sealed record PageShownArgs(int Page, Canvas Layer, double Width, double Height);
+
 public sealed partial class PdfViewer
 {
+    private bool _formFieldsActive = true;
     private IPageTool? _tool;
     private PageVisual? _toolVisual;
 
@@ -41,6 +45,23 @@ public sealed partial class PdfViewer
 
     /// <summary>Text was dragged across while <see cref="MarkTextOnSelect"/> is on.</summary>
     public event EventHandler<PdfTextSelection>? TextMarked;
+
+    /// <summary>A page came on screen.</summary>
+    public event EventHandler<PageShownArgs>? PageShown;
+
+    /// <summary>Off while a drawing tool needs the whole page.</summary>
+    public bool FormFieldsActive
+    {
+        get => _formFieldsActive;
+        set
+        {
+            _formFieldsActive = value;
+            foreach (var visual in _visuals.Values)
+            {
+                visual.FormLayer.Visibility = value ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+            }
+        }
+    }
 
     /// <summary>Redraws one page after its annotations changed.</summary>
     public void RefreshPage(int page)

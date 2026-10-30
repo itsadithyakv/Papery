@@ -51,6 +51,10 @@ public sealed partial class PdfDocument
 
                     // Offsetting the page by -region.X/-region.Y draws just that part of it into the bitmap.
                     PdfiumNative.FPDF_RenderPageBitmap(bitmap, page, -region.X, -region.Y, pageWidth, pageHeight, 0, (int)options);
+                    if (_forms != null)
+                    {
+                        PdfiumNative.FPDF_FFLDraw(_forms.Handle, bitmap, page, -region.X, -region.Y, pageWidth, pageHeight, 0, (int)options);
+                    }
                 }
                 finally
                 {

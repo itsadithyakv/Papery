@@ -108,11 +108,14 @@ public sealed partial class PdfDocument : IAsyncDisposable
         await _thread.InvokeAsync(() =>
         {
             CloseTextPage();
-            CloseForms();
             foreach (var (_, page) in _pageCache)
             {
+                _forms?.Detach(page);
                 PdfiumNative.FPDF_ClosePage(page);
             }
+
+            _forms?.Dispose();
+            _forms = null;
 
             _pageCache.Clear();
             _raw.Dispose(); // closes the handle, then the file
@@ -142,6 +145,7 @@ public sealed partial class PdfDocument : IAsyncDisposable
             throw new InvalidDataException($"Page {pageIndex + 1} of '{FilePath}' could not be loaded.");
         }
 
+        Forms?.Attach(page);
         _pageCache.AddFirst((pageIndex, page));
         if (_pageCache.Count > PageCacheSize)
         {
@@ -151,6 +155,7 @@ public sealed partial class PdfDocument : IAsyncDisposable
                 CloseTextPage(); // a text page must be closed before its page
             }
 
+            _forms?.Detach(evictedHandle);
             PdfiumNative.FPDF_ClosePage(evictedHandle);
             _pageCache.RemoveLast();
         }

@@ -32,9 +32,13 @@ public sealed class PdfEngine
         CancellationToken cancellationToken = default) =>
         PdfComposer.ComposeAsync(Thread, request, outputPath, progress, cancellationToken);
 
+    /// <summary>Adds new form fields to a saved PDF.</summary>
+    public Task AddFormFieldsAsync(PdfInputFile input, IReadOnlyList<NewFormField> fields, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfFieldWriter.AddAsync(Thread, input, fields, outputPath, cancellationToken);
+
     /// <summary>Makes form answers and annotations a permanent part of the pages.</summary>
     public Task FlattenAsync(PdfInputFile input, string outputPath, CancellationToken cancellationToken = default) =>
-        PdfComposer.FlattenAsync(Thread, input, outputPath, cancellationToken);
+        PdfComposer.FlattenAsync(Thread, input, outputPath, Native.PdfiumNative.FLAT_NORMALDISPLAY, cancellationToken);
 
     /// <summary>Puts <paramref name="across"/> × <paramref name="down"/> pages on each sheet of a new PDF (for printing).</summary>
     public Task<PdfComposeResult> NUpAsync(

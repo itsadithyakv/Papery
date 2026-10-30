@@ -43,6 +43,7 @@ public sealed partial class DocumentView : UserControl
         ThumbnailList.ItemsSource = _thumbnails;
         BuildSwitchers();
         BuildAnnotateToolbar();
+        BuildFillToolbar();
         SearchResults.ItemsSource = _results;
 
         Viewer.CurrentPageChanged += (_, _) => OnCurrentPageChanged();
@@ -756,6 +757,29 @@ public sealed partial class DocumentView : UserControl
         Clipboard.SetContent(package);
     }
 
+    /// <summary>
+    /// Printers can't draw form fields separately, so a form prints from a temporary copy with its
+    /// answers burned in (still sharp vectors), which is deleted straight afterwards.
+    /// </summary>
+    private async Task<int> PrintFormAwareAsync(PdfDocument document, PrintJob job, IProgress<(int Done, int Total)> progress, CancellationToken cancellationToken)
+    {
+        if (document.FormType == PdfFormType.None)
+        {
+            return await PrintService.PrintAsync(document, FileName, job, progress, cancellationToken);
+        }
+
+        string copy = await document.CreatePrintCopyAsync(cancellationToken);
+        try
+        {
+            await using var printable = await PdfEngine.Shared.OpenAsync(copy, document.Password, cancellationToken);
+            return await PrintService.PrintAsync(printable, FileName, job, progress, cancellationToken);
+        }
+        finally
+        {
+            File.Delete(copy);
+        }
+    }
+
     private async Task PrintAsync()
     {
         if (_document == null)
@@ -787,7 +811,7 @@ public sealed partial class DocumentView : UserControl
         var progress = new Progress<(int Done, int Total)>(p => Notice.Message = $"Sending sheet {p.Done} of {p.Total}");
         try
         {
-            int sides = await PrintService.PrintAsync(_document, FileName, job, progress, cts.Token);
+            int sides = await PrintFormAwareAsync(_document, job, progress, cts.Token);
             Notice.IsOpen = false;
             Toaster.Show($"Sent to the printer · {sides} side{(sides == 1 ? string.Empty : "s")} of paper", "");
         }

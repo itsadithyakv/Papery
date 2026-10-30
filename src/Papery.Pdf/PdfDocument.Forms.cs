@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using Papery.Pdf.Editing;
 using Papery.Pdf.Native;
 
@@ -11,8 +10,10 @@ namespace Papery.Pdf;
 /// </summary>
 public sealed partial class PdfDocument
 {
-    private nint _form;
-    private unsafe void* _formInfo;
+    private FormEnvironment? _forms;
+
+    /// <summary>The form engine, for documents that have a form; started the first time a page needs it.</summary>
+    private FormEnvironment? Forms => FormType == PdfFormType.None ? null : _forms ??= new FormEnvironment(_handle);
 
     /// <summary>The owner allows filling in the form (permission bits 6 or 9).</summary>
     public bool CanFillForms => (Permissions & ((1 << 5) | (1 << 8))) != 0;
@@ -21,6 +22,11 @@ public sealed partial class PdfDocument
     public Task<IReadOnlyList<PdfFormField>> GetFormFieldsAsync(int pageIndex, CancellationToken cancellationToken = default)
     {
         CheckPageIndex(pageIndex);
+        if (FormType == PdfFormType.None)
+        {
+            return Task.FromResult<IReadOnlyList<PdfFormField>>([]);
+        }
+
         return Run<IReadOnlyList<PdfFormField>>(() => WithFormPage(pageIndex, (form, page) =>
         {
             var fields = new List<PdfFormField>();
@@ -195,63 +201,33 @@ public sealed partial class PdfDocument
         }
     });
 
-    /// <summary>Runs work with the form engine attached to a page of its own, closed again afterwards.</summary>
-    private T WithFormPage<T>(int pageIndex, Func<nint, nint, T> work)
-    {
-        nint form = FormHandle();
-        nint page = PdfiumNative.FPDF_LoadPage(_handle, pageIndex);
-        if (page == 0)
-        {
-            throw new InvalidDataException($"Page {pageIndex + 1} of '{FilePath}' could not be loaded.");
-        }
+    /// <summary>Runs work on a loaded page, which has the form engine attached.</summary>
+    private T WithFormPage<T>(int pageIndex, Func<nint, nint, T> work) =>
+        WithPage(pageIndex, page => work(Forms?.Handle ?? throw new InvalidOperationException("This PDF has no form."), page));
 
-        PdfiumNative.FORM_OnAfterLoadPage(page, form);
+    /// <summary>
+    /// A temporary copy with form answers and annotations burned in, for printing: printers have no way
+    /// to draw form fields separately. The caller opens it, prints, and deletes it.
+    /// </summary>
+    public async Task<string> CreatePrintCopyAsync(CancellationToken cancellationToken = default)
+    {
+        string temp = Path.Combine(Path.GetTempPath(), $"papery-print-{Guid.NewGuid():N}.pdf");
+        string flatInput = temp + ".src";
         try
         {
-            return work(form, page);
+            await Run(() =>
+            {
+                using var stream = new FileStream(flatInput, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
+                stream.Close();
+                PdfComposer.Save(_raw, flatInput, flatInput);
+                return true;
+            }, cancellationToken, PdfWorkPriority.Background).ConfigureAwait(false);
+            await PdfComposer.FlattenAsync(_thread, new PdfInputFile(flatInput, Password), temp, PdfiumNative.FLAT_PRINT, cancellationToken).ConfigureAwait(false);
+            return temp;
         }
         finally
         {
-            PdfiumNative.FORM_OnBeforeClosePage(page, form);
-            PdfiumNative.FPDF_ClosePage(page);
-        }
-    }
-
-    /// <summary>
-    /// The form engine for this document, started on first use. Its callback table is all empty on
-    /// purpose: Papery draws its own controls, and PDFium checks each callback before using it.
-    /// </summary>
-    private unsafe nint FormHandle()
-    {
-        if (_form != 0)
-        {
-            return _form;
-        }
-
-        const int TableBytes = 1024; // bigger than FPDF_FORMFILLINFO in any PDFium version
-        _formInfo = NativeMemory.AllocZeroed(TableBytes);
-        *(int*)_formInfo = 1; // version
-        _form = PdfiumNative.FPDFDOC_InitFormFillEnvironment(_handle, _formInfo);
-        if (_form == 0)
-        {
-            throw new InvalidOperationException("The form engine could not start.");
-        }
-
-        return _form;
-    }
-
-    private unsafe void CloseForms()
-    {
-        if (_form != 0)
-        {
-            PdfiumNative.FPDFDOC_ExitFormFillEnvironment(_form);
-            _form = 0;
-        }
-
-        if (_formInfo != null)
-        {
-            NativeMemory.Free(_formInfo);
-            _formInfo = null;
+            SafeFile.TryDelete(flatInput);
         }
     }
 }

@@ -53,6 +53,9 @@ public sealed partial class DocumentView
             case "annotate" or "draw":
                 Modes.SelectedIndex = AnnotateModeIndex;
                 break;
+            case "fill" or "sign":
+                Modes.SelectedIndex = FillModeIndex;
+                break;
         }
     }
 
@@ -128,6 +131,15 @@ public sealed partial class DocumentView
     private void ApplyModeChrome(int index, string name)
     {
         LeaveAnnotateMode();
+        LeaveFillMode();
+        Viewer.Tool = null;
+        SetFormFieldsActive(index != AnnotateModeIndex);
+        if (index == FillModeIndex)
+        {
+            EnterFillMode();
+            return;
+        }
+
         if (index == OrganiseModeIndex)
         {
             return; // the Organise board covers the toolbar and pages

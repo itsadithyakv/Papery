@@ -120,6 +120,49 @@ public sealed class PageImageAnalysisTests
     }
 
     [Fact]
+    public void Form_lines_ticks_and_boxes_are_found_and_tables_are_not()
+    {
+        var c = new Canvas(1000, 1400);
+        c.Box(200, 300, 700, 3);        // a writing line
+        void Outline(int x, int y, int w, int h)
+        {
+            c.Box(x, y, w, 2);
+            c.Box(x, y + h, w, 2);
+            c.Box(x, y, 2, h);
+            c.Box(x + w, y, 2, h + 2);
+        }
+
+        Outline(100, 500, 24, 24);       // a tick box
+        Outline(100, 700, 800, 200);     // a big empty box
+        for (int i = 0; i <= 3; i++)
+        {
+            c.Box(100, 1000 + (i * 50), 800, 2);   // a table: rows...
+        }
+
+        for (int i = 0; i <= 2; i++)
+        {
+            c.Box(100 + (i * 400), 1000, 2, 152);  // ...crossed by columns
+        }
+
+        var found = PageImageAnalysis.FindFormFields(c.Pixels, c.Width, c.Height, c.Width * 4);
+
+        Assert.Single(found, f => f.Kind == DetectedFieldKind.Line && f.Area.Y < 300 / 1400.0);
+        Assert.Single(found, f => f.Kind == DetectedFieldKind.CheckBox);
+        Assert.Single(found, f => f.Kind == DetectedFieldKind.TextBox && f.Area.Height > 0.1);
+        Assert.DoesNotContain(found, f => f.Kind == DetectedFieldKind.Line && f.Area.Y > 900 / 1400.0);
+    }
+
+    [Fact]
+    public void A_rule_under_a_heading_is_not_a_writing_line()
+    {
+        var c = new Canvas(1000, 1400);
+        c.Box(100, 200, 500, 12);   // the words of a heading
+        c.Box(100, 216, 800, 3);    // the rule right under them
+
+        Assert.Empty(PageImageAnalysis.FindFormFields(c.Pixels, c.Width, c.Height, c.Width * 4));
+    }
+
+    [Fact]
     public void Blank_page_has_no_bounds()
     {
         var c = new Canvas(200, 200);

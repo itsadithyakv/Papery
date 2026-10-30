@@ -274,7 +274,7 @@ internal static class PdfComposer
     /// Burns form answers and annotations into the page content: they can't be changed any more, and
     /// look the same everywhere. Always writes through the checked save, so a failure changes nothing.
     /// </summary>
-    public static async Task FlattenAsync(PdfiumThread thread, PdfInputFile input, string outputPath, CancellationToken cancellationToken)
+    public static async Task FlattenAsync(PdfiumThread thread, PdfInputFile input, string outputPath, int mode, CancellationToken cancellationToken)
     {
         outputPath = Path.GetFullPath(outputPath);
         RawPdf? doc = null;
@@ -285,6 +285,9 @@ internal static class PdfComposer
             {
                 doc = RawPdf.Load(input.Path, input.Password);
                 int count = doc.PageCount;
+
+                // Attaching the form engine gives fields without an appearance one, so they aren't lost.
+                using var forms = PdfiumNative.FPDF_GetFormType(doc.Handle) != 0 ? new FormEnvironment(doc.Handle) : null;
                 for (int i = 0; i < count; i++)
                 {
                     nint page = PdfiumNative.FPDF_LoadPage(doc.Handle, i);
@@ -293,7 +296,9 @@ internal static class PdfComposer
                         throw new PdfEditException(PdfEditError.BuildFailed, input.Path);
                     }
 
-                    _ = PdfiumNative.FPDFPage_Flatten(page, PdfiumNative.FLAT_NORMALDISPLAY);
+                    forms?.Attach(page);
+                    forms?.Detach(page);
+                    _ = PdfiumNative.FPDFPage_Flatten(page, mode);
                     PdfiumNative.FPDF_ClosePage(page);
                 }
 

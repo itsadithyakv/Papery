@@ -519,6 +519,7 @@ internal static unsafe partial class PdfiumNative
     internal const int FPDF_FORMFLAG_TEXT_MULTILINE = 1 << 12;
     internal const int FPDF_FORMFLAG_TEXT_PASSWORD = 1 << 13;
     internal const int FLAT_NORMALDISPLAY = 0;
+    internal const int FLAT_PRINT = 1;
 
     [LibraryImport(Dll)]
     internal static partial nint FPDFDOC_InitFormFillEnvironment(nint document, void* formInfo);
@@ -531,6 +532,10 @@ internal static unsafe partial class PdfiumNative
 
     [LibraryImport(Dll)]
     internal static partial void FORM_OnBeforeClosePage(nint page, nint form);
+
+    // Normal rendering leaves form fields out; this draws them on top.
+    [LibraryImport(Dll)]
+    internal static partial void FPDF_FFLDraw(nint form, nint bitmap, nint page, int startX, int startY, int sizeX, int sizeY, int rotate, int flags);
 
     [LibraryImport(Dll)]
     internal static partial int FORM_OnLButtonDown(nint form, nint page, int modifier, double x, double y);

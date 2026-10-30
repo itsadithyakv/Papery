@@ -56,6 +56,7 @@ internal sealed partial class PageVisual : Grid
         content.Children.Add(_base);
         content.Children.Add(_tiles);
         content.Children.Add(_overlay);
+        content.Children.Add(FormLayer);
         content.Children.Add(ToolLayer);
         content.Children.Add(_error);
         _paper = new Border { Child = content, Background = new SolidColorBrush(Colors.White), CornerRadius = new CornerRadius(1) };
@@ -64,6 +65,9 @@ internal sealed partial class PageVisual : Grid
     }
 
     public int PageIndex { get; set; } = -1;
+
+    /// <summary>The form field controls. Only its children catch clicks; the rest of the page stays selectable.</summary>
+    public Canvas FormLayer { get; } = new();
 
     /// <summary>Live previews of what a tool is drawing. Clicks pass through to the page.</summary>
     public Canvas ToolLayer { get; } = new() { IsHitTestVisible = false };
@@ -154,6 +158,8 @@ internal sealed partial class PageVisual : Grid
         SetBase(null, 0);
         ClearTiles();
         _overlay.Children.Clear();
+        FormLayer.Children.Clear();
+        FormLayer.Tag = null;
     }
 
     public void SetCursor(InputSystemCursorShape shape) => ProtectedCursor = InputSystemCursor.Create(shape);
