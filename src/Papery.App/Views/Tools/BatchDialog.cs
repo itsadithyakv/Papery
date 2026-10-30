@@ -51,7 +51,7 @@ internal static class BatchDialog
         }
 
         Add(starting);
-        var list = new ListView { Height = 200, SelectionMode = ListViewSelectionMode.None, ItemsSource = rows, ItemTemplate = RowTemplate() };
+        var list = new ListView { Height = 130, SelectionMode = ListViewSelectionMode.None, ItemsSource = rows, ItemTemplate = RowTemplate() };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(list, "Files");
 
         var addPdfs = new Button { Content = "Add PDFs", Style = (Style)Application.Current.Resources["PaperySecondaryButtonStyle"] };

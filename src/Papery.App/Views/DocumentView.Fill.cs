@@ -193,6 +193,7 @@ public sealed partial class DocumentView
         row.Children.Add(new FontIcon { Glyph = glyph, FontSize = 13 });
         row.Children.Add(new TextBlock { Text = text });
         var button = new Button { Content = row, Style = (Style)Application.Current.Resources["PaperyQuietButtonStyle"], HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, text);
         button.Click += (_, _) =>
         {
             SignFlyout.Hide();

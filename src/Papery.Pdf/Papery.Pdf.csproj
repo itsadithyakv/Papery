@@ -26,6 +26,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="..\..\third_party\qpdf\$(QpdfArch)\*" Link="qpdf\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\third_party\qpdf\LICENSE.txt" Link="qpdf\LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

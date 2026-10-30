@@ -152,10 +152,17 @@ public sealed partial class MainWindow : Window
             }
         }
 
-        if (notPdf.Count > 0)
+        // Pictures dropped on the window start a PDF of their own; other files can't be opened.
+        var pictures = notPdf.Where(ImageFiles.IsImage).ToList();
+        if (pictures.Count > 0 && await ProDialogs.RequireProAsync(Root.XamlRoot, ToolCatalog.All.First(t => t.Key == "images-to-pdf")))
         {
-            await Dialogs.ShowMessageAsync(Root.XamlRoot, "Only PDF files open here",
-                $"Papery opens PDF files. Turning images into a PDF arrives with the Convert tools.\n\nNot opened: {string.Join(", ", notPdf.Select(Path.GetFileName))}");
+            await MakeNewPdfAsync("images-to-pdf", pictures);
+        }
+
+        var others = notPdf.Except(pictures).ToList();
+        if (others.Count > 0)
+        {
+            await Dialogs.ShowMessageAsync(Root.XamlRoot, "Only PDFs and pictures open here", $"Not opened: {string.Join(", ", others.Select(Path.GetFileName))}");
         }
     }
 

@@ -7,8 +7,7 @@ Papery Pro purchase. No subscription, no ads, no account, no cloud.
 
 - Windows 10 1809 or later (x64 or ARM64)
 - .NET 10 SDK (pinned in `global.json`)
-- Visual Studio 2022/2026 with the **WinUI application development** workload (from stage b on;
-  stage l also needs **Desktop development with C++**)
+- Visual Studio 2022/2026 with the **WinUI application development** workload, only for making the final Store package
 
 ## Layout
 
@@ -20,7 +19,13 @@ Papery Pro purchase. No subscription, no ads, no account, no cloud.
 | `tests/` | Automated tests (xUnit v3) |
 | `tools/Papery.TestFiles` | Generator for the `PaperyTestFiles` folder |
 | `tools/Check-Licences.ps1` | Fails if any package has a non-permissive licence |
-| `docs/` | Third-party notices and architecture notes |
+| `tools/Build-Release.ps1` | Makes the signed test MSIX packages and the EXE installer in `dist/` |
+| `tools/Papery.Setup` | That EXE installer |
+| `tools/Drive-Papery.ps1` | Works the app through accessibility, with no mouse (checks and screenshots) |
+| `tools/Make-Branding.ps1`, `Make-Screenshots.ps1`, `Make-Icons.ps1` | Remake the art in `branding/` and the app's icons |
+| `third_party/qpdf` | QPDF 12.4.2 (Apache-2.0), official builds for x64 and ARM64 |
+| `branding/` | Logos, Store art, screenshots, listing text and privacy policy |
+| `docs/` | Store setup guide, test checklist and third-party notices |
 
 ## Everyday commands
 

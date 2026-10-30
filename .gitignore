@@ -21,3 +21,4 @@ BundleArtifacts/
 # Generated test PDFs (~350 MB). Recreate with:
 #   dotnet run --project tools/Papery.TestFiles -c Release
 PaperyTestFiles/
+dist/

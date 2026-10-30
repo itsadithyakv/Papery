@@ -74,6 +74,7 @@ internal static class SignatureDialog
 
         // ---- type ----
         var words = new TextBox { PlaceholderText = initials ? "Your initials" : "Your name" };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(words, words.PlaceholderText);
         var typed = new TextBlock { FontSize = 44, Foreground = ink, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(8) };
         var fonts = new ComboBox { MinWidth = 220 };
         foreach (string font in Handwriting)
