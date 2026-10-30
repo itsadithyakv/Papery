@@ -29,6 +29,7 @@ public sealed partial class DocumentView
 
     private readonly List<string> _undoCopies = [];
     private readonly List<(Canvas Layer, Rectangle Mark)> _linkMarks = [];
+    private (bool Set, string? Value) _nextPassword;
     private PdfColor _coverColour = CoverColours[0];
     private PdfAnnotationDraft _textStyle = new(PdfAnnotationKind.TextBox, new PdfColor(33, 33, 33), FontSize: 12);
     private bool _linkToolOn;
@@ -78,7 +79,7 @@ public sealed partial class DocumentView
     /// <summary>One tool is on at a time; finishing with a placing tool returns to Select.</summary>
     private void PickEditTool(ToggleButton on)
     {
-        foreach (var toggle in new[] { EditSelect, EditText, EditCover, EditLink })
+        foreach (var toggle in new[] { EditSelect, EditText, EditExisting, EditCover, EditLink })
         {
             toggle.IsChecked = toggle == on;
         }
@@ -502,12 +503,14 @@ public sealed partial class DocumentView
     /// Runs a change that rewrites the file. Unsaved work is saved first, and copies from before and after
     /// make it one step of the same undo as everything else. Returns false if it didn't happen.
     /// </summary>
-    private async Task<bool> ChangeFileAsync(string done, string glyph, Func<PdfInputFile, Task> change)
+    private async Task<bool> ChangeFileAsync(string done, string glyph, Func<PdfInputFile, Task> change, string? passwordAfter = null, bool changesPassword = false)
     {
-        if (!await CheckCanChangeAsync() || !await SaveAnnotationsFirstAsync("This") || _document is not { } document)
+        if (!await CheckCanChangeAsync() || !await SaveAnnotationsFirstAsync("This") || !await ConfirmChangingOriginalAsync() || _document is not { } document)
         {
             return false;
         }
+
+        document = _document!;
 
         string? before = null;
         try
@@ -517,12 +520,14 @@ public sealed partial class DocumentView
             await change(new PdfInputFile(FilePath, document.Password));
             string after = NewUndoCopy();
             File.Copy(FilePath, after, overwrite: true);
-            string password = document.Password ?? string.Empty;
+            string? passwordBefore = document.Password;
+            string? passwordNow = changesPassword ? passwordAfter : passwordBefore;
             string earlier = before;
+            _nextPassword = (true, passwordNow);
             await ReloadAsync();
             Remember(
-                () => RestoreFileAsync(earlier, password),
-                () => RestoreFileAsync(after, password));
+                () => RestoreFileAsync(earlier, passwordBefore),
+                () => RestoreFileAsync(after, passwordNow));
             Toaster.Show(done, glyph, "Undo", () => Guard.Run(UndoAnnotationAsync, "Undo"));
             return true;
         }
@@ -533,11 +538,11 @@ public sealed partial class DocumentView
         }
     }
 
-    private async Task RestoreFileAsync(string copy, string password)
+    private async Task RestoreFileAsync(string copy, string? password)
     {
         try
         {
-            await PdfEngine.Shared.RestoreCopyAsync(copy, password.Length == 0 ? null : password, FilePath);
+            await PdfEngine.Shared.RestoreCopyAsync(copy, password, FilePath);
         }
         catch (Exception ex) when (ex is PdfEditException or PdfOpenException or IOException or UnauthorizedAccessException)
         {
@@ -545,6 +550,7 @@ public sealed partial class DocumentView
             return;
         }
 
+        _nextPassword = (true, password);
         await ReloadAsync();
     }
 

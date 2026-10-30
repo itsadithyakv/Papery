@@ -46,8 +46,8 @@ internal static class PdfSigner
                 int count = doc.PageCount;
                 _ = DigitalSignatureHandler.ForDocument(doc, new CmsSignatureMaker(request.Certificate), new DigitalSignatureOptions
                 {
-                    Reason = request.Reason,
-                    Location = request.Location,
+                    Reason = request.Reason ?? string.Empty,
+                    Location = request.Location ?? string.Empty,
                     AppName = "Papery",
                 });
                 await using var stream = new FileStream(final, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 1 << 16);

@@ -120,10 +120,11 @@ public sealed partial class DocumentView
         }
 
         Viewer.TextMarked += (_, selection) => Guard.Run(() => MarkTextAsync(selection), "Marking text");
-        AddAccelerator(VirtualKey.Z, VirtualKeyModifiers.Control, (_, a) => { if (_modeIndex is AnnotateModeIndex or FillModeIndex or EditModeIndex) { Guard.Run(UndoAnnotationAsync, "Undo"); a.Handled = true; } });
-        AddAccelerator(VirtualKey.Y, VirtualKeyModifiers.Control, (_, a) => { if (_modeIndex is AnnotateModeIndex or FillModeIndex or EditModeIndex) { Guard.Run(RedoAnnotationAsync, "Redo"); a.Handled = true; } });
+        AddAccelerator(VirtualKey.Z, VirtualKeyModifiers.Control, (_, a) => { if (_modeIndex != OrganiseModeIndex) { Guard.Run(UndoAnnotationAsync, "Undo"); a.Handled = true; } });
+        AddAccelerator(VirtualKey.Y, VirtualKeyModifiers.Control, (_, a) => { if (_modeIndex != OrganiseModeIndex) { Guard.Run(RedoAnnotationAsync, "Redo"); a.Handled = true; } });
         AddAccelerator(VirtualKey.Delete, VirtualKeyModifiers.None, (_, a) => { if (_modeIndex is AnnotateModeIndex or EditModeIndex && _picker?.Selected != null) { Guard.Run(DeleteSelectedAnnotationAsync, "Delete"); a.Handled = true; } });
         AddAccelerator(VirtualKey.S, VirtualKeyModifiers.Control, (_, a) => { if (_document != null) { Guard.Run(SaveIfChangedAsync, "Saving"); a.Handled = true; } });
+        AddAccelerator(VirtualKey.S, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, (_, a) => { if (_document != null) { Guard.Run(MoveToCopyAsync, "Saving a copy"); a.Handled = true; } });
         Viewer.CurrentPageChanged += (_, _) =>
         {
             if (_modeIndex == AnnotateModeIndex)
@@ -479,6 +480,21 @@ public sealed partial class DocumentView
             return false;
         }
 
+        if (!_overwriteOk && reload)
+        {
+            string before = FilePath;
+            if (!await ConfirmChangingOriginalAsync())
+            {
+                return false;
+            }
+
+            if (FilePath != before)
+            {
+                ForgetRecoveryCopy();
+                return true; // the work went into the new copy
+            }
+        }
+
         AnnotateSave.IsEnabled = false;
         try
         {
@@ -496,6 +512,7 @@ public sealed partial class DocumentView
             return false;
         }
 
+        ForgetRecoveryCopy();
         _annotationUndo.Clear();
         _annotationRedo.Clear();
         _annotationCache.Clear();

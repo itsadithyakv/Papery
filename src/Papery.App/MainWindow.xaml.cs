@@ -211,9 +211,9 @@ public sealed partial class MainWindow : Window
             {
                 ShowMerge([]); // Merge has its own place to add files
             }
-            else if (tool?.Key is "images-to-pdf" or "scan")
+            else if (tool?.Key is "images-to-pdf" or "scan" or "batch" or "compare")
             {
-                await MakeNewPdfAsync(tool.Key, []); // these start with pictures, not a PDF
+                await MakeNewPdfAsync(tool.Key, []); // these don't start from one open PDF
             }
             else
             {
@@ -231,7 +231,7 @@ public sealed partial class MainWindow : Window
             {
                 ShowMerge(e.Files);
             }
-            else if (e.Tool?.Key is "images-to-pdf" or "scan")
+            else if (e.Tool?.Key is "images-to-pdf" or "scan" or "batch" or "compare")
             {
                 await MakeNewPdfAsync(e.Tool.Key, e.Files);
             }
@@ -251,14 +251,98 @@ public sealed partial class MainWindow : Window
     private async Task<bool> AllowToolAsync(ToolInfo? tool) =>
         tool is not { IsPro: true } || await ProDialogs.RequireProAsync(Root.XamlRoot, tool);
 
-    private async Task MakeNewPdfAsync(string key, IReadOnlyList<string> pictures)
+    /// <summary>Runs a tool that isn't tied to one open PDF. Used by the home screen and Explorer's right-click menu.</summary>
+    public async Task MakeNewPdfAsync(string key, IReadOnlyList<string> pictures)
     {
+        await WhenLoadedAsync();
+        if (key == "batch")
+        {
+            await Views.Tools.BatchDialog.ShowAsync(Root.XamlRoot, Hwnd, pictures);
+            return;
+        }
+
+        if (key == "compare")
+        {
+            await ShowCompareAsync(pictures);
+            return;
+        }
+
         string? made = key == "scan"
             ? await Views.Convert.ScanDialog.ShowAsync(Root.XamlRoot, Hwnd)
             : await Views.Convert.ImagesToPdfDialog.ShowAsync(Root.XamlRoot, Hwnd, pictures);
         if (made != null)
         {
             await OpenFilesAsync([made]);
+        }
+    }
+
+    /// <summary>Compares two PDFs in a tab, asking for whichever of the two hasn't been given.</summary>
+    private async Task ShowCompareAsync(IReadOnlyList<string> given)
+    {
+        var paths = given.Where(DropFiles.IsPdf).Take(2).ToList();
+        while (paths.Count < 2)
+        {
+            var picked = await Pickers.PickPdfsAsync(Hwnd, multiple: paths.Count == 0);
+            if (picked.Count == 0)
+            {
+                return;
+            }
+
+            paths.AddRange(picked.Where(DropFiles.IsPdf).Take(2 - paths.Count));
+        }
+
+        var left = await DocumentOpener.OpenAsync(paths[0], Root.XamlRoot);
+        if (left == null)
+        {
+            return;
+        }
+
+        var right = await DocumentOpener.OpenAsync(paths[1], Root.XamlRoot);
+        if (right == null)
+        {
+            await left.DisposeAsync();
+            return;
+        }
+
+        var tab = CreateTab(new Views.Tools.CompareView(left, right), "Compare", "\uE8F1");
+        Tabs.TabItems.Add(tab);
+        Tabs.SelectedItem = tab;
+    }
+
+    /// <summary>A tab moved onto a different file (Save a copy).</summary>
+    private void UpdateTabFor(DocumentView view)
+    {
+        if (Tabs.TabItems.OfType<TabViewItem>().FirstOrDefault(t => ReferenceEquals(t.Content, view)) is { } tab)
+        {
+            tab.Header = view.FileName;
+            ToolTipService.SetToolTip(tab, view.FilePath);
+        }
+
+        Title = $"{view.FileName} \u2013 Papery";
+    }
+
+    /// <summary>After a crash, offers back any unsaved work that was left behind.</summary>
+    public async Task OfferRecoveryAsync()
+    {
+        var leftovers = RecoveryService.FindLeftovers();
+        if (leftovers.Count == 0)
+        {
+            return;
+        }
+
+        await WhenLoadedAsync();
+        string names = string.Join(", ", leftovers.Select(l => Path.GetFileName(l.OriginalPath)));
+        bool restore = await Dialogs.ConfirmAsync(Root.XamlRoot, "Bring back your unsaved work?", $"Papery closed before saving your changes to: {names}.", "Restore", "Discard");
+        foreach (var leftover in leftovers)
+        {
+            if (restore)
+            {
+                await OpenFilesAsync([RecoveryService.Restore(leftover)]);
+            }
+            else
+            {
+                RecoveryService.Forget(leftover.CopyPath);
+            }
         }
     }
 
@@ -342,6 +426,9 @@ public sealed partial class MainWindow : Window
         view.OpenFileRequested += (sender, path) => _ = WindowManager.WindowFor((DocumentView)sender!)?.OpenFilesAsync([path]);
         view.MergeRequested += (sender, path) => WindowManager.WindowFor((DocumentView)sender!)?.ShowMerge([path]);
         view.NewPdfMade += (sender, path) => _ = WindowManager.WindowFor((DocumentView)sender!)?.OpenFilesAsync([path]);
+        view.CompareRequested += (sender, other) => _ = WindowManager.WindowFor((DocumentView)sender!)?.MakeNewPdfAsync("compare", [((DocumentView)sender!).FilePath, other]);
+        view.BatchRequested += (sender, args) => _ = WindowManager.WindowFor((DocumentView)sender!)?.MakeNewPdfAsync("batch", [((DocumentView)sender!).FilePath]);
+        view.FileChanged += (sender, args) => WindowManager.WindowFor((DocumentView)sender!)?.UpdateTabFor((DocumentView)sender!);
         view.NavigationRequested += (sender, target) =>
         {
             var window = WindowManager.WindowFor((DocumentView)sender!);
@@ -358,6 +445,11 @@ public sealed partial class MainWindow : Window
 
     private async Task CloseTabAsync(TabViewItem tab)
     {
+        if (tab.Content is Views.Tools.CompareView compare)
+        {
+            await compare.CloseAsync();
+        }
+
         if (tab.Content is DocumentView view)
         {
             Tabs.SelectedItem = tab;

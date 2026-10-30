@@ -50,7 +50,7 @@ internal static class ToolCatalog
         new("merge", "Merge", "Many files into one", "", ToolFamily.Pages, IsPro: true, IsBuilt: true),
         new("split", "Split", "One file into many", "", ToolFamily.Pages, IsPro: true, IsBuilt: true),
         new("crop", "Crop & resize", "Trim margins, change size", "", ToolFamily.Pages, IsPro: true, IsBuilt: true),
-        new("compress", "Compress", "Smaller files to share", "", ToolFamily.Size, IsPro: true, IsBuilt: false),
+        new("compress", "Compress", "Smaller files to share", "", ToolFamily.Size, IsPro: true, IsBuilt: true),
         new("annotate", "Highlight & comment", "Mark up and add notes", "", ToolFamily.Markup, IsPro: false, IsBuilt: true),
         new("draw", "Draw & stamp", "Pen, shapes and stamps", "", ToolFamily.Markup, IsPro: true, IsBuilt: true),
         new("edit", "Edit", "Text, images, page numbers", "", ToolFamily.Edit, IsPro: true, IsBuilt: true),
@@ -60,8 +60,9 @@ internal static class ToolCatalog
         new("pdf-to-images", "PDF to images", "Pages and pictures out", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("scan", "Scan to PDF", "Scanner or camera", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("ocr", "Make searchable", "Read text in scans", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
-        new("protect", "Protect", "Add or remove a password", "", ToolFamily.Protect, IsPro: true, IsBuilt: false),
-        new("redact", "Redact", "Remove private details", "", ToolFamily.Protect, IsPro: true, IsBuilt: false),
-        new("batch", "Batch", "One action, many files", "", ToolFamily.Size, IsPro: true, IsBuilt: false),
+        new("protect", "Protect", "Add or remove a password", "", ToolFamily.Protect, IsPro: true, IsBuilt: true),
+        new("redact", "Redact", "Remove private details", "", ToolFamily.Protect, IsPro: true, IsBuilt: true),
+        new("batch", "Batch", "One action, many files", "", ToolFamily.Size, IsPro: true, IsBuilt: true),
+        new("compare", "Compare", "Two versions side by side", "\uE8F1", ToolFamily.Size, IsPro: true, IsBuilt: true),
     ];
 }

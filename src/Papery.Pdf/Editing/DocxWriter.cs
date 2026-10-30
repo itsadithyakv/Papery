@@ -224,7 +224,7 @@ internal static class DocxWriter
                     body.Append("<w:tab/>");
                 }
 
-                body.Append($"""<w:t xml:space="preserve">{Escape(pieces[i])}</w:t>""");
+                body.Append(CultureInfo.InvariantCulture, $"""<w:t xml:space="preserve">{Escape(pieces[i])}</w:t>""");
             }
 
             body.Append("</w:r>");

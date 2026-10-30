@@ -6,6 +6,7 @@ namespace Papery.Pdf;
 /// Entry point to the PDF engine. There is exactly one per process, because
 /// PDFium itself is a process-wide library with a single worker thread.
 /// </summary>
+#pragma warning disable CA1822 // Everything goes through PdfEngine.Shared, whether or not it needs the thread.
 public sealed class PdfEngine
 {
     private PdfEngine()

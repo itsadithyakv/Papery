@@ -60,6 +60,16 @@ internal static class Pickers
         return file.Path;
     }
 
+    /// <summary>Asks where to save any other kind of file. Returns null if cancelled.</summary>
+    public static async Task<string?> PickSaveAsync(nint hwnd, string suggestedName, string kindName, string extension)
+    {
+        var picker = new FileSavePicker { SuggestedFileName = suggestedName, SuggestedStartLocation = PickerLocationId.DocumentsLibrary };
+        picker.FileTypeChoices.Add(kindName, [extension]);
+        InitializeWithWindow.Initialize(picker, hwnd);
+        var file = await picker.PickSaveFileAsync();
+        return file?.Path;
+    }
+
     /// <summary>
     /// The save picker leaves an empty file behind; if saving then fails, remove it so no
     /// 0-byte "PDF" is left lying around. Never touches a file with content.

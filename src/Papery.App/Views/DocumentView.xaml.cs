@@ -45,6 +45,13 @@ public sealed partial class DocumentView : UserControl
         BuildAnnotateToolbar();
         BuildFillToolbar();
         BuildEditToolbar();
+        Viewer.CurrentPageChanged += (_, _) =>
+        {
+            if (_modeIndex == ProtectModeIndex)
+            {
+                ShowRedactionMarks();
+            }
+        };
         SearchResults.ItemsSource = _results;
 
         Viewer.CurrentPageChanged += (_, _) => OnCurrentPageChanged();
@@ -135,6 +142,8 @@ public sealed partial class DocumentView : UserControl
         }
 
         AppServices.ViewState.AddRecent(FilePath);
+        _ = JumpListService.AddRecentAsync(FilePath);
+        StartAutosave();
         SaveStateSoon();
         if (IsLoaded)
         {
@@ -210,6 +219,8 @@ public sealed partial class DocumentView : UserControl
         }
 
         DeleteUndoCopies();
+        _autosave?.Stop();
+        ForgetRecoveryCopy();
     }
 
     public void ShowNotice(string title, string message, InfoBarSeverity severity = InfoBarSeverity.Informational)
@@ -252,6 +263,17 @@ public sealed partial class DocumentView : UserControl
             new("Copy selected text", "", CopySelection, "Ctrl+C", "clipboard", () => Viewer.Selection != null),
             new("Document properties", "", () => _ = ShowPropertiesAsync(), "Ctrl+D", "info details metadata author", hasDoc),
             new("Show in folder", "", ShowInFolder, Keywords: "explorer location", CanExecute: hasDoc),
+            new("Save a copy", "\uE792", () => Guard.Run(MoveToCopyAsync, "Saving a copy"), "Ctrl+Shift+S", "save as duplicate", hasDoc),
+            new("Compress", "\uE7B8", () => Guard.Run(CompressAsync, "Compressing"), Keywords: "shrink smaller size reduce", CanExecute: hasDoc),
+            new("Add a password", "\uE72E", () => Guard.Run(AddPasswordAsync, "Adding a password"), Keywords: "protect encrypt lock security", CanExecute: hasDoc),
+            new("Remove the password", "\uE785", () => Guard.Run(RemovePasswordAsync, "Removing the password"), Keywords: "unlock decrypt", CanExecute: hasDoc),
+            new("Redact", "\uE75C", () => Modes.SelectedIndex = ProtectModeIndex, Keywords: "remove private hide black censor", CanExecute: hasDoc),
+            new("Remove hidden data", "\uE74D", () => Guard.Run(RemoveHiddenDataAsync, "Removing hidden data"), Keywords: "metadata clean privacy scrub", CanExecute: hasDoc),
+            new("Document details", "\uE70F", () => Guard.Run(EditDetailsAsync, "Changing details"), Keywords: "metadata title author edit", CanExecute: hasDoc),
+            new("Save as Word", "\uE8A5", () => Guard.Run(ExportWordAsync, "Saving as Word"), Keywords: "docx convert doc", CanExecute: hasDoc),
+            new("Make searchable", "\uE721", () => Guard.Run(MakeSearchableAsync, "Making it searchable"), Keywords: "ocr scan read text", CanExecute: hasDoc),
+            new("Page numbers", "\uE8EF", () => Guard.Run(() => StampAsync(Edit.StampKind.PageNumbers), "Adding to pages"), Keywords: "number footer", CanExecute: hasDoc),
+            new("Watermark", "\uE790", () => Guard.Run(() => StampAsync(Edit.StampKind.Watermark), "Adding to pages"), Keywords: "draft stamp", CanExecute: hasDoc),
             new("Take the tour", "", StartTour, Keywords: "help tutorial guide learn", CanExecute: hasDoc),
             .. PageToolCommands(),
         ];

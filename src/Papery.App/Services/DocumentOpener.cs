@@ -36,6 +36,19 @@ internal static class DocumentOpener
 
                 wrong = true;
             }
+            catch (PdfOpenException ex) when (ex.Error == PdfOpenError.Damaged)
+            {
+                if (await RepairAsync(path) is not { } repaired)
+                {
+                    Log.Info($"Open failed: {ex.Error}");
+                    await Dialogs.ShowMessageAsync(root, "Papery can't open this file", Explain(ex.Error, name), Controls.MascotMood.Oops);
+                    return null;
+                }
+
+                Log.Info("Opened a repaired copy of a damaged file");
+                await Dialogs.ShowMessageAsync(root, "This file was damaged", $"Papery rebuilt what it could of \"{name}\" into a new copy, and that's what's open now. Check it looks right, then use Save a copy to keep it. Your original hasn't been changed.", Controls.MascotMood.Oops);
+                return repaired;
+            }
             catch (PdfOpenException ex)
             {
                 Log.Info($"Open failed: {ex.Error}");
@@ -48,6 +61,24 @@ internal static class DocumentOpener
                 await Dialogs.ShowMessageAsync(root, "Papery can't open this file", Explain(PdfOpenError.Unknown, name), Controls.MascotMood.Oops);
                 return null;
             }
+        }
+    }
+
+    /// <summary>Tries to rebuild a damaged file into a private copy. Null means it really can't be read.</summary>
+    private static async Task<PdfDocument?> RepairAsync(string path)
+    {
+        try
+        {
+            string folder = Directory.CreateDirectory(Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, "repaired", Guid.NewGuid().ToString("N")[..8])).FullName;
+            string output = Path.Combine(folder, $"{Path.GetFileNameWithoutExtension(path)} (repaired).pdf");
+            await File.WriteAllBytesAsync(output, []);
+            await PdfEngine.Shared.RepairAsync(path, null, output);
+            return await PdfEngine.Shared.OpenAsync(output);
+        }
+        catch (Exception ex) when (ex is Papery.Pdf.Editing.PdfEditException or PdfOpenException or IOException or UnauthorizedAccessException)
+        {
+            Log.Info($"Repair failed: {ex.GetType().Name}");
+            return null;
         }
     }
 

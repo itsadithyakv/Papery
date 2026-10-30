@@ -98,6 +98,16 @@
                     <ToggleSwitch x:Name="RememberSwitch" Grid.Column="1" Toggled="OnRememberToggled" AutomationProperties.Name="Reopen files where I left off" />
                 </Grid>
             </Border>
+            <Border Style="{StaticResource SettingsCardStyle}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Always save a copy" />
+                        <TextBlock Text="Your original files are never changed. The first edit asks where to save" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="AlwaysCopySwitch" Grid.Column="1" Toggled="OnAlwaysCopyToggled" AutomationProperties.Name="Always save a copy" />
+                </Grid>
+            </Border>
 
             <TextBlock Text="Default app" Style="{StaticResource SectionHeaderStyle}" />
             <Border Style="{StaticResource SettingsCardStyle}">

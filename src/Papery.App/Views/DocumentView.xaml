@@ -281,6 +281,9 @@
                             <ToggleButton x:Name="EditText" Style="{StaticResource ToolToggleButtonStyle}" Click="OnEditText" AutomationProperties.Name="Add text" ToolTipService.ToolTip="Add text">
                                 <FontIcon Glyph="&#xE8D2;" Style="{StaticResource ToolIconStyle}" />
                             </ToggleButton>
+                            <ToggleButton x:Name="EditExisting" Style="{StaticResource ToolToggleButtonStyle}" Click="OnEditExisting" AutomationProperties.Name="Change existing text" ToolTipService.ToolTip="Change existing text">
+                                <FontIcon Glyph="&#xE70F;" Style="{StaticResource ToolIconStyle}" />
+                            </ToggleButton>
                             <Button Style="{StaticResource ToolButtonStyle}" Click="OnEditImage" AutomationProperties.Name="Add a picture" ToolTipService.ToolTip="Add a picture">
                                 <FontIcon Glyph="&#xEB9F;" Style="{StaticResource ToolIconStyle}" />
                             </Button>
@@ -348,6 +351,9 @@
                             <FontIcon Glyph="&#xE8B9;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
                         <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnExportWord" AutomationProperties.Name="Save as Word" ToolTipService.ToolTip="Save as Word (best effort: tables and columns may need tidying)">
+                            <FontIcon Glyph="&#xE8F1;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
                         <Button Style="{StaticResource ToolButtonStyle}" Click="OnSaveText" AutomationProperties.Name="Save as text" ToolTipService.ToolTip="Save as text">
                             <FontIcon Glyph="&#xE8A5;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
@@ -370,6 +376,65 @@
                         </Button>
                         <Button Style="{StaticResource ToolButtonStyle}" Click="OnPrintToPdfHelp" AutomationProperties.Name="Make a PDF from any app" ToolTipService.ToolTip="Make a PDF from any app">
                             <FontIcon Glyph="&#xE749;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Protect: redaction, passwords, hidden data, details and certified signatures -->
+                <Grid x:Name="ProtectToolbar" Visibility="Collapsed" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                            <ToggleButton x:Name="ProtectMark" Style="{StaticResource ToolToggleButtonStyle}" Click="OnRedactMark" AutomationProperties.Name="Mark an area to remove" ToolTipService.ToolTip="Mark an area to remove for good">
+                                <FontIcon Glyph="&#xE75C;" Style="{StaticResource ToolIconStyle}" />
+                            </ToggleButton>
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnRedactFind" AutomationProperties.Name="Find what to remove" ToolTipService.ToolTip="Find words, emails or phone numbers to remove">
+                                <FontIcon Glyph="&#xE721;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button x:Name="ProtectClear" Visibility="Collapsed" Style="{StaticResource ToolButtonStyle}" Click="OnRedactClear" AutomationProperties.Name="Clear the marks" ToolTipService.ToolTip="Clear the marks">
+                                <FontIcon Glyph="&#xE711;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnAddPassword" AutomationProperties.Name="Add a password" ToolTipService.ToolTip="Add a password">
+                                <FontIcon Glyph="&#xE72E;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnRemovePassword" AutomationProperties.Name="Remove the password" ToolTipService.ToolTip="Remove the password">
+                                <FontIcon Glyph="&#xE785;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnHiddenData" AutomationProperties.Name="Remove hidden data" ToolTipService.ToolTip="Remove hidden data">
+                                <FontIcon Glyph="&#xE74D;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnEditDetails" AutomationProperties.Name="Document details" ToolTipService.ToolTip="Title, author, subject and keywords">
+                                <FontIcon Glyph="&#xE946;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnCertifiedSign" AutomationProperties.Name="Certified digital signature" ToolTipService.ToolTip="Certified digital signature">
+                                <FontIcon Glyph="&#xEB95;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <Button x:Name="ProtectApply" Grid.Column="1" IsEnabled="False" Style="{StaticResource PaperyPrimaryButtonStyle}" Click="OnRedactApply" ToolTipService.ToolTip="Permanently remove what's marked, in a new copy">
+                        <TextBlock Text="Redact" />
+                    </Button>
+                </Grid>
+
+                <!-- Tools: compress, compare and batch -->
+                <ScrollViewer x:Name="ToolsToolbar" Visibility="Collapsed" HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                    <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnCompress" AutomationProperties.Name="Compress" ToolTipService.ToolTip="Compress: make this file smaller">
+                            <FontIcon Glyph="&#xE7B8;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnCompare" AutomationProperties.Name="Compare" ToolTipService.ToolTip="Compare with another version">
+                            <FontIcon Glyph="&#xE8F1;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnBatch" AutomationProperties.Name="Batch" ToolTipService.ToolTip="Batch: one action on many files">
+                            <FontIcon Glyph="&#xE8B7;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnSaveAs" AutomationProperties.Name="Save a copy" ToolTipService.ToolTip="Save a copy (Ctrl+Shift+S)">
+                            <FontIcon Glyph="&#xE792;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
                     </StackPanel>
                 </ScrollViewer>

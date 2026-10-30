@@ -62,6 +62,13 @@ public sealed partial class DocumentView
             case "pdf-to-images":
                 Modes.SelectedIndex = ConvertModeIndex;
                 break;
+            case "compress":
+                Modes.SelectedIndex = ToolsModeIndex;
+                Guard.Run(CompressAsync, "Compressing");
+                break;
+            case "protect" or "redact":
+                Modes.SelectedIndex = ProtectModeIndex;
+                break;
             case "ocr":
                 Modes.SelectedIndex = ConvertModeIndex;
                 Guard.Run(MakeSearchableAsync, "Making it searchable");
@@ -144,6 +151,8 @@ public sealed partial class DocumentView
         LeaveFillMode();
         LeaveEditMode();
         LeaveConvertMode();
+        LeaveProtectMode();
+        LeaveToolsMode();
         Viewer.Tool = null;
         SetFormFieldsActive(index is not (AnnotateModeIndex or EditModeIndex));
         if (index == FillModeIndex)
@@ -172,6 +181,18 @@ public sealed partial class DocumentView
         if (index == ConvertModeIndex)
         {
             EnterConvertMode();
+            return;
+        }
+
+        if (index == ProtectModeIndex)
+        {
+            EnterProtectMode();
+            return;
+        }
+
+        if (index == ToolsModeIndex)
+        {
+            EnterToolsMode();
             return;
         }
 
@@ -267,7 +288,8 @@ public sealed partial class DocumentView
         PdfDocument fresh;
         try
         {
-            fresh = await PdfEngine.Shared.OpenAsync(FilePath, old.Password);
+            fresh = await PdfEngine.Shared.OpenAsync(FilePath, _nextPassword.Set ? _nextPassword.Value : old.Password);
+            _nextPassword = default;
         }
         catch (PdfOpenException ex)
         {

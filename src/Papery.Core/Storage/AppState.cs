@@ -31,6 +31,9 @@ public sealed class AppSettings
 
     public bool RememberPosition { get; set; } = true;
 
+    /// <summary>Never change an original: the first change in a tab asks where to save a copy.</summary>
+    public bool AlwaysSaveCopy { get; set; }
+
     /// <summary>The "Getting started" tips card on the home screen (the user can hide it).</summary>
     public bool ShowGettingStarted { get; set; } = true;
 

@@ -216,6 +216,36 @@ public sealed partial class PdfDocument
         }
     }
 
+    /// <summary>Writes the work so far to a private copy for crash recovery. Nothing about the open document changes.</summary>
+    public async Task SaveRecoveryCopyAsync(string outputPath, CancellationToken cancellationToken = default)
+    {
+        outputPath = Path.GetFullPath(outputPath);
+        if (!File.Exists(outputPath))
+        {
+            await File.WriteAllBytesAsync(outputPath, [], cancellationToken).ConfigureAwait(false);
+        }
+
+        string temp = SafeFile.CreateTemp(outputPath);
+        try
+        {
+            await Run(() =>
+            {
+                PdfComposer.Save(_raw, temp, outputPath);
+                return true;
+            }, cancellationToken, PdfWorkPriority.Background).ConfigureAwait(false);
+            await Run(() =>
+            {
+                PdfComposer.Verify(temp, Password, PageCount, outputPath);
+                return true;
+            }, cancellationToken, PdfWorkPriority.Background).ConfigureAwait(false);
+            SafeFile.Commit(temp, outputPath);
+        }
+        finally
+        {
+            SafeFile.TryDelete(temp);
+        }
+    }
+
     // ================================================================= reading
 
     private unsafe PdfAnnotationInfo? Read(nint page, int pageIndex, nint annotation)

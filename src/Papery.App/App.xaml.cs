@@ -43,17 +43,34 @@ public partial class App : Application
 
         bool merge = WantsMerge(activation) || Environment.GetCommandLineArgs().Contains(MergeSwitch, StringComparer.OrdinalIgnoreCase);
         Log.Info($"Started ({activation.Kind}), {files.Count} file(s) to {(merge ? "merge" : "open")}");
-        Open(window, files, merge);
+        Open(window, files, merge, VerbOf(activation));
+        _ = window.OfferRecoveryAsync();
     }
 
     /// <summary>"papery.exe --merge a.pdf b.pdf" opens a Merge tab (used by Explorer's "Merge with Papery").</summary>
     private const string MergeSwitch = "--merge";
 
-    private static void Open(MainWindow window, List<string> files, bool merge)
+    /// <summary>Which right-click item in File Explorer started Papery, if any.</summary>
+    private static string? VerbOf(AppActivationArguments args) =>
+        args.Kind == ExtendedActivationKind.File && args.Data is IFileActivatedEventArgs file ? file.Verb : null;
+
+    private static void Open(MainWindow window, List<string> files, bool merge, string? verb = null)
     {
-        if (merge)
+        if (merge || verb == "merge")
         {
             window.ShowMerge(files);
+        }
+        else if (verb == "combine")
+        {
+            _ = window.MakeNewPdfAsync("images-to-pdf", files);
+        }
+        else if (verb == "compress" && files.Count > 0)
+        {
+            _ = window.OpenFilesAsync(files, Commands.ToolCatalog.All.First(t => t.Key == "compress"));
+        }
+        else if (verb == "convert" && files.Count > 0)
+        {
+            _ = window.OpenFilesAsync(files, Commands.ToolCatalog.All.First(t => t.Key == "pdf-to-images"));
         }
         else if (files.Count > 0)
         {
@@ -73,7 +90,7 @@ public partial class App : Application
         window?.DispatcherQueue.TryEnqueue(() =>
         {
             window.BringToFront();
-            Open(window, files, merge);
+            Open(window, files, merge, VerbOf(args));
         });
     }
 

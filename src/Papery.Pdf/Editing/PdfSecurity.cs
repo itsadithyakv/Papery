@@ -22,6 +22,8 @@ public sealed record PdfHiddenDataChoice(bool Metadata = true, bool Comments = t
 /// <summary>Passwords, repairs, description fields and hidden data. All through the checked save.</summary>
 internal static class PdfSecurity
 {
+    private static readonly string[] DescriptionKeys = ["/Title", "/Author", "/Subject", "/Keywords", "/Creator"];
+
     private static int PageCount(string path, string? password)
     {
         using var doc = RawPdf.Load(path, password);
@@ -132,7 +134,7 @@ internal static class PdfSecurity
     {
         using var doc = Open(input);
         var catalog = doc.Internals.Catalog;
-        bool metadata = catalog.Elements.ContainsKey("/Metadata") || new[] { "/Title", "/Author", "/Subject", "/Keywords", "/Creator" }.Any(k => !string.IsNullOrEmpty(doc.Info.Elements.GetString(k)));
+        bool metadata = catalog.Elements.ContainsKey("/Metadata") || DescriptionKeys.Any(k => !string.IsNullOrEmpty(doc.Info.Elements.GetString(k)));
         int comments = 0, attachments = EmbeddedFileCount(catalog), scripts = CatalogScripts(catalog);
         foreach (var page in doc.Pages.Cast<PdfPage>())
         {

@@ -20,6 +20,7 @@ public sealed partial class SettingsView : UserControl
         ReadingBox.SelectedIndex = (int)s.ReadingMode;
         LayoutBox.SelectedIndex = (int)s.DefaultViewMode;
         RememberSwitch.IsOn = s.RememberPosition;
+        AlwaysCopySwitch.IsOn = s.AlwaysSaveCopy;
         VersionText.Text = $"Version {AppVersion()}";
 #if DEBUG
         // The Free/Pro switch exists only in developer builds; Release (Store) builds don't compile this.
@@ -96,6 +97,9 @@ public sealed partial class SettingsView : UserControl
 
     private void OnRememberToggled(object sender, RoutedEventArgs e) =>
         Save(s => s.RememberPosition = RememberSwitch.IsOn);
+
+    private void OnAlwaysCopyToggled(object sender, RoutedEventArgs e) =>
+        Save(s => s.AlwaysSaveCopy = AlwaysCopySwitch.IsOn);
 
     private void Save(Action<AppSettings> change)
     {
