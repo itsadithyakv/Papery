@@ -110,6 +110,13 @@
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
+    <!-- No line down the side of the selected item in a list: its soft background is enough. -->
+    <x:Boolean x:Key="ListViewItemSelectionIndicatorVisualEnabled">False</x:Boolean>
+    <SolidColorBrush x:Key="ListViewItemSelectionIndicatorBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="ListViewItemSelectionIndicatorPointerOverBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="ListViewItemSelectionIndicatorPressedBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="ListViewItemSelectionIndicatorDisabledBrush" Color="Transparent" />
+
     <!-- Icons: Segoe Fluent Icons on Windows 11, Segoe MDL2 Assets on Windows 10. -->
     <FontFamily x:Key="PaperyIcons">Segoe Fluent Icons,Segoe MDL2 Assets</FontFamily>
     <x:Double x:Key="PaperyToolbarHeight">48</x:Double>

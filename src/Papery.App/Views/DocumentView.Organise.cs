@@ -62,6 +62,10 @@ public sealed partial class DocumentView
             case "pdf-to-images":
                 Modes.SelectedIndex = ConvertModeIndex;
                 break;
+            case "ocr":
+                Modes.SelectedIndex = ConvertModeIndex;
+                Guard.Run(MakeSearchableAsync, "Making it searchable");
+                break;
         }
     }
 

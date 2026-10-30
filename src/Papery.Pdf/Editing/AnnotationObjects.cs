@@ -9,7 +9,7 @@ namespace Papery.Pdf.Editing;
 /// through the page's display axes, so text reads upright on rotated pages too. With no annotation
 /// (0) the objects go straight onto the page instead. PDFium thread only.
 /// </summary>
-internal sealed unsafe class AnnotationObjects(nint document, nint page, nint annotation, PdfColor color)
+internal sealed unsafe class AnnotationObjects(nint document, nint page, nint annotation, PdfColor color, FontBook? fonts = null)
 {
     private const float PointSizeFloor = 4;
 
@@ -32,6 +32,32 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
         _ = PdfiumNative.FPDFPath_LineTo(path, (float)bottomLeft.X, (float)topRight.Y);
         _ = PdfiumNative.FPDFPath_Close(path);
         Finish(path, width);
+    }
+
+    /// <summary>A word nobody sees but search and selection can find, stretched to cover the word in the picture.</summary>
+    public void InvisibleWord(string text, NormalizedRect area)
+    {
+        var (width, height) = AreaSize(area);
+        float size = (float)Math.Max(1, height);
+        double measured = Measure(text, size, default);
+
+        // The space runs into the gap after the word. Without it, search and copy read "twowords".
+        nint obj = CreateText(text + " ", size, default);
+        if (obj == 0 || measured <= 0)
+        {
+            if (obj != 0)
+            {
+                PdfiumNative.FPDFPageObj_Destroy(obj);
+            }
+
+            return;
+        }
+
+        double stretch = width / measured;
+        var origin = At(area, 0, height * 0.8); // the baseline, roughly: letters sit above it and descenders below
+        PdfiumNative.FPDFPageObj_Transform(obj, _across.X * stretch, _across.Y * stretch, -_down.X, -_down.Y, origin.X, origin.Y);
+        _ = PdfiumNative.FPDFTextObj_SetTextRenderMode(obj, PdfiumNative.FPDF_TEXTRENDERMODE_INVISIBLE);
+        Append(obj);
     }
 
     /// <summary>A solid box with no outline (whiteout).</summary>
@@ -261,14 +287,19 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
 
     private nint CreateText(string text, float size, TextLook look)
     {
-        nint font = LoadFont(text, look);
+        // A book keeps fonts open and shared; otherwise each piece of text has its own.
+        nint font = fonts != null ? fonts.Get(look, text.All(c => c < 256), () => LoadFont(text, look)) : LoadFont(text, look);
         if (font == 0)
         {
             return 0;
         }
 
         nint obj = PdfiumNative.FPDFPageObj_CreateTextObj(document, font, size);
-        PdfiumNative.FPDFFont_Close(font);
+        if (fonts == null)
+        {
+            PdfiumNative.FPDFFont_Close(font);
+        }
+
         if (obj != 0)
         {
             fixed (char* t = text + '\0')

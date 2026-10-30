@@ -126,6 +126,26 @@ public sealed partial class PdfDocument : IAsyncDisposable
     /// <summary>Runs work on the PDFium thread with a loaded page. Must only be called from inside the thread.</summary>
     private T WithPage<T>(int pageIndex, Func<nint, T> work) => work(GetPage(pageIndex));
 
+    /// <summary>Closes a cached page so the next use loads it again from the document.</summary>
+    private void ForgetPage(int pageIndex)
+    {
+        for (var node = _pageCache.First; node != null; node = node.Next)
+        {
+            if (node.Value.Index == pageIndex)
+            {
+                if (pageIndex == _textPageIndex)
+                {
+                    CloseTextPage(); // a text page must be closed before its page
+                }
+
+                _forms?.Detach(node.Value.Handle);
+                PdfiumNative.FPDF_ClosePage(node.Value.Handle);
+                _pageCache.Remove(node);
+                return;
+            }
+        }
+    }
+
     private nint GetPage(int pageIndex)
     {
         ObjectDisposedException.ThrowIf(_handle == 0, this);

@@ -475,6 +475,11 @@ internal static unsafe partial class PdfiumNative
     internal const int FPDF_FILLMODE_WINDING = 2;
     internal const int FPDF_FONT_TRUETYPE = 2;
 
+    internal const int FPDF_TEXTRENDERMODE_INVISIBLE = 3;
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFTextObj_SetTextRenderMode(nint textObject, int renderMode);
+
     [LibraryImport(Dll)]
     internal static partial void FPDFPage_InsertObject(nint page, nint pageObject);
 

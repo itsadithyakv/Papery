@@ -59,7 +59,7 @@ internal static class ToolCatalog
         new("images-to-pdf", "Images to PDF", "Photos become a PDF", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("pdf-to-images", "PDF to images", "Pages and pictures out", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("scan", "Scan to PDF", "Scanner or camera", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
-        new("ocr", "Make searchable", "Read text in scans", "", ToolFamily.Convert, IsPro: true, IsBuilt: false),
+        new("ocr", "Make searchable", "Read text in scans", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("protect", "Protect", "Add or remove a password", "", ToolFamily.Protect, IsPro: true, IsBuilt: false),
         new("redact", "Redact", "Remove private details", "", ToolFamily.Protect, IsPro: true, IsBuilt: false),
         new("batch", "Batch", "One action, many files", "", ToolFamily.Size, IsPro: true, IsBuilt: false),

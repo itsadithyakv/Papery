@@ -144,6 +144,7 @@ internal static class PageStamper
         var colour = stamp.Color with { A = (byte)Math.Clamp(stamp.Opacity * 255, 0, 255) };
         var picture = stamp.Picture is { } original ? Faded(original, stamp.Opacity) : null;
         var look = new TextLook(stamp.Font, stamp.Bold, stamp.Italic);
+        using var fonts = new FontBook();
         foreach (var (index, number) in plan)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -155,7 +156,7 @@ internal static class PageStamper
 
             try
             {
-                var builder = new AnnotationObjects(doc.Handle, page, 0, colour);
+                var builder = new AnnotationObjects(doc.Handle, page, 0, colour, fonts);
                 var (width, height) = builder.PageSize();
                 if (picture != null)
                 {

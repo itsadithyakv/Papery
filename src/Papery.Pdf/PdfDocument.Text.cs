@@ -12,6 +12,25 @@ public sealed partial class PdfDocument
     private int _textPageIndex = -1;
     private nint _textPage;
 
+    /// <summary>
+    /// Makes recognised words selectable on this open document straight away. The file only changes
+    /// if this document is saved later, and then the words are saved with it.
+    /// </summary>
+    public Task<bool> AddLiveTextAsync(Editing.OcrPage ocr, CancellationToken cancellationToken = default)
+    {
+        CheckPageIndex(ocr.PageIndex);
+        return Run(() =>
+        {
+            CloseTextPage(); // it describes the page as it was
+            using var fonts = new Editing.FontBook();
+            bool added = Editing.OcrTextWriter.AddWords(_handle, GetPage(ocr.PageIndex), ocr.Words, fonts);
+
+            // Text engine positions are only right for words read from page content, so read the page afresh.
+            ForgetPage(ocr.PageIndex);
+            return added;
+        }, cancellationToken);
+    }
+
     /// <summary>Returns all text on a page, in PDFium's reading order.</summary>
     public Task<string> GetPageTextAsync(
         int pageIndex,

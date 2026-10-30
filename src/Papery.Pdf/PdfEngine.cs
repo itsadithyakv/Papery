@@ -40,6 +40,10 @@ public sealed class PdfEngine
     public Task FlattenAsync(PdfInputFile input, string outputPath, CancellationToken cancellationToken = default) =>
         PdfComposer.FlattenAsync(Thread, input, outputPath, Native.PdfiumNative.FLAT_NORMALDISPLAY, cancellationToken);
 
+    /// <summary>Adds recognised words to a saved PDF as an invisible layer, so it can be searched and copied.</summary>
+    public Task AddTextLayerAsync(PdfInputFile input, IReadOnlyList<OcrPage> pages, string outputPath, CancellationToken cancellationToken = default) =>
+        OcrTextWriter.ApplyAsync(Thread, input, pages, outputPath, cancellationToken);
+
     /// <summary>Makes a new PDF with one page for each picture.</summary>
     public Task ImagesToPdfAsync(IReadOnlyList<PdfImagePage> pages, ImagePageOptions options, string outputPath, IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>
         ImageToPdfWriter.WriteAsync(Thread, pages, options, outputPath, progress, cancellationToken);
