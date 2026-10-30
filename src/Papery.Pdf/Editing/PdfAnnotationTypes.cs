@@ -21,6 +21,9 @@ public enum PdfAnnotationKind
     Stamp,
     Measure,
 
+    /// <summary>A picture placed on the page (a signature or initials). Its first area is where.</summary>
+    Signature,
+
     /// <summary>Something another app made that Papery doesn't have a tool for.</summary>
     Other,
 }
@@ -44,7 +47,9 @@ public sealed record PdfAnnotationDraft(
     float Width = 1.5f,
     string? Text = null,
     float FontSize = 12,
-    string? Author = null);
+    string? Author = null,
+    PdfBitmap? Picture = null,
+    float RotationDegrees = 0);
 
 /// <summary>An annotation on a page, as read back from the document.</summary>
 /// <param name="Name">Its unique name in the file (the PDF /NM entry); how Papery refers to it.</param>
@@ -57,3 +62,30 @@ public sealed record PdfAnnotationInfo(
     NormalizedRect Bounds,
     string? Text,
     string? Author);
+
+public enum PdfFormFieldKind
+{
+    Text,
+    CheckBox,
+    RadioButton,
+    ComboBox,
+    ListBox,
+    Signature,
+    Button,
+}
+
+/// <summary>One fillable widget on a page, as the user sees it.</summary>
+/// <param name="Index">Its position among the page's annotations; how Papery finds it again.</param>
+public sealed record PdfFormField(
+    int PageIndex,
+    int Index,
+    string Name,
+    PdfFormFieldKind Kind,
+    NormalizedRect Bounds,
+    string Value,
+    bool IsChecked,
+    bool IsReadOnly,
+    bool IsMultiline,
+    bool IsPassword,
+    IReadOnlyList<string> Options,
+    int SelectedOption);

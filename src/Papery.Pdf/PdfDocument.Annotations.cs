@@ -354,7 +354,7 @@ public sealed partial class PdfDocument
             PdfAnnotationKind.Note => PdfiumNative.FPDF_ANNOT_TEXT,
             PdfAnnotationKind.Rectangle => PdfiumNative.FPDF_ANNOT_SQUARE,
             PdfAnnotationKind.Ellipse => PdfiumNative.FPDF_ANNOT_CIRCLE,
-            PdfAnnotationKind.TextBox or PdfAnnotationKind.Callout or PdfAnnotationKind.Stamp or PdfAnnotationKind.Measure => PdfiumNative.FPDF_ANNOT_STAMP,
+            PdfAnnotationKind.TextBox or PdfAnnotationKind.Callout or PdfAnnotationKind.Stamp or PdfAnnotationKind.Measure or PdfAnnotationKind.Signature => PdfiumNative.FPDF_ANNOT_STAMP,
             _ => PdfiumNative.FPDF_ANNOT_INK, // PDFium can't create Line or Polygon; ink shows the same everywhere
         };
         nint annotation = PdfiumNative.FPDFPage_CreateAnnot(page, subtype);
@@ -369,7 +369,11 @@ public sealed partial class PdfDocument
             _ = PdfiumNative.FPDFAnnot_SetColor(annotation, PdfiumNative.FPDFANNOT_COLORTYPE_Color, c.R, c.G, c.B, c.A);
             SetString(annotation, "NM", name);
             SetString(annotation, "Subj", draft.Kind.ToString());
-            SetString(annotation, DraftKey, JsonSerializer.Serialize(draft, AnnotationJson.Default.PdfAnnotationDraft));
+            if (draft.Picture == null)
+            {
+                SetString(annotation, DraftKey, JsonSerializer.Serialize(draft, AnnotationJson.Default.PdfAnnotationDraft));
+            }
+
             SetString(annotation, "M", $"D:{DateTime.UtcNow:yyyyMMddHHmmss}Z");
             if (draft.Text != null)
             {
@@ -523,6 +527,13 @@ public sealed partial class PdfDocument
         var builder = new AnnotationObjects(_handle, page, annotation, draft.Color);
         NormalizedRect? boxArea = draft.Areas is { Count: > 0 } ? draft.Areas[0] : null;
         var leader = draft.Strokes is { Count: > 0 } ? draft.Strokes[0] : null;
+        if (draft.Kind == PdfAnnotationKind.Signature && draft.Picture is { } picture && boxArea is { } pictureArea)
+        {
+            SetRect(annotation, builder.PictureCorners(pictureArea, draft.RotationDegrees), 1);
+            builder.Picture(picture, pictureArea, draft.RotationDegrees);
+            return;
+        }
+
         bool measure = draft.Kind == PdfAnnotationKind.Measure && leader is { Count: >= 2 };
         var from = leader is { Count: >= 2 } ? ToUser(page, leader[0]) : default;
         var to = leader is { Count: >= 2 } ? ToUser(page, leader[^1]) : default;

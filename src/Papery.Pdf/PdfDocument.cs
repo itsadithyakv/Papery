@@ -108,6 +108,7 @@ public sealed partial class PdfDocument : IAsyncDisposable
         await _thread.InvokeAsync(() =>
         {
             CloseTextPage();
+            CloseForms();
             foreach (var (_, page) in _pageCache)
             {
                 PdfiumNative.FPDF_ClosePage(page);

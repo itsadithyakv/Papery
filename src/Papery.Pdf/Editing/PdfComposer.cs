@@ -270,6 +270,49 @@ internal static class PdfComposer
         }
     }
 
+    /// <summary>
+    /// Burns form answers and annotations into the page content: they can't be changed any more, and
+    /// look the same everywhere. Always writes through the checked save, so a failure changes nothing.
+    /// </summary>
+    public static async Task FlattenAsync(PdfiumThread thread, PdfInputFile input, string outputPath, CancellationToken cancellationToken)
+    {
+        outputPath = Path.GetFullPath(outputPath);
+        RawPdf? doc = null;
+        string temp = SafeFile.CreateTemp(outputPath);
+        try
+        {
+            int pages = await thread.InvokeAsync(() =>
+            {
+                doc = RawPdf.Load(input.Path, input.Password);
+                int count = doc.PageCount;
+                for (int i = 0; i < count; i++)
+                {
+                    nint page = PdfiumNative.FPDF_LoadPage(doc.Handle, i);
+                    if (page == 0)
+                    {
+                        throw new PdfEditException(PdfEditError.BuildFailed, input.Path);
+                    }
+
+                    _ = PdfiumNative.FPDFPage_Flatten(page, PdfiumNative.FLAT_NORMALDISPLAY);
+                    PdfiumNative.FPDF_ClosePage(page);
+                }
+
+                return count;
+            }, PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
+
+            await thread.InvokeAsync(() => Save(doc!, temp, outputPath), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
+            await thread.InvokeAsync(() => Verify(temp, input.Password, pages, outputPath), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
+            await thread.InvokeAsync(() => { doc?.Dispose(); doc = null; }, PdfWorkPriority.Background, CancellationToken.None).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            SafeFile.Commit(temp, outputPath);
+        }
+        finally
+        {
+            await thread.InvokeAsync(() => doc?.Dispose(), PdfWorkPriority.Visible, CancellationToken.None).ConfigureAwait(false);
+            SafeFile.TryDelete(temp);
+        }
+    }
+
     private static unsafe bool ImportPages(RawPdf dest, RawPdf source, int[] pages)
     {
         fixed (int* indices = pages)

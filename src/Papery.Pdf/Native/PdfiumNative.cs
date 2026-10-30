@@ -506,7 +506,92 @@ internal static unsafe partial class PdfiumNative
     [LibraryImport(Dll)]
     internal static partial int FPDFText_SetText(nint textObject, char* text);
 
-        // ---- Saving (fpdf_save.h) ----
+        // ---- Form filling (fpdf_formfill.h) ----
+
+    internal const int FPDF_FORMFIELD_PUSHBUTTON = 1;
+    internal const int FPDF_FORMFIELD_CHECKBOX = 2;
+    internal const int FPDF_FORMFIELD_RADIOBUTTON = 3;
+    internal const int FPDF_FORMFIELD_COMBOBOX = 4;
+    internal const int FPDF_FORMFIELD_LISTBOX = 5;
+    internal const int FPDF_FORMFIELD_TEXTFIELD = 6;
+    internal const int FPDF_FORMFIELD_SIGNATURE = 7;
+    internal const int FPDF_FORMFLAG_READONLY = 1 << 0;
+    internal const int FPDF_FORMFLAG_TEXT_MULTILINE = 1 << 12;
+    internal const int FPDF_FORMFLAG_TEXT_PASSWORD = 1 << 13;
+    internal const int FLAT_NORMALDISPLAY = 0;
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFDOC_InitFormFillEnvironment(nint document, void* formInfo);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFDOC_ExitFormFillEnvironment(nint form);
+
+    [LibraryImport(Dll)]
+    internal static partial void FORM_OnAfterLoadPage(nint page, nint form);
+
+    [LibraryImport(Dll)]
+    internal static partial void FORM_OnBeforeClosePage(nint page, nint form);
+
+    [LibraryImport(Dll)]
+    internal static partial int FORM_OnLButtonDown(nint form, nint page, int modifier, double x, double y);
+
+    [LibraryImport(Dll)]
+    internal static partial int FORM_OnLButtonUp(nint form, nint page, int modifier, double x, double y);
+
+    [LibraryImport(Dll)]
+    internal static partial int FORM_SetFocusedAnnot(nint form, nint annotation);
+
+    [LibraryImport(Dll)]
+    internal static partial int FORM_SelectAllText(nint form, nint page);
+
+    [LibraryImport(Dll)]
+    internal static partial void FORM_ReplaceSelection(nint form, nint page, char* text);
+
+    [LibraryImport(Dll)]
+    internal static partial int FORM_ForceToKillFocus(nint form);
+
+    [LibraryImport(Dll)]
+    internal static partial int FORM_SetIndexSelected(nint form, nint page, int index, int selected);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_GetFormFieldType(nint form, nint annotation);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_GetFormFieldFlags(nint form, nint annotation);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFAnnot_GetFormFieldName(nint form, nint annotation, char* buffer, uint bufferBytes);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFAnnot_GetFormFieldValue(nint form, nint annotation, char* buffer, uint bufferBytes);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_GetOptionCount(nint form, nint annotation);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFAnnot_GetOptionLabel(nint form, nint annotation, int index, char* buffer, uint bufferBytes);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_IsOptionSelected(nint form, nint annotation, int index);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_IsChecked(nint form, nint annotation);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPage_Flatten(nint page, int flag);
+
+    // ---- Images in page objects (fpdf_edit.h) ----
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFPageObj_NewImageObj(nint document);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFImageObj_SetBitmap(nint* pages, int count, nint imageObject, nint bitmap);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFImageObj_SetMatrix(nint imageObject, double a, double b, double c, double d, double e, double f);
+
+    // ---- Saving (fpdf_save.h) ----
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct FPDF_FILEWRITE

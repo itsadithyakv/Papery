@@ -90,6 +90,52 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
             new UserPoint(centre.X + (_across.X * w) + (_down.X * h), centre.Y + (_across.Y * w) + (_down.Y * h)));
     }
 
+    /// <summary>The four corners of a picture placed in an area and turned about its middle.</summary>
+    public List<UserPoint> PictureCorners(NormalizedRect area, float degrees)
+    {
+        var (origin, ax, ay, dx, dy) = PictureFrame(area, degrees);
+        return
+        [
+            origin,
+            new UserPoint(origin.X + ax, origin.Y + ay),
+            new UserPoint(origin.X + dx, origin.Y + dy),
+            new UserPoint(origin.X + ax + dx, origin.Y + ay + dy),
+        ];
+    }
+
+    /// <summary>Places a picture (transparent pixels stay see-through, so the page shows behind a signature).</summary>
+    public void Picture(PdfBitmap picture, NormalizedRect area, float degrees)
+    {
+        nint image = PdfiumNative.FPDFPageObj_NewImageObj(document);
+        fixed (byte* pixels = picture.Pixels)
+        {
+            nint bitmap = PdfiumNative.FPDFBitmap_CreateEx(picture.Width, picture.Height, PdfiumNative.FPDFBitmap_BGRA, (nint)pixels, picture.Stride);
+            _ = PdfiumNative.FPDFImageObj_SetBitmap(null, 0, image, bitmap);
+            PdfiumNative.FPDFBitmap_Destroy(bitmap);
+        }
+
+        // An image fills the unit square: x along its bottom edge, y up its side.
+        var (origin, ax, ay, dx, dy) = PictureFrame(area, degrees);
+        _ = PdfiumNative.FPDFImageObj_SetMatrix(image, ax, ay, -dx, -dy, origin.X + dx, origin.Y + dy);
+        Append(image);
+    }
+
+    /// <summary>Top-left corner of a turned area, and its across and down edges, in user space.</summary>
+    private (UserPoint Origin, double Ax, double Ay, double Dx, double Dy) PictureFrame(NormalizedRect area, float degrees)
+    {
+        var (width, height) = AreaSize(area);
+        double angle = degrees * Math.PI / 180, cos = Math.Cos(angle), sin = Math.Sin(angle);
+
+        // Turned clockwise on screen: "across" tips towards "down".
+        double acrossX = (_across.X * cos) + (_down.X * sin), acrossY = (_across.Y * cos) + (_down.Y * sin);
+        double downX = (_down.X * cos) - (_across.X * sin), downY = (_down.Y * cos) - (_across.Y * sin);
+        var centre = At(area, width / 2, height / 2);
+        var origin = new UserPoint(
+            centre.X - (acrossX * width / 2) - (downX * height / 2),
+            centre.Y - (acrossY * width / 2) - (downY * height / 2));
+        return (origin, acrossX * width, acrossY * width, downX * height, downY * height);
+    }
+
     private void Finish(nint path, float width)
     {
         _ = PdfiumNative.FPDFPageObj_SetStrokeColor(path, color.R, color.G, color.B, color.A);

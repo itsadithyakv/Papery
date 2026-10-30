@@ -32,6 +32,10 @@ public sealed class PdfEngine
         CancellationToken cancellationToken = default) =>
         PdfComposer.ComposeAsync(Thread, request, outputPath, progress, cancellationToken);
 
+    /// <summary>Makes form answers and annotations a permanent part of the pages.</summary>
+    public Task FlattenAsync(PdfInputFile input, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfComposer.FlattenAsync(Thread, input, outputPath, cancellationToken);
+
     /// <summary>Puts <paramref name="across"/> × <paramref name="down"/> pages on each sheet of a new PDF (for printing).</summary>
     public Task<PdfComposeResult> NUpAsync(
         PdfInputFile input,
