@@ -47,7 +47,7 @@ internal static class PageSizeDialog
         customRow.Children.Add(widthBox);
         customRow.Children.Add(heightBox);
         var fitSwitch = new ToggleSwitch { Header = "Content", OnContent = "Scale to fill the paper", OffContent = "Keep its real size", IsOn = current?.FitContent ?? true };
-        var marginBox = new NumberBox { Header = "Margins (mm)", Minimum = 0, Maximum = 100, Value = Math.Round((current?.Margin ?? 0) / mm), SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline, Width = 130 };
+        var marginBox = new NumberBox { Header = "Margins (mm)", Minimum = 0, Maximum = 100, Value = Math.Round((current?.Margin ?? 0) / mm), SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline, Width = 130, HorizontalAlignment = HorizontalAlignment.Left };
 
         var settings = new StackPanel { Spacing = 14, Width = 270 };
         settings.Children.Add(paperBox);
@@ -64,7 +64,7 @@ internal static class PageSizeDialog
             TileSize = 190,
             Geometry = current,
         };
-        var tile = new PageTile { DataContext = preview, IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Center };
+        var tile = new PageTile { DataContext = preview, IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Center, ShowNumber = false };
         var sizeText = new TextBlock { HorizontalAlignment = HorizontalAlignment.Center, Style = (Style)Application.Current.Resources["PaperySecondaryTextStyle"], FontSize = 12 };
         var previewStack = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
         previewStack.Children.Add(tile);

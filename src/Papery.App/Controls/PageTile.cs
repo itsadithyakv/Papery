@@ -28,6 +28,7 @@ public sealed partial class PageTile : Grid
     private readonly RotateTransform _rotation = new();
     private readonly StackPanel _actions = new() { Orientation = Orientation.Horizontal, Spacing = 4 };
     private readonly TextBlock _number = new() { FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
+    private readonly StackPanel _label = new() { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center };
     private readonly Border _fromChip = new();
     private readonly TextBlock _fromText = new() { FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis };
     // A reshaped page (cropped, new paper, margins, straightened) is drawn as its result instead:
@@ -77,12 +78,11 @@ public sealed partial class PageTile : Grid
         _box.Children.Add(_actions);
         Children.Add(_box);
 
-        var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center };
-        label.Children.Add(_number);
+        _label.Children.Add(_number);
         _fromChip.Child = _fromText;
-        label.Children.Add(_fromChip);
-        SetRow(label, 1);
-        Children.Add(label);
+        _label.Children.Add(_fromChip);
+        SetRow(_label, 1);
+        Children.Add(_label);
 
         Loaded += (_, _) =>
         {
@@ -94,6 +94,13 @@ public sealed partial class PageTile : Grid
         PointerEntered += (_, _) => _actions.Opacity = 1;
         PointerExited += (_, _) => _actions.Opacity = 0;
         DataContextChanged += (_, _) => Attach(DataContext as OrganisePage);
+    }
+
+    /// <summary>Hides the page number and chip (a preview of one page doesn't need them).</summary>
+    public bool ShowNumber
+    {
+        get => _label.Visibility == Visibility.Visible;
+        set => _label.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void Attach(OrganisePage? page)
