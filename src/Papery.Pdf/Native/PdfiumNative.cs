@@ -81,7 +81,21 @@ internal static unsafe partial class PdfiumNative
     [LibraryImport(Dll)]
     internal static partial void FPDF_ClosePage(nint page);
 
+    internal const int FPDFBitmap_Gray = 1;
+    internal const int FPDFBitmap_BGR = 2;
     internal const int FPDFBitmap_BGRA = 4;
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFBitmap_GetFormat(nint bitmap);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFBitmap_GetWidth(nint bitmap);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFBitmap_GetHeight(nint bitmap);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFImageObj_GetBitmap(nint imageObject);
 
     [LibraryImport(Dll)]
     internal static partial nint FPDFBitmap_CreateEx(int width, int height, int format, nint firstScan, int stride);
@@ -598,6 +612,9 @@ internal static unsafe partial class PdfiumNative
 
     [LibraryImport(Dll)]
     internal static partial int FPDFImageObj_SetBitmap(nint* pages, int count, nint imageObject, nint bitmap);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFImageObj_LoadJpegFileInline(nint* pages, int count, nint imageObject, FPDF_FILEACCESS* fileAccess);
 
     [LibraryImport(Dll)]
     internal static partial int FPDFImageObj_SetMatrix(nint imageObject, double a, double b, double c, double d, double e, double f);

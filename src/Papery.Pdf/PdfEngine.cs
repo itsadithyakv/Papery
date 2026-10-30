@@ -40,6 +40,10 @@ public sealed class PdfEngine
     public Task FlattenAsync(PdfInputFile input, string outputPath, CancellationToken cancellationToken = default) =>
         PdfComposer.FlattenAsync(Thread, input, outputPath, Native.PdfiumNative.FLAT_NORMALDISPLAY, cancellationToken);
 
+    /// <summary>Makes a new PDF with one page for each picture.</summary>
+    public Task ImagesToPdfAsync(IReadOnlyList<PdfImagePage> pages, ImagePageOptions options, string outputPath, IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>
+        ImageToPdfWriter.WriteAsync(Thread, pages, options, outputPath, progress, cancellationToken);
+
     /// <summary>Writes numbers, a header or footer, a watermark or Bates numbers onto pages.</summary>
     public Task StampPagesAsync(PdfInputFile input, PdfPageStamp stamp, string outputPath, CancellationToken cancellationToken = default) =>
         PageStamper.ApplyAsync(Thread, input, stamp, outputPath, cancellationToken);
