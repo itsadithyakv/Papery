@@ -50,6 +50,51 @@ public sealed partial class PdfDocument
         }), cancellationToken, priority);
     }
 
+    /// <summary>Pictures on a page and where they sit (for Word export, which keeps them in reading order).</summary>
+    public unsafe Task<IReadOnlyList<(PdfBitmap Picture, NormalizedRect Area)>> GetPlacedPicturesAsync(int pageIndex, PdfWorkPriority priority = PdfWorkPriority.Background, CancellationToken cancellationToken = default)
+    {
+        CheckPageIndex(pageIndex);
+        return Run<IReadOnlyList<(PdfBitmap, NormalizedRect)>>(() => WithPage(pageIndex, page =>
+        {
+            var found = new List<(PdfBitmap, NormalizedRect)>();
+            int count = PdfiumNative.FPDFPage_CountObjects(page);
+            for (int i = 0; i < count; i++)
+            {
+                nint obj = PdfiumNative.FPDFPage_GetObject(page, i);
+                if (obj == 0 || PdfiumNative.FPDFPageObj_GetType(obj) != PdfiumNative.FPDF_PAGEOBJ_IMAGE)
+                {
+                    continue;
+                }
+
+                float l, b, r, t;
+                nint bitmap = PdfiumNative.FPDFImageObj_GetBitmap(obj);
+                if (bitmap == 0 || PdfiumNative.FPDFPageObj_GetBounds(obj, &l, &b, &r, &t) == 0)
+                {
+                    if (bitmap != 0)
+                    {
+                        PdfiumNative.FPDFBitmap_Destroy(bitmap);
+                    }
+
+                    continue;
+                }
+
+                try
+                {
+                    if (ToBgra(bitmap) is { Width: >= SmallestPictureSide, Height: >= SmallestPictureSide } picture)
+                    {
+                        found.Add((picture, Normalize(page, l, t, r, b)));
+                    }
+                }
+                finally
+                {
+                    PdfiumNative.FPDFBitmap_Destroy(bitmap);
+                }
+            }
+
+            return (IReadOnlyList<(PdfBitmap, NormalizedRect)>)found;
+        }), cancellationToken, priority);
+    }
+
     internal static unsafe PdfBitmap? ToBgra(nint bitmap)
     {
         int width = PdfiumNative.FPDFBitmap_GetWidth(bitmap), height = PdfiumNative.FPDFBitmap_GetHeight(bitmap);

@@ -40,6 +40,17 @@ public sealed class PdfEngine
     public Task FlattenAsync(PdfInputFile input, string outputPath, CancellationToken cancellationToken = default) =>
         PdfComposer.FlattenAsync(Thread, input, outputPath, Native.PdfiumNative.FLAT_NORMALDISPLAY, cancellationToken);
 
+    /// <summary>Writes a Word document from an open PDF. It's a best effort at rebuilding paragraphs, not a perfect copy of the layout.</summary>
+    public Task ExportWordAsync(PdfDocument document, string outputPath, IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>
+        DocxWriter.ExportAsync(document, outputPath, progress, cancellationToken);
+
+    /// <summary>Adds a certified digital signature using a certificate.</summary>
+    public Task SignAsync(PdfInputFile input, PdfSignatureRequest request, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfSigner.SignAsync(Thread, input, request, outputPath, cancellationToken);
+
+    /// <summary>Certificates in the Windows store that can sign.</summary>
+    public IReadOnlyList<System.Security.Cryptography.X509Certificates.X509Certificate2> SigningCertificates() => PdfSigner.UsableCertificates();
+
     /// <summary>Permanently removes everything in the boxes, then checks that it's gone. PDFs with a password need it taken off first.</summary>
     public Task RedactAsync(PdfInputFile input, IReadOnlyList<RedactionArea> areas, string outputPath, CancellationToken cancellationToken = default) =>
         PdfRedactor.ApplyAsync(Thread, input, areas, [], outputPath, cancellationToken);
