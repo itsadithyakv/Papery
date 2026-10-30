@@ -173,6 +173,11 @@ public sealed partial class PdfViewer
         }
 
         _scroll.Focus(FocusState.Pointer);
+        if (ToolPressed(visual, e))
+        {
+            return;
+        }
+
         _pressVisual = visual;
         _pressPoint = point.Position;
         _dragged = false;
@@ -205,6 +210,11 @@ public sealed partial class PdfViewer
             return;
         }
 
+        if (ToolMoved(visual, e))
+        {
+            return;
+        }
+
         if (_pressVisual == visual && point.Properties.IsLeftButtonPressed)
         {
             if (!_dragged && Math.Abs(point.Position.X - _pressPoint.X) + Math.Abs(point.Position.Y - _pressPoint.Y) > 4)
@@ -227,13 +237,19 @@ public sealed partial class PdfViewer
     private void OnPagePointerReleased(object sender, PointerRoutedEventArgs e)
     {
         var visual = (PageVisual)sender;
-        if (_pressVisual != visual)
+        if (ToolReleased(visual, e) || _pressVisual != visual)
         {
             return;
         }
 
         visual.ReleasePointerCapture(e.Pointer);
         _pressVisual = null;
+        if (_dragged && MarkTextOnSelect && _selection is { } marked)
+        {
+            TextMarked?.Invoke(this, marked);
+            ClearSelection();
+        }
+
         if (!_dragged)
         {
             if (_pressedLink != null)

@@ -162,6 +162,34 @@
                     </StackPanel>
                 </Grid>
 
+                <!-- Annotate tools (built in code, DocumentView.Annotate.cs) -->
+                <Grid x:Name="AnnotateToolbar" Visibility="Collapsed" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                            <StackPanel x:Name="AnnotateTools" Orientation="Horizontal" Spacing="2" />
+                            <StackPanel x:Name="AnnotateColours" Orientation="Horizontal" Spacing="6" Margin="10,0,0,0" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </ScrollViewer>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                        <Button x:Name="AnnotateUndo" Style="{StaticResource ToolButtonStyle}" Click="OnAnnotateUndo" IsEnabled="False" AutomationProperties.Name="Undo" ToolTipService.ToolTip="Undo (Ctrl+Z)">
+                            <FontIcon Glyph="&#xE7A7;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button x:Name="AnnotateRedo" Style="{StaticResource ToolButtonStyle}" Click="OnAnnotateRedo" IsEnabled="False" AutomationProperties.Name="Redo" ToolTipService.ToolTip="Redo (Ctrl+Y)">
+                            <FontIcon Glyph="&#xE7A6;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button x:Name="AnnotateSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="6,0,0,0" Click="OnAnnotateSave" IsEnabled="False" ToolTipService.ToolTip="Save annotations into this file (Ctrl+S)">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE74E;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
+                                <TextBlock Text="Save" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
                 <!-- Placeholder for modes built in later stages -->
                 <TextBlock x:Name="ComingSoonText" VerticalAlignment="Center" Margin="8,0" Visibility="Collapsed"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -222,6 +250,39 @@
                     <StackPanel x:Name="NoBookmarksText" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Margin="16">
                         <controls:Mascot Mood="Sleepy" Width="56" Height="66" IsFloating="False" />
                         <TextBlock Text="No bookmarks here" HorizontalAlignment="Center" Style="{StaticResource PaperySecondaryTextStyle}" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Comments: every annotation in the document -->
+                <Grid x:Name="CommentsPanel" Grid.Row="1" Visibility="Collapsed">
+                    <ListView x:Name="CommentsList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnCommentClick" AutomationProperties.Name="Comments and annotations">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="local:CommentItem">
+                                <Grid Padding="0,8" ColumnSpacing="8" AutomationProperties.Name="{x:Bind AccessibleName}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Width="12" Height="12" Fill="{x:Bind Swatch}" VerticalAlignment="Top" Margin="0,4,0,0" />
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind PageLabel}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Style="{StaticResource PaperyQuietButtonStyle}" Tag="{x:Bind}" Click="OnCommentEdit" Padding="6" MinWidth="0" AutomationProperties.Name="Edit the words" ToolTipService.ToolTip="Edit the words">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="12" FontFamily="{StaticResource PaperyIcons}" />
+                                    </Button>
+                                    <Button Grid.Column="3" Style="{StaticResource PaperyQuietButtonStyle}" Tag="{x:Bind}" Click="OnCommentDelete" Padding="6" MinWidth="0" AutomationProperties.Name="Delete" ToolTipService.ToolTip="Delete">
+                                        <FontIcon Glyph="&#xE74D;" FontSize="12" FontFamily="{StaticResource PaperyIcons}" />
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                    <StackPanel x:Name="NoCommentsText" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Margin="16">
+                        <controls:Mascot Mood="Sleepy" Width="56" Height="66" IsFloating="False" />
+                        <TextBlock Text="No comments yet" HorizontalAlignment="Center" Style="{StaticResource PaperySecondaryTextStyle}" />
                     </StackPanel>
                 </Grid>
 

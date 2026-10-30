@@ -56,6 +56,7 @@ internal sealed partial class PageVisual : Grid
         content.Children.Add(_base);
         content.Children.Add(_tiles);
         content.Children.Add(_overlay);
+        content.Children.Add(ToolLayer);
         content.Children.Add(_error);
         _paper = new Border { Child = content, Background = new SolidColorBrush(Colors.White), CornerRadius = new CornerRadius(1) };
         Children.Add(_paper);
@@ -63,6 +64,9 @@ internal sealed partial class PageVisual : Grid
     }
 
     public int PageIndex { get; set; } = -1;
+
+    /// <summary>Live previews of what a tool is drawing. Clicks pass through to the page.</summary>
+    public Canvas ToolLayer { get; } = new() { IsHitTestVisible = false };
 
     /// <summary>Pixel width of the image currently shown (0 = none yet).</summary>
     public int BaseWidth { get; private set; }

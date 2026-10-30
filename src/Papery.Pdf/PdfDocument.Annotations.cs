@@ -23,7 +23,7 @@ public sealed partial class PdfDocument
     public bool HasAnnotationChanges { get; private set; }
 
     /// <summary>The annotations on a page that people work with (not links, form fields or pop-ups).</summary>
-    public unsafe Task<IReadOnlyList<PdfAnnotationInfo>> GetAnnotationsAsync(int pageIndex, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<PdfAnnotationInfo>> GetAnnotationsAsync(int pageIndex, PdfWorkPriority priority = PdfWorkPriority.Visible, CancellationToken cancellationToken = default)
     {
         CheckPageIndex(pageIndex);
         return Run<IReadOnlyList<PdfAnnotationInfo>>(() => WithPage(pageIndex, page =>
@@ -52,7 +52,7 @@ public sealed partial class PdfDocument
             }
 
             return (IReadOnlyList<PdfAnnotationInfo>)result;
-        }), cancellationToken);
+        }), cancellationToken, priority);
     }
 
     /// <summary>Adds an annotation. Pass <paramref name="name"/> to bring back one that was removed (redo).</summary>

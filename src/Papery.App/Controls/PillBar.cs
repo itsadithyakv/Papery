@@ -78,6 +78,15 @@ public sealed partial class PillBar : Grid
 
     public IReadOnlyList<RadioButton> Items => _items;
 
+    /// <summary>An icon-only choice, with the name as its tooltip and for Narrator.</summary>
+    public void AddIconItem(string glyph, string name)
+    {
+        AddItem(name);
+        var item = _items[^1];
+        item.Content = new FontIcon { Glyph = glyph, FontSize = 16, FontFamily = (FontFamily)Application.Current.Resources["PaperyIcons"] };
+        ToolTipService.SetToolTip(item, name);
+    }
+
     public void AddItem(string text, string? glyph = null, string? tag = null, string? accessibleName = null)
     {
         object content = text;

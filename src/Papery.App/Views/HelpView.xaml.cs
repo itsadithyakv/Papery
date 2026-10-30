@@ -58,6 +58,14 @@ public sealed partial class HelpView : UserControl
             ("Ctrl + S", "Save"),
             ("Esc", "Back to reading"),
         ]),
+        ("Annotating",
+        [
+            ("Drag across text", "Highlight, underline or strike it, with that tool chosen"),
+            ("Select tool, then Delete", "Remove an annotation"),
+            ("Select tool, then drag", "Move an annotation"),
+            ("Ctrl + Z / Ctrl + Y", "Undo / redo"),
+            ("Ctrl + S", "Save annotations into the file"),
+        ]),
         ("Anything else",
         [
             ("Ctrl + K", "Command palette: type what you want to do, e.g. \"dark\" or \"print\""),

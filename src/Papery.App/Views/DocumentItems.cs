@@ -53,6 +53,20 @@ public sealed class OutlineNode
     public List<OutlineNode> Children { get; }
 }
 
+/// <summary>An annotation in the Comments list.</summary>
+public sealed class CommentItem(Papery.Pdf.Editing.PdfAnnotationInfo info)
+{
+    public Papery.Pdf.Editing.PdfAnnotationInfo Info { get; } = info;
+
+    public string Title => string.IsNullOrWhiteSpace(Info.Text) ? Info.Kind.ToString() : Info.Text;
+
+    public string PageLabel => $"Page {Info.PageIndex + 1}";
+
+    public SolidColorBrush Swatch => new(Windows.UI.Color.FromArgb(255, Info.Color.R, Info.Color.G, Info.Color.B));
+
+    public string AccessibleName => $"{Info.Kind} on page {Info.PageIndex + 1}: {Info.Text}";
+}
+
 /// <summary>A search match in the sidebar list.</summary>
 public sealed class SearchResultItem(PdfSearchHit hit)
 {

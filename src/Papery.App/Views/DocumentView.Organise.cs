@@ -25,7 +25,7 @@ public sealed partial class DocumentView
     public event EventHandler<string>? MergeRequested;
 
     /// <summary>True while Organise mode holds changes that haven't been saved.</summary>
-    public bool HasUnsavedChanges => _organise?.HasChanges == true;
+    public bool HasUnsavedChanges => _organise?.HasChanges == true || _document is { HasAnnotationChanges: true };
 
     /// <summary>Opens a tool on this document, e.g. when it was picked on the home screen.</summary>
     public void StartTool(ToolInfo tool)
@@ -50,6 +50,9 @@ public sealed partial class DocumentView
             case "split":
                 _ = ShowSplitAsync();
                 break;
+            case "annotate" or "draw":
+                Modes.SelectedIndex = AnnotateModeIndex;
+                break;
         }
     }
 
@@ -58,7 +61,7 @@ public sealed partial class DocumentView
     {
         if (_organise == null)
         {
-            return true;
+            return await ConfirmCloseAnnotationsAsync();
         }
 
         _closingTab = true;
@@ -124,9 +127,16 @@ public sealed partial class DocumentView
 
     private void ApplyModeChrome(int index, string name)
     {
+        LeaveAnnotateMode();
         if (index == OrganiseModeIndex)
         {
             return; // the Organise board covers the toolbar and pages
+        }
+
+        if (index == AnnotateModeIndex)
+        {
+            EnterAnnotateMode();
+            return;
         }
 
         bool view = index == ViewModeIndex;
@@ -144,7 +154,7 @@ public sealed partial class DocumentView
             return false;
         }
 
-        if (!await ProDialogs.RequireProAsync(XamlRoot, Tool("organise")) || !await CheckCanChangeAsync())
+        if (!await ProDialogs.RequireProAsync(XamlRoot, Tool("organise")) || !await CheckCanChangeAsync() || !await SaveAnnotationsFirstAsync("Organise"))
         {
             return false;
         }
@@ -237,6 +247,7 @@ public sealed partial class DocumentView
         SearchStatus.Text = string.Empty;
         _thumbnails.Clear();
         _thumbnailCache.Clear();
+        _annotationCache.Clear();
         _document = null;
         Load(fresh);
         await old.DisposeAsync();
@@ -251,7 +262,7 @@ public sealed partial class DocumentView
             return;
         }
 
-        if (!await ProDialogs.RequireProAsync(XamlRoot, Tool("split")) || !await CheckCanChangeAsync())
+        if (!await ProDialogs.RequireProAsync(XamlRoot, Tool("split")) || !await CheckCanChangeAsync() || !await SaveAnnotationsFirstAsync("Split"))
         {
             return;
         }

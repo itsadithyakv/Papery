@@ -55,6 +55,14 @@ internal sealed class BitmapCache<TKey>(long maxBytes)
         }
     }
 
+    public void RemoveWhere(Func<TKey, bool> predicate)
+    {
+        foreach (var key in _items.Keys.Where(predicate).ToList())
+        {
+            Remove(key);
+        }
+    }
+
     public void Clear()
     {
         _items.Clear();

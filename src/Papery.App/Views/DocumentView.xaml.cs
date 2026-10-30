@@ -42,6 +42,7 @@ public sealed partial class DocumentView : UserControl
         InitializeComponent();
         ThumbnailList.ItemsSource = _thumbnails;
         BuildSwitchers();
+        BuildAnnotateToolbar();
         SearchResults.ItemsSource = _results;
 
         Viewer.CurrentPageChanged += (_, _) => OnCurrentPageChanged();
@@ -384,6 +385,7 @@ public sealed partial class DocumentView : UserControl
     private const int PagesTabIndex = 0;
     private const int BookmarksTabIndex = 1;
     private const int SearchTabIndex = 2;
+    private const int CommentsTabIndex = 3;
 
     /// <summary>Fills the mode bar and sidebar tabs (PillBars) and hooks up their selection.</summary>
     private void BuildSwitchers()
@@ -400,9 +402,10 @@ public sealed partial class DocumentView : UserControl
 
         Modes.SelectionChanged += (_, index) => OnModeSelected(index, modes[index].Name);
 
-        SidebarTabs.AddItem("Pages");
-        SidebarTabs.AddItem("Bookmarks");
-        SidebarTabs.AddItem("Search");
+        SidebarTabs.AddIconItem("\uE8A9", "Pages");
+        SidebarTabs.AddIconItem("\uE8A4", "Bookmarks");
+        SidebarTabs.AddIconItem("\uE721", "Search");
+        SidebarTabs.AddIconItem("\uE90A", "Comments");
         SidebarTabs.SelectionChanged += (_, _) => OnSidebarTabChanged();
     }
 
@@ -426,6 +429,11 @@ public sealed partial class DocumentView : UserControl
         ThumbnailList.Visibility = tab == PagesTabIndex ? Visibility.Visible : Visibility.Collapsed;
         BookmarksPanel.Visibility = tab == BookmarksTabIndex ? Visibility.Visible : Visibility.Collapsed;
         SearchPanel.Visibility = tab == SearchTabIndex ? Visibility.Visible : Visibility.Collapsed;
+        CommentsPanel.Visibility = tab == CommentsTabIndex ? Visibility.Visible : Visibility.Collapsed;
+        if (tab == CommentsTabIndex)
+        {
+            Guard.Run(LoadCommentsAsync, "Reading comments");
+        }
         if (tab == PagesTabIndex && _document != null)
         {
             OnCurrentPageChanged();
