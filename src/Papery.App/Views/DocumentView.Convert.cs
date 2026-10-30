@@ -94,9 +94,7 @@ public sealed partial class DocumentView
 
     // ================================================================= snapshot
 
-    private void OnSnapshot(object sender, RoutedEventArgs e) => Guard.Run(ArmSnapshotAsync, "Snapshot");
-
-    private async Task ArmSnapshotAsync()
+    private void OnSnapshot(object sender, RoutedEventArgs e)
     {
         if (ConvertSnapshot.IsChecked != true)
         {
@@ -104,12 +102,7 @@ public sealed partial class DocumentView
             return;
         }
 
-        if (!await AllowConvertAsync("pdf-to-images"))
-        {
-            ConvertSnapshot.IsChecked = false;
-            return;
-        }
-
+        // Snapshot is free, unlike the rest of Convert.
         Toaster.Show("Drag around what you want a picture of", "");
         Viewer.Tool = new ClickPlacer((page, start, end) =>
         {
