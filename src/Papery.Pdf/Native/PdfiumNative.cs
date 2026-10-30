@@ -375,7 +375,138 @@ internal static unsafe partial class PdfiumNative
     [LibraryImport(Dll)]
     internal static partial int FPDFAnnot_SetRect(nint annotation, FS_RECTF* rect);
 
-    // ---- Saving (fpdf_save.h) ----
+    // ---- Creating and changing annotations (fpdf_annot.h) ----
+
+    internal const int FPDF_ANNOT_TEXT = 1;
+    internal const int FPDF_ANNOT_LINK = 2;
+    internal const int FPDF_ANNOT_FREETEXT = 3;
+    internal const int FPDF_ANNOT_LINE = 4;
+    internal const int FPDF_ANNOT_SQUARE = 5;
+    internal const int FPDF_ANNOT_CIRCLE = 6;
+    internal const int FPDF_ANNOT_POLYGON = 7;
+    internal const int FPDF_ANNOT_POLYLINE = 8;
+    internal const int FPDF_ANNOT_HIGHLIGHT = 9;
+    internal const int FPDF_ANNOT_UNDERLINE = 10;
+    internal const int FPDF_ANNOT_SQUIGGLY = 11;
+    internal const int FPDF_ANNOT_STRIKEOUT = 12;
+    internal const int FPDF_ANNOT_STAMP = 13;
+    internal const int FPDF_ANNOT_INK = 15;
+    internal const int FPDF_ANNOT_POPUP = 16;
+    internal const int FPDF_ANNOT_WIDGET = 20;
+
+    internal const int FPDF_ANNOT_FLAG_HIDDEN = 1 << 1;
+    internal const int FPDF_ANNOT_FLAG_PRINT = 1 << 2;
+    internal const int FPDFANNOT_COLORTYPE_Color = 0;
+    internal const int FPDF_ANNOT_APPEARANCEMODE_NORMAL = 0;
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct FS_POINTF
+    {
+        public float X, Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct FS_QUADPOINTSF
+    {
+        public float X1, Y1, X2, Y2, X3, Y3, X4, Y4;
+    }
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFPage_CreateAnnot(nint page, int subtype);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPage_RemoveAnnot(nint page, int index);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_GetSubtype(nint annotation);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_SetColor(nint annotation, int type, uint r, uint g, uint b, uint a);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_GetColor(nint annotation, int type, uint* r, uint* g, uint* b, uint* a);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_AppendAttachmentPoints(nint annotation, FS_QUADPOINTSF* points);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_AddInkStroke(nint annotation, FS_POINTF* points, nuint count);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_SetBorder(nint annotation, float horizontalRadius, float verticalRadius, float width);
+
+    // Strings are UTF-16LE, null-terminated; keys are ASCII ("Contents", "T", "Subj", "NM", "M").
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_SetStringValue(nint annotation, byte* key, char* value);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFAnnot_GetStringValue(nint annotation, byte* key, char* buffer, uint bufferBytes);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_SetAP(nint annotation, int mode, char* value);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_GetFlags(nint annotation);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_SetFlags(nint annotation, int flags);
+
+    // Only for stamp and ink annotations. The annotation takes ownership of the object.
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_AppendObject(nint annotation, nint pageObject);
+
+    // ---- Page objects, for stamps and text boxes (fpdf_edit.h) ----
+
+    internal const int FPDF_FILLMODE_NONE = 0;
+    internal const int FPDF_FILLMODE_WINDING = 2;
+    internal const int FPDF_FONT_TRUETYPE = 2;
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFPageObj_CreateNewPath(float x, float y);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPath_MoveTo(nint path, float x, float y);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPath_LineTo(nint path, float x, float y);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPath_Close(nint path);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPath_SetDrawMode(nint path, int fillMode, int stroke);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPageObj_SetStrokeColor(nint pageObject, uint r, uint g, uint b, uint a);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPageObj_SetFillColor(nint pageObject, uint r, uint g, uint b, uint a);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPageObj_SetStrokeWidth(nint pageObject, float width);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFPageObj_Destroy(nint pageObject);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFPageObj_Transform(nint pageObject, double a, double b, double c, double d, double e, double f);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFText_LoadStandardFont(nint document, byte* font);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFText_LoadFont(nint document, byte* data, uint size, int fontType, int cid);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFFont_Close(nint font);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFPageObj_CreateTextObj(nint document, nint font, float fontSize);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFText_SetText(nint textObject, char* text);
+
+        // ---- Saving (fpdf_save.h) ----
 
     [StructLayout(LayoutKind.Sequential)]
     internal struct FPDF_FILEWRITE

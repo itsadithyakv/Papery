@@ -286,7 +286,7 @@ internal static class PdfComposer
         }
     }
 
-    private static unsafe void Save(RawPdf doc, string tempPath, string outputPath)
+    internal static unsafe void Save(RawPdf doc, string tempPath, string outputPath)
     {
         try
         {
