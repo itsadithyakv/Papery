@@ -50,7 +50,7 @@ public sealed partial class PdfDocument
         }), cancellationToken, priority);
     }
 
-    private static unsafe PdfBitmap? ToBgra(nint bitmap)
+    internal static unsafe PdfBitmap? ToBgra(nint bitmap)
     {
         int width = PdfiumNative.FPDFBitmap_GetWidth(bitmap), height = PdfiumNative.FPDFBitmap_GetHeight(bitmap);
         int stride = PdfiumNative.FPDFBitmap_GetStride(bitmap);

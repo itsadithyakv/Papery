@@ -618,6 +618,27 @@ internal static unsafe partial class PdfiumNative
     [LibraryImport(Dll)]
     internal static partial int FPDFImageObj_SetBitmap(nint* pages, int count, nint imageObject, nint bitmap);
 
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct FPDF_IMAGEOBJ_METADATA
+    {
+        public uint width;
+        public uint height;
+        public float horizontal_dpi;
+        public float vertical_dpi;
+        public uint bits_per_pixel;
+        public int colorspace;
+        public int marked_content_id;
+    }
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFImageObj_GetImageMetadata(nint imageObject, nint page, FPDF_IMAGEOBJ_METADATA* metadata);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFImageObj_GetImageDataRaw(nint imageObject, byte* buffer, uint length);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFImageObj_GetRenderedBitmap(nint document, nint page, nint imageObject);
+
     [LibraryImport(Dll)]
     internal static partial int FPDFImageObj_LoadJpegFileInline(nint* pages, int count, nint imageObject, FPDF_FILEACCESS* fileAccess);
 

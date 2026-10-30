@@ -24,6 +24,13 @@ PDFsharp 6.2.4
   Licence: MIT. Copyright (c) 2005-2025 empira Software GmbH, Troisdorf (Cologne Area), Germany.
   NOTE: pinned to 6.2.4. PDFsharp 6.5.0 and later are AGPL-3.0 and are NOT used.
 
+QPDF 12.4.2
+  https://github.com/qpdf/qpdf
+  Licence: Apache-2.0. Copyright (c) 2005-2026 Jay Berkenbilt and contributors.
+  Official Windows builds, unmodified. They include zlib (zlib Licence), libjpeg-turbo
+  (IJG Licence / BSD-3-Clause / zlib) and OpenSSL 3 (Apache-2.0), and come with Microsoft Visual C++ runtime files,
+  which Microsoft allows to be redistributed with applications.
+
 Windows App SDK / WinUI 3
   https://github.com/microsoft/WindowsAppSDK
   Licence: Microsoft Software License Terms for the Windows App SDK (redistributable

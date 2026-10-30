@@ -19,4 +19,13 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Papery.Pdf.Tests" />
   </ItemGroup>
+  <!-- QPDF 12.4.2 (Apache-2.0), official Windows builds: lossless size reduction when compressing. -->
+  <PropertyGroup>
+    <QpdfArch Condition="'$(Platform)' == 'ARM64' Or '$(RuntimeIdentifier)' == 'win-arm64'">arm64</QpdfArch>
+    <QpdfArch Condition="'$(QpdfArch)' == ''">x64</QpdfArch>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="..\..\third_party\qpdf\$(QpdfArch)\*" Link="qpdf\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

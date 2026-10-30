@@ -40,6 +40,14 @@ public sealed class PdfEngine
     public Task FlattenAsync(PdfInputFile input, string outputPath, CancellationToken cancellationToken = default) =>
         PdfComposer.FlattenAsync(Thread, input, outputPath, Native.PdfiumNative.FLAT_NORMALDISPLAY, cancellationToken);
 
+    /// <summary>Makes a smaller copy. If nothing smaller is possible, the output isn't written and the result says so.</summary>
+    public Task<CompressResult> CompressAsync(PdfInputFile input, CompressOptions options, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfCompressor.CompressAsync(Thread, input, options, outputPath, cancellationToken);
+
+    /// <summary>Compresses no harder than it must to fit under a size. If it can't fit, it gives the smallest it could manage.</summary>
+    public Task<CompressResult> CompressToFitAsync(PdfInputFile input, long limitBytes, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfCompressor.FitUnderAsync(Thread, input, limitBytes, outputPath, cancellationToken);
+
     /// <summary>Adds recognised words to a saved PDF as an invisible layer, so it can be searched and copied.</summary>
     public Task AddTextLayerAsync(PdfInputFile input, IReadOnlyList<OcrPage> pages, string outputPath, CancellationToken cancellationToken = default) =>
         OcrTextWriter.ApplyAsync(Thread, input, pages, outputPath, cancellationToken);
