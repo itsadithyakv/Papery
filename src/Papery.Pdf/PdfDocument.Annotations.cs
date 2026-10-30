@@ -165,6 +165,24 @@ public sealed partial class PdfDocument
         }), cancellationToken);
     }
 
+    /// <summary>How Papery drew an annotation, or null for another app's (or a picture from an earlier session).</summary>
+    public Task<PdfAnnotationDraft?> GetAnnotationDraftAsync(int pageIndex, string name, CancellationToken cancellationToken = default)
+    {
+        CheckPageIndex(pageIndex);
+        return Run(() => WithPage(pageIndex, page =>
+        {
+            _ = Find(page, pageIndex, name); // reads a saved draft back in
+            return _drafts.GetValueOrDefault(name);
+        }), cancellationToken);
+    }
+
+    /// <summary>Redraws one of Papery's own annotations from a changed draft (new words, font or rotation).</summary>
+    public Task<bool> ChangeAnnotationAsync(int pageIndex, string name, PdfAnnotationDraft draft, CancellationToken cancellationToken = default)
+    {
+        CheckPageIndex(pageIndex);
+        return Run(() => WithPage(pageIndex, page => Replace(page, name, draft)), cancellationToken);
+    }
+
     /// <summary>Writes the document with its annotations to a checked copy and swaps it into place.</summary>
     public async Task SaveAsync(string outputPath, CancellationToken cancellationToken = default)
     {
@@ -354,7 +372,7 @@ public sealed partial class PdfDocument
             PdfAnnotationKind.Note => PdfiumNative.FPDF_ANNOT_TEXT,
             PdfAnnotationKind.Rectangle => PdfiumNative.FPDF_ANNOT_SQUARE,
             PdfAnnotationKind.Ellipse => PdfiumNative.FPDF_ANNOT_CIRCLE,
-            PdfAnnotationKind.TextBox or PdfAnnotationKind.Callout or PdfAnnotationKind.Stamp or PdfAnnotationKind.Measure or PdfAnnotationKind.Signature => PdfiumNative.FPDF_ANNOT_STAMP,
+            PdfAnnotationKind.TextBox or PdfAnnotationKind.Callout or PdfAnnotationKind.Stamp or PdfAnnotationKind.Measure or PdfAnnotationKind.Signature or PdfAnnotationKind.Whiteout or PdfAnnotationKind.Image => PdfiumNative.FPDF_ANNOT_STAMP,
             _ => PdfiumNative.FPDF_ANNOT_INK, // PDFium can't create Line or Polygon; ink shows the same everywhere
         };
         nint annotation = PdfiumNative.FPDFPage_CreateAnnot(page, subtype);
@@ -527,10 +545,18 @@ public sealed partial class PdfDocument
         var builder = new AnnotationObjects(_handle, page, annotation, draft.Color);
         NormalizedRect? boxArea = draft.Areas is { Count: > 0 } ? draft.Areas[0] : null;
         var leader = draft.Strokes is { Count: > 0 } ? draft.Strokes[0] : null;
-        if (draft.Kind == PdfAnnotationKind.Signature && draft.Picture is { } picture && boxArea is { } pictureArea)
+        if (draft.Kind is PdfAnnotationKind.Signature or PdfAnnotationKind.Image && draft.Picture is { } picture && boxArea is { } pictureArea)
         {
             SetRect(annotation, builder.PictureCorners(pictureArea, draft.RotationDegrees), 1);
             builder.Picture(picture, pictureArea, draft.RotationDegrees);
+            return;
+        }
+
+        if (draft.Kind == PdfAnnotationKind.Whiteout && boxArea is { } covered)
+        {
+            var (coverFrom, coverTo) = ToUserBox(page, covered);
+            SetRect(annotation, [coverFrom, coverTo], 0);
+            builder.FilledBox(coverFrom, coverTo);
             return;
         }
 
@@ -586,7 +612,7 @@ public sealed partial class PdfDocument
             }
             else
             {
-                builder.WrappedText(text, area, draft.FontSize);
+                builder.WrappedText(text, area, draft.FontSize, new TextLook(draft.Font, draft.Bold, draft.Italic), draft.Align);
             }
 
             if (draft.Kind == PdfAnnotationKind.Callout && leader is { Count: >= 2 })

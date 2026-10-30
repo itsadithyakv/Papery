@@ -120,9 +120,9 @@ public sealed partial class DocumentView
         }
 
         Viewer.TextMarked += (_, selection) => Guard.Run(() => MarkTextAsync(selection), "Marking text");
-        AddAccelerator(VirtualKey.Z, VirtualKeyModifiers.Control, (_, a) => { if (_modeIndex is AnnotateModeIndex or FillModeIndex) { Guard.Run(UndoAnnotationAsync, "Undo"); a.Handled = true; } });
-        AddAccelerator(VirtualKey.Y, VirtualKeyModifiers.Control, (_, a) => { if (_modeIndex is AnnotateModeIndex or FillModeIndex) { Guard.Run(RedoAnnotationAsync, "Redo"); a.Handled = true; } });
-        AddAccelerator(VirtualKey.Delete, VirtualKeyModifiers.None, (_, a) => { if (_modeIndex == AnnotateModeIndex && _picker?.Selected != null) { Guard.Run(DeleteSelectedAnnotationAsync, "Delete"); a.Handled = true; } });
+        AddAccelerator(VirtualKey.Z, VirtualKeyModifiers.Control, (_, a) => { if (_modeIndex is AnnotateModeIndex or FillModeIndex or EditModeIndex) { Guard.Run(UndoAnnotationAsync, "Undo"); a.Handled = true; } });
+        AddAccelerator(VirtualKey.Y, VirtualKeyModifiers.Control, (_, a) => { if (_modeIndex is AnnotateModeIndex or FillModeIndex or EditModeIndex) { Guard.Run(RedoAnnotationAsync, "Redo"); a.Handled = true; } });
+        AddAccelerator(VirtualKey.Delete, VirtualKeyModifiers.None, (_, a) => { if (_modeIndex is AnnotateModeIndex or EditModeIndex && _picker?.Selected != null) { Guard.Run(DeleteSelectedAnnotationAsync, "Delete"); a.Handled = true; } });
         AddAccelerator(VirtualKey.S, VirtualKeyModifiers.Control, (_, a) => { if (_document != null) { Guard.Run(SaveIfChangedAsync, "Saving"); a.Handled = true; } });
         Viewer.CurrentPageChanged += (_, _) =>
         {
@@ -217,8 +217,7 @@ public sealed partial class DocumentView
         switch (def.Kind)
         {
             case null:
-                _picker ??= new AnnotationPicker(page => _annotationCache.GetValueOrDefault(page) ?? [], (info, bounds) => Guard.Run(() => MoveAnnotationAsync(info, bounds), "Moving"));
-                Viewer.Tool = _picker;
+                Viewer.Tool = EnsurePicker();
                 break;
             case PdfAnnotationKind.Highlight or PdfAnnotationKind.Underline or PdfAnnotationKind.StrikeOut or PdfAnnotationKind.Squiggly:
                 Viewer.MarkTextOnSelect = true; // drag across text as usual
@@ -230,6 +229,17 @@ public sealed partial class DocumentView
                 Viewer.Tool = _pen;
                 break;
         }
+    }
+
+    private AnnotationPicker EnsurePicker()
+    {
+        if (_picker == null)
+        {
+            _picker = new AnnotationPicker(page => _annotationCache.GetValueOrDefault(page) ?? [], (info, bounds) => Guard.Run(() => MoveAnnotationAsync(info, bounds), "Moving"));
+            _picker.SelectionChanged += UpdateEditSelection;
+        }
+
+        return _picker;
     }
 
     /// <summary>Highlighters are see-through so the words stay readable.</summary>
@@ -434,6 +444,9 @@ public sealed partial class DocumentView
         FillUndo.IsEnabled = AnnotateUndo.IsEnabled;
         FillRedo.IsEnabled = AnnotateRedo.IsEnabled;
         FillSave.IsEnabled = AnnotateSave.IsEnabled;
+        EditUndo.IsEnabled = AnnotateUndo.IsEnabled;
+        EditRedo.IsEnabled = AnnotateRedo.IsEnabled;
+        EditSave.IsEnabled = AnnotateSave.IsEnabled;
         ViewSave.Visibility = AnnotateSave.IsEnabled ? Visibility.Visible : Visibility.Collapsed;
     }
 

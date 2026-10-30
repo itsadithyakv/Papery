@@ -53,7 +53,7 @@ internal static class ToolCatalog
         new("compress", "Compress", "Smaller files to share", "", ToolFamily.Size, IsPro: true, IsBuilt: false),
         new("annotate", "Highlight & comment", "Mark up and add notes", "", ToolFamily.Markup, IsPro: false, IsBuilt: true),
         new("draw", "Draw & stamp", "Pen, shapes and stamps", "", ToolFamily.Markup, IsPro: true, IsBuilt: true),
-        new("edit", "Edit", "Text, images, page numbers", "", ToolFamily.Edit, IsPro: true, IsBuilt: false),
+        new("edit", "Edit", "Text, images, page numbers", "", ToolFamily.Edit, IsPro: true, IsBuilt: true),
         new("fill", "Fill forms", "Type into any form", "", ToolFamily.Sign, IsPro: false, IsBuilt: true),
         new("sign", "Sign", "Add your signature", "", ToolFamily.Sign, IsPro: true, IsBuilt: true),
         new("images-to-pdf", "Images to PDF", "Photos become a PDF", "", ToolFamily.Convert, IsPro: true, IsBuilt: false),

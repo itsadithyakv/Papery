@@ -13,19 +13,35 @@ internal static class PdfOutlineWriter
     // PDF viewers struggle with absurdly deep trees; real documents rarely go past 6.
     private const int MaxDepth = 32;
 
-    public static void Write(string inputPath, string outputPath, IReadOnlyList<PdfOutlineItem>? outline, string? title)
+    public static void Write(string inputPath, string outputPath, IReadOnlyList<PdfOutlineItem>? outline, string? title, string? password = null)
     {
-        using var doc = PdfReader.Open(inputPath, PdfDocumentOpenMode.Modify);
+        using var doc = password is null
+            ? PdfReader.Open(inputPath, PdfDocumentOpenMode.Modify)
+            : PdfReader.Open(inputPath, password, PdfDocumentOpenMode.Modify);
         if (!string.IsNullOrWhiteSpace(title))
         {
             doc.Info.Title = title;
         }
 
+        if (outline != null)
+        {
+            // Replacing them all, so don't let PDFsharp read the old ones: it throws on some real-world
+            // bookmarks it can't make sense of.
+            doc.Internals.Catalog.Elements.Remove("/Outlines");
+        }
+
         if (outline is { Count: > 0 })
         {
-            doc.Outlines.Clear();
             Add(doc, doc.Outlines, outline, 0);
             doc.PageMode = PdfPageMode.UseOutlines; // open with the bookmarks showing
+        }
+        else if (outline != null)
+        {
+            // An empty list means "no bookmarks"; null leaves them alone.
+            if (doc.PageMode == PdfPageMode.UseOutlines)
+            {
+                doc.PageMode = PdfPageMode.UseNone;
+            }
         }
 
         // Open (not Create): the target is a hidden temp file, and Create refuses to overwrite hidden files.

@@ -47,7 +47,7 @@ public enum PdfRenderOptions
 }
 
 /// <summary>A clickable area on a page: either a jump inside the document or a web address.</summary>
-public sealed record PdfLink(NormalizedRect Area, int? TargetPage, double? TargetY, string? Uri);
+public sealed record PdfLink(NormalizedRect Area, int? TargetPage, double? TargetY, string? Uri, bool IsDetected = false);
 
 /// <summary>One bookmark in the document outline.</summary>
 public sealed record PdfOutlineItem(string Title, int? PageIndex, IReadOnlyList<PdfOutlineItem> Children);

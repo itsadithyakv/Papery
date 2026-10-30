@@ -56,6 +56,9 @@ public sealed partial class DocumentView
             case "fill" or "sign":
                 Modes.SelectedIndex = FillModeIndex;
                 break;
+            case "edit":
+                Modes.SelectedIndex = EditModeIndex;
+                break;
         }
     }
 
@@ -132,8 +135,9 @@ public sealed partial class DocumentView
     {
         LeaveAnnotateMode();
         LeaveFillMode();
+        LeaveEditMode();
         Viewer.Tool = null;
-        SetFormFieldsActive(index != AnnotateModeIndex);
+        SetFormFieldsActive(index is not (AnnotateModeIndex or EditModeIndex));
         if (index == FillModeIndex)
         {
             EnterFillMode();
@@ -148,6 +152,12 @@ public sealed partial class DocumentView
         if (index == AnnotateModeIndex)
         {
             EnterAnnotateMode();
+            return;
+        }
+
+        if (index == EditModeIndex)
+        {
+            EnterEditMode();
             return;
         }
 

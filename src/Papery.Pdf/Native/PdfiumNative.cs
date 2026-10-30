@@ -462,6 +462,12 @@ internal static unsafe partial class PdfiumNative
     internal const int FPDF_FONT_TRUETYPE = 2;
 
     [LibraryImport(Dll)]
+    internal static partial void FPDFPage_InsertObject(nint page, nint pageObject);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPage_GenerateContent(nint page);
+
+    [LibraryImport(Dll)]
     internal static partial nint FPDFPageObj_CreateNewPath(float x, float y);
 
     [LibraryImport(Dll)]

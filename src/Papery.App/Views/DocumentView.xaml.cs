@@ -44,6 +44,7 @@ public sealed partial class DocumentView : UserControl
         BuildSwitchers();
         BuildAnnotateToolbar();
         BuildFillToolbar();
+        BuildEditToolbar();
         SearchResults.ItemsSource = _results;
 
         Viewer.CurrentPageChanged += (_, _) => OnCurrentPageChanged();
@@ -207,6 +208,8 @@ public sealed partial class DocumentView : UserControl
         {
             await document.DisposeAsync();
         }
+
+        DeleteUndoCopies();
     }
 
     public void ShowNotice(string title, string message, InfoBarSeverity severity = InfoBarSeverity.Informational)

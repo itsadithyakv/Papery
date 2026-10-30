@@ -98,7 +98,7 @@ public sealed partial class PdfDocument
                             double left, top, right, bottom;
                             if (PdfiumNative.FPDFLink_GetRect(webLinks, i, r, &left, &top, &right, &bottom) != 0)
                             {
-                                links.Add(new PdfLink(Normalize(page, left, top, right, bottom), null, null, url));
+                                links.Add(new PdfLink(Normalize(page, left, top, right, bottom), null, null, url, IsDetected: true));
                             }
                         }
                     }

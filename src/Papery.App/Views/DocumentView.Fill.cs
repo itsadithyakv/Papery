@@ -461,23 +461,15 @@ public sealed partial class DocumentView
 
     private async Task WriteFieldsAsync(List<NewFormField> fields)
     {
-        if (_document is not { } document)
+        if (_document == null)
         {
             return;
         }
 
-        try
-        {
-            await PdfEngine.Shared.AddFormFieldsAsync(new PdfInputFile(FilePath, document.Password), fields, FilePath);
-        }
-        catch (Exception ex) when (ex is PdfEditException or PdfOpenException or IOException or UnauthorizedAccessException)
-        {
-            await EditErrors.ShowAsync(ex, XamlRoot);
-            return;
-        }
-
-        await ReloadAsync();
-        Toaster.Show(fields.Count == 1 ? "Field added and saved" : $"{fields.Count:N0} fields added and saved", "\uE710");
+        await ChangeFileAsync(
+            fields.Count == 1 ? "Field added and saved" : $"{fields.Count:N0} fields added and saved",
+            "\uE710",
+            input => PdfEngine.Shared.AddFormFieldsAsync(input, fields, FilePath));
     }
 
     // ================================================================= flatten

@@ -26,6 +26,27 @@ public enum PdfAnnotationKind
 
     /// <summary>Something another app made that Papery doesn't have a tool for.</summary>
     Other,
+
+    /// <summary>A box of solid colour over part of the page. It covers; what's underneath is still in the file.</summary>
+    Whiteout,
+
+    /// <summary>A picture added to the page. Its first area is where.</summary>
+    Image,
+}
+
+/// <summary>The three families every PDF viewer has, so added text looks the same everywhere.</summary>
+public enum PdfTextFont
+{
+    Sans,
+    Serif,
+    Mono,
+}
+
+public enum PdfTextAlign
+{
+    Left,
+    Centre,
+    Right,
 }
 
 public readonly record struct PdfColor(byte R, byte G, byte B, byte A = 255);
@@ -49,7 +70,11 @@ public sealed record PdfAnnotationDraft(
     float FontSize = 12,
     string? Author = null,
     PdfBitmap? Picture = null,
-    float RotationDegrees = 0);
+    float RotationDegrees = 0,
+    PdfTextFont Font = PdfTextFont.Sans,
+    bool Bold = false,
+    bool Italic = false,
+    PdfTextAlign Align = PdfTextAlign.Left);
 
 /// <summary>An annotation on a page, as read back from the document.</summary>
 /// <param name="Name">Its unique name in the file (the PDF /NM entry); how Papery refers to it.</param>

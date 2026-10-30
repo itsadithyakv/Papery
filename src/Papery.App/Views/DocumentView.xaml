@@ -267,6 +267,74 @@
                     </StackPanel>
                 </Grid>
 
+                <!-- Edit: added text, pictures, whiteout and links; numbers, watermarks and bookmarks -->
+                <Grid x:Name="EditToolbar" Visibility="Collapsed" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                            <ToggleButton x:Name="EditSelect" Style="{StaticResource ToolToggleButtonStyle}" Click="OnEditSelect" AutomationProperties.Name="Select, move or resize" ToolTipService.ToolTip="Select, move or resize">
+                                <FontIcon Glyph="&#xE8B0;" Style="{StaticResource ToolIconStyle}" />
+                            </ToggleButton>
+                            <ToggleButton x:Name="EditText" Style="{StaticResource ToolToggleButtonStyle}" Click="OnEditText" AutomationProperties.Name="Add text" ToolTipService.ToolTip="Add text">
+                                <FontIcon Glyph="&#xE8D2;" Style="{StaticResource ToolIconStyle}" />
+                            </ToggleButton>
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnEditImage" AutomationProperties.Name="Add a picture" ToolTipService.ToolTip="Add a picture">
+                                <FontIcon Glyph="&#xEB9F;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <ToggleButton x:Name="EditCover" Style="{StaticResource ToolToggleButtonStyle}" Click="OnEditCover" AutomationProperties.Name="Whiteout" ToolTipService.ToolTip="Whiteout: cover part of the page">
+                                <FontIcon Glyph="&#xE75C;" Style="{StaticResource ToolIconStyle}" />
+                            </ToggleButton>
+                            <StackPanel x:Name="CoverColourHost" Orientation="Horizontal" VerticalAlignment="Center" Margin="2,0" />
+                            <ToggleButton x:Name="EditLink" Style="{StaticResource ToolToggleButtonStyle}" Click="OnEditLink" AutomationProperties.Name="Links" ToolTipService.ToolTip="Add or change a link">
+                                <FontIcon Glyph="&#xE71B;" Style="{StaticResource ToolIconStyle}" />
+                            </ToggleButton>
+                            <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+                            <Button Style="{StaticResource ToolButtonStyle}" Tag="PageNumbers" Click="OnEditStamp" AutomationProperties.Name="Page numbers" ToolTipService.ToolTip="Page numbers">
+                                <FontIcon Glyph="&#xE8EF;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button Style="{StaticResource ToolButtonStyle}" Tag="HeaderFooter" Click="OnEditStamp" AutomationProperties.Name="Header or footer" ToolTipService.ToolTip="Header or footer">
+                                <FontIcon Glyph="&#xE8A5;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button Style="{StaticResource ToolButtonStyle}" Tag="Watermark" Click="OnEditStamp" AutomationProperties.Name="Watermark" ToolTipService.ToolTip="Watermark">
+                                <FontIcon Glyph="&#xE790;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button Style="{StaticResource ToolButtonStyle}" Tag="Bates" Click="OnEditStamp" AutomationProperties.Name="Bates numbers" ToolTipService.ToolTip="Bates numbers">
+                                <FontIcon Glyph="&#xE8C7;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnEditBookmarks" AutomationProperties.Name="Bookmarks" ToolTipService.ToolTip="Edit bookmarks">
+                                <FontIcon Glyph="&#xE8A4;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+                            <Button x:Name="EditChangeWords" Visibility="Collapsed" Style="{StaticResource ToolButtonStyle}" Click="OnEditChangeWords" AutomationProperties.Name="Change the words" ToolTipService.ToolTip="Change the words">
+                                <FontIcon Glyph="&#xE70F;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button x:Name="EditTurn" Visibility="Collapsed" Style="{StaticResource ToolButtonStyle}" Click="OnEditTurn" AutomationProperties.Name="Turn" ToolTipService.ToolTip="Turn">
+                                <FontIcon Glyph="&#xE7AD;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button x:Name="EditDelete" Visibility="Collapsed" Style="{StaticResource ToolButtonStyle}" Click="OnEditDelete" AutomationProperties.Name="Delete" ToolTipService.ToolTip="Delete">
+                                <FontIcon Glyph="&#xE74D;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                        <Button x:Name="EditUndo" Style="{StaticResource ToolButtonStyle}" Click="OnAnnotateUndo" IsEnabled="False" AutomationProperties.Name="Undo" ToolTipService.ToolTip="Undo (Ctrl+Z)">
+                            <FontIcon Glyph="&#xE7A7;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button x:Name="EditRedo" Style="{StaticResource ToolButtonStyle}" Click="OnAnnotateRedo" IsEnabled="False" AutomationProperties.Name="Redo" ToolTipService.ToolTip="Redo (Ctrl+Y)">
+                            <FontIcon Glyph="&#xE7A6;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button x:Name="EditSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="6,0,0,0" Click="OnAnnotateSave" IsEnabled="False" ToolTipService.ToolTip="Save into this file (Ctrl+S)">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE74E;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
+                                <TextBlock Text="Save" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
                 <!-- Placeholder for modes built in later stages -->
                 <TextBlock x:Name="ComingSoonText" VerticalAlignment="Center" Margin="8,0" Visibility="Collapsed"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />

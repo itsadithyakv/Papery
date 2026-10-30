@@ -6,7 +6,8 @@ namespace Papery.Pdf.Editing;
 /// <summary>
 /// Builds a stamp annotation's look from page objects (lines, boxes and text). PDFium embeds the fonts
 /// and writes the appearance itself. Everything is laid out as the user sees the page, then mapped
-/// through the page's display axes, so text reads upright on rotated pages too. PDFium thread only.
+/// through the page's display axes, so text reads upright on rotated pages too. With no annotation
+/// (0) the objects go straight onto the page instead. PDFium thread only.
 /// </summary>
 internal sealed unsafe class AnnotationObjects(nint document, nint page, nint annotation, PdfColor color)
 {
@@ -33,29 +34,73 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
         Finish(path, width);
     }
 
+    /// <summary>A solid box with no outline (whiteout).</summary>
+    public void FilledBox(UserPoint bottomLeft, UserPoint topRight)
+    {
+        nint path = PdfiumNative.FPDFPageObj_CreateNewPath((float)bottomLeft.X, (float)bottomLeft.Y);
+        _ = PdfiumNative.FPDFPath_LineTo(path, (float)topRight.X, (float)bottomLeft.Y);
+        _ = PdfiumNative.FPDFPath_LineTo(path, (float)topRight.X, (float)topRight.Y);
+        _ = PdfiumNative.FPDFPath_LineTo(path, (float)bottomLeft.X, (float)topRight.Y);
+        _ = PdfiumNative.FPDFPath_Close(path);
+        _ = PdfiumNative.FPDFPageObj_SetFillColor(path, color.R, color.G, color.B, color.A);
+        _ = PdfiumNative.FPDFPath_SetDrawMode(path, PdfiumNative.FPDF_FILLMODE_WINDING, 0);
+        Append(path);
+    }
+
+    /// <summary>One line of text centred on a point given in points from the page's top-left, turned anticlockwise.</summary>
+    public void StampText(string text, double centreAcross, double centreDown, float size, double angleDegrees, TextLook look)
+    {
+        double width = Measure(text, size, look);
+        double angle = angleDegrees * Math.PI / 180, cos = Math.Cos(angle), sin = Math.Sin(angle);
+
+        // Along the text and up from it, in user space.
+        double ux = (_across.X * cos) - (_down.X * sin), uy = (_across.Y * cos) - (_down.Y * sin);
+        double vx = (-_down.X * cos) - (_across.X * sin), vy = (-_down.Y * cos) - (_across.Y * sin);
+        var origin = PdfDocument.ToUser(page, new PagePoint(0, 0));
+        double cx = origin.X + (_across.X * centreAcross) + (_down.X * centreDown);
+        double cy = origin.Y + (_across.Y * centreAcross) + (_down.Y * centreDown);
+        double midHeight = size * 0.35;
+        nint obj = CreateText(text, size, look);
+        if (obj == 0)
+        {
+            return;
+        }
+
+        PdfiumNative.FPDFPageObj_Transform(obj, ux, uy, vx, vy, cx - (ux * width / 2) - (vx * midHeight), cy - (uy * width / 2) - (vy * midHeight));
+        _ = PdfiumNative.FPDFPageObj_SetFillColor(obj, color.R, color.G, color.B, color.A);
+        Append(obj);
+    }
+
+    /// <summary>The page's size in points, as displayed.</summary>
+    public (double Width, double Height) PageSize() => AreaSize(new NormalizedRect(0, 0, 1, 1));
+
+    /// <summary>How wide a line of text will be, in points.</summary>
+    public double TextWidth(string text, float size, TextLook look) => Measure(text, size, look);
+
     /// <summary>One bold line, sized to fill the box (stamps).</summary>
     public void CentredText(string text, NormalizedRect area)
     {
         var (width, height) = AreaSize(area);
         float size = (float)Math.Max(PointSizeFloor, height * 0.55);
-        double measured = Measure(text, size, bold: true);
+        var look = new TextLook(Bold: true);
+        double measured = Measure(text, size, look);
         if (measured > width * 0.9)
         {
             size = (float)Math.Max(PointSizeFloor, size * width * 0.9 / measured);
-            measured = Measure(text, size, bold: true);
+            measured = Measure(text, size, look);
         }
 
         var origin = At(area, (width - measured) / 2, (height + (size * 0.7)) / 2);
-        Place(text, size, origin, bold: true);
+        Place(text, size, origin, look);
     }
 
-    /// <summary>Text wrapped to the box, top-left aligned (text boxes and callouts).</summary>
-    public void WrappedText(string text, NormalizedRect area, float size)
+    /// <summary>Text wrapped to the box (text boxes and callouts).</summary>
+    public void WrappedText(string text, NormalizedRect area, float size, TextLook look = default, PdfTextAlign align = PdfTextAlign.Left)
     {
         var (width, height) = AreaSize(area);
         const double Inset = 4;
         double y = Inset + size;
-        foreach (string line in Wrap(text, width - (2 * Inset), size))
+        foreach (string line in Wrap(text, width - (2 * Inset), size, look))
         {
             if (y > height + size)
             {
@@ -64,7 +109,13 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
 
             if (line.Length > 0)
             {
-                Place(line, size, At(area, Inset, y), bold: false);
+                double x = align switch
+                {
+                    PdfTextAlign.Centre => (width - Measure(line, size, look)) / 2,
+                    PdfTextAlign.Right => width - Inset - Measure(line, size, look),
+                    _ => Inset,
+                };
+                Place(line, size, At(area, x, y), look);
             }
 
             y += size * 1.25;
@@ -74,16 +125,16 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
     /// <summary>A label centred on a point (measurements).</summary>
     public void Label(string text, UserPoint centre, float size)
     {
-        double w = Measure(text, size, bold: false);
+        double w = Measure(text, size, default);
         var origin = new UserPoint(
             centre.X - (_across.X * w / 2) - (_down.X * size * 0.4),
             centre.Y - (_across.Y * w / 2) - (_down.Y * size * 0.4));
-        Place(text, size, origin, bold: false);
+        Place(text, size, origin, default);
     }
 
     public (UserPoint, UserPoint) LabelExtent(string text, UserPoint centre, float size)
     {
-        double w = Measure(text, size, bold: false) / 2;
+        double w = Measure(text, size, default) / 2;
         double h = size;
         return (
             new UserPoint(centre.X - (_across.X * w) - (_down.X * h), centre.Y - (_across.Y * w) - (_down.Y * h)),
@@ -146,15 +197,19 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
 
     private void Append(nint pageObject)
     {
-        if (PdfiumNative.FPDFAnnot_AppendObject(annotation, pageObject) == 0)
+        if (annotation == 0)
+        {
+            PdfiumNative.FPDFPage_InsertObject(page, pageObject);
+        }
+        else if (PdfiumNative.FPDFAnnot_AppendObject(annotation, pageObject) == 0)
         {
             PdfiumNative.FPDFPageObj_Destroy(pageObject);
         }
     }
 
-    private void Place(string text, float size, UserPoint origin, bool bold)
+    private void Place(string text, float size, UserPoint origin, TextLook look)
     {
-        nint obj = CreateText(text, size, bold);
+        nint obj = CreateText(text, size, look);
         if (obj == 0)
         {
             return;
@@ -166,9 +221,9 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
         Append(obj);
     }
 
-    private double Measure(string text, float size, bool bold)
+    private double Measure(string text, float size, TextLook look)
     {
-        nint obj = CreateText(text, size, bold);
+        nint obj = CreateText(text, size, look);
         if (obj == 0)
         {
             return text.Length * size * 0.5;
@@ -180,15 +235,16 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
         return width;
     }
 
-    private IEnumerable<string> Wrap(string text, double width, float size)
+    private IEnumerable<string> Wrap(string text, double width, float size, TextLook look)
     {
-        foreach (string paragraph in text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        // Text boxes on Windows end lines with a lone \r, which a PDF font would show as a stray character.
+        foreach (string paragraph in text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n'))
         {
             var line = new StringBuilder();
             foreach (string word in paragraph.Split(' '))
             {
                 string candidate = line.Length == 0 ? word : $"{line} {word}";
-                if (line.Length > 0 && Measure(candidate, size, bold: false) > width)
+                if (line.Length > 0 && Measure(candidate, size, look) > width)
                 {
                     yield return line.ToString();
                     line.Clear().Append(word);
@@ -203,9 +259,9 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
         }
     }
 
-    private nint CreateText(string text, float size, bool bold)
+    private nint CreateText(string text, float size, TextLook look)
     {
-        nint font = LoadFont(text, bold);
+        nint font = LoadFont(text, look);
         if (font == 0)
         {
             return 0;
@@ -224,19 +280,32 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
         return obj;
     }
 
-    /// <summary>Helvetica needs no embedding, but only covers Western letters; anything else embeds Arial.</summary>
-    private nint LoadFont(string text, bool bold)
+    /// <summary>The standard fonts need no embedding, but only cover Western letters; anything else embeds Windows' matching font.</summary>
+    private nint LoadFont(string text, TextLook look)
     {
         if (text.All(c => c < 256))
         {
-            byte[] name = Encoding.ASCII.GetBytes((bold ? "Helvetica-Bold" : "Helvetica") + '\0');
+            byte[] name = Encoding.ASCII.GetBytes(StandardFontName(look) + '\0');
             fixed (byte* n = name)
             {
                 return PdfiumNative.FPDFText_LoadStandardFont(document, n);
             }
         }
 
-        string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), bold ? "arialbd.ttf" : "arial.ttf");
+        string stem = look.Font switch
+        {
+            PdfTextFont.Serif => "times",
+            PdfTextFont.Mono => "cour",
+            _ => "arial",
+        };
+        string style = (look.Bold, look.Italic) switch
+        {
+            (true, true) => "bi",
+            (true, false) => "bd",
+            (false, true) => "i",
+            _ => string.Empty,
+        };
+        string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), $"{stem}{style}.ttf");
         if (!File.Exists(path))
         {
             return 0;
@@ -248,6 +317,27 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
             return PdfiumNative.FPDFText_LoadFont(document, d, (uint)data.Length, PdfiumNative.FPDF_FONT_TRUETYPE, 1);
         }
     }
+
+    private static string StandardFontName(TextLook look) => look.Font switch
+    {
+        PdfTextFont.Serif => (look.Bold, look.Italic) switch
+        {
+            (true, true) => "Times-BoldItalic",
+            (true, false) => "Times-Bold",
+            (false, true) => "Times-Italic",
+            _ => "Times-Roman",
+        },
+        PdfTextFont.Mono => "Courier" + Suffix(look),
+        _ => "Helvetica" + Suffix(look),
+    };
+
+    private static string Suffix(TextLook look) => (look.Bold, look.Italic) switch
+    {
+        (true, true) => "-BoldOblique",
+        (true, false) => "-Bold",
+        (false, true) => "-Oblique",
+        _ => string.Empty,
+    };
 
     private (double Width, double Height) AreaSize(NormalizedRect area)
     {
@@ -274,3 +364,6 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
 
     private static double Distance(UserPoint a, UserPoint b) => Math.Sqrt(((a.X - b.X) * (a.X - b.X)) + ((a.Y - b.Y) * (a.Y - b.Y)));
 }
+
+/// <summary>Which font a piece of text uses.</summary>
+internal readonly record struct TextLook(PdfTextFont Font = PdfTextFont.Sans, bool Bold = false, bool Italic = false);
