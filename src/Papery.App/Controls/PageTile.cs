@@ -30,6 +30,12 @@ public sealed partial class PageTile : Grid
     private readonly TextBlock _number = new() { FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
     private readonly Border _fromChip = new();
     private readonly TextBlock _fromText = new() { FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis };
+    // A reshaped page (cropped, new paper, margins, straightened) is drawn as its result instead:
+    // the paper, and through a clipped window on it, the page turned and placed as it will be saved.
+    private readonly Grid _shaped = new() { Visibility = Visibility.Collapsed };
+    private readonly Border _shapedPaper = new();
+    private readonly Canvas _window = new();
+    private readonly Image _shapedImage = new() { Stretch = Stretch.Fill };
     private OrganisePage? _page;
     private double _angle;
 
@@ -47,6 +53,19 @@ public sealed partial class PageTile : Grid
         _paper.RenderTransform = _rotation;
         _paper.RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5);
         _box.Children.Add(_paper);
+
+        _shapedPaper.BorderThickness = new Thickness(1);
+        _shapedPaper.CornerRadius = new CornerRadius(3);
+        _shapedPaper.HorizontalAlignment = HorizontalAlignment.Center;
+        _shapedPaper.VerticalAlignment = VerticalAlignment.Center;
+        _window.HorizontalAlignment = HorizontalAlignment.Left;
+        _window.VerticalAlignment = VerticalAlignment.Top;
+        _window.Children.Add(_shapedImage);
+        var paperArea = new Grid();
+        paperArea.Children.Add(_window);
+        _shapedPaper.Child = paperArea;
+        _shaped.Children.Add(_shapedPaper);
+        _box.Children.Add(_shaped);
 
         _actions.HorizontalAlignment = HorizontalAlignment.Right;
         _actions.VerticalAlignment = VerticalAlignment.Top;
@@ -68,7 +87,7 @@ public sealed partial class PageTile : Grid
         Loaded += (_, _) =>
         {
             // Theme brushes are looked up once on screen, so they follow Papery's theme, not Windows'.
-            _paper.BorderBrush = ThemeResources.Brush(this, "PaperyCardBorderBrush");
+            _paper.BorderBrush = _shapedPaper.BorderBrush = ThemeResources.Brush(this, "PaperyCardBorderBrush");
             _number.Style = (Style)Application.Current.Resources["PaperySecondaryTextStyle"];
             _fromChip.Style = (Style)Application.Current.Resources["PaperyChipStyle"];
         };
@@ -100,13 +119,14 @@ public sealed partial class PageTile : Grid
         // A recycled tile showing a different page: jump straight to its rotation.
         _angle = page.QuarterTurns * 90;
         _rotation.Angle = _angle;
-        _image.Source = page.Image;
-        _paper.Background = page.Paper;
+        _image.Source = _shapedImage.Source = page.Image;
+        _paper.Background = _shapedPaper.Background = page.Paper;
         _number.Text = page.Label;
         _fromChip.Visibility = page.FromFile != null ? Visibility.Visible : Visibility.Collapsed;
         _fromText.Text = page.FromFile ?? string.Empty;
         ToolTipService.SetToolTip(_fromChip, page.FromFile);
         Resize(page.TileSize);
+        UpdateShape();
         AutomationProperties.SetName(this, page.AccessibleName);
         page.EnsureImage(); // a page moved by dragging may arrive without its picture
     }
@@ -117,19 +137,24 @@ public sealed partial class PageTile : Grid
         switch (e.PropertyName)
         {
             case nameof(OrganisePage.Image):
-                _image.Source = page.Image;
+                _image.Source = _shapedImage.Source = page.Image;
                 break;
             case nameof(OrganisePage.QuarterTurns):
                 TurnTo(page.QuarterTurns);
+                UpdateShape();
+                break;
+            case nameof(OrganisePage.Geometry):
+                UpdateShape();
                 break;
             case nameof(OrganisePage.Label):
                 _number.Text = page.Label;
                 break;
             case nameof(OrganisePage.TileSize):
                 Resize(page.TileSize);
+                UpdateShape();
                 break;
             case nameof(OrganisePage.Paper):
-                _paper.Background = page.Paper;
+                _paper.Background = _shapedPaper.Background = page.Paper;
                 break;
             case nameof(OrganisePage.AccessibleName):
                 AutomationProperties.SetName(this, page.AccessibleName);
@@ -167,6 +192,50 @@ public sealed partial class PageTile : Grid
         storyboard.Children.Add(animation);
         storyboard.Begin();
         _angle = target;
+    }
+
+    /// <summary>Draws a reshaped page as it will be saved, using the same maths as the engine (PageGeometry.Layout).</summary>
+    private void UpdateShape()
+    {
+        var page = _page;
+        if (page?.Geometry is not { IsEmpty: false } geometry)
+        {
+            _shaped.Visibility = Visibility.Collapsed;
+            _paper.Visibility = Visibility.Visible;
+            return;
+        }
+
+        _paper.Visibility = Visibility.Collapsed;
+        _shaped.Visibility = Visibility.Visible;
+        var layout = geometry.Layout(page.TurnedSize);
+        double available = Math.Max(20, page.TileSize - (2 * Inset));
+        double scale = available / Math.Max(layout.Paper.Width, layout.Paper.Height);
+        double paperW = Math.Max(8, layout.Paper.Width * scale), paperH = Math.Max(8, layout.Paper.Height * scale);
+        _shapedPaper.Width = paperW;
+        _shapedPaper.Height = paperH;
+
+        // The window on the paper where the kept part of the page shows.
+        double windowW = layout.Content.Width * paperW, windowH = layout.Content.Height * paperH;
+        _window.Margin = new Thickness(layout.Content.X * paperW, layout.Content.Y * paperH, 0, 0);
+        _window.Width = windowW;
+        _window.Height = windowH;
+        _window.Clip = new RectangleGeometry { Rect = new Windows.Foundation.Rect(0, 0, windowW, windowH) };
+
+        // The whole turned page at this scale, shifted so the kept part fills the window.
+        double fullW = windowW / layout.Source.Width, fullH = windowH / layout.Source.Height;
+        bool sideways = page.QuarterTurns % 2 == 1;
+        double imageW = sideways ? fullH : fullW, imageH = sideways ? fullW : fullH;
+        double centreX = (-layout.Source.X * fullW) + (fullW / 2), centreY = (-layout.Source.Y * fullH) + (fullH / 2);
+        _shapedImage.Width = imageW;
+        _shapedImage.Height = imageH;
+        Canvas.SetLeft(_shapedImage, centreX - (imageW / 2));
+        Canvas.SetTop(_shapedImage, centreY - (imageH / 2));
+        _shapedImage.RenderTransform = new RotateTransform
+        {
+            Angle = (page.QuarterTurns * 90) + geometry.StraightenDegrees,
+            CenterX = imageW / 2,
+            CenterY = imageH / 2,
+        };
     }
 
     /// <summary>Fits the page inside a square, so it still fits after any rotation.</summary>

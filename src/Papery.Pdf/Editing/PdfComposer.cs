@@ -133,17 +133,26 @@ internal static class PdfComposer
 
                 for (int k = 0; k < pages.Count; k++)
                 {
-                    if (pages[k].QuarterTurns != 0)
+                    bool reshape = pages[k].Geometry is { IsEmpty: false };
+                    if (pages[k].QuarterTurns == 0 && !reshape)
                     {
-                        nint page = PdfiumNative.FPDF_LoadPage(doc, k);
-                        if (page == 0)
-                        {
-                            throw new PdfEditException(PdfEditError.BuildFailed, outputPath);
-                        }
-
-                        PdfiumNative.FPDFPage_SetRotation(page, (PdfiumNative.FPDFPage_GetRotation(page) + pages[k].QuarterTurns) & 3);
-                        PdfiumNative.FPDF_ClosePage(page);
+                        continue;
                     }
+
+                    nint page = PdfiumNative.FPDF_LoadPage(doc, k);
+                    if (page == 0)
+                    {
+                        throw new PdfEditException(PdfEditError.BuildFailed, outputPath);
+                    }
+
+                    PdfiumNative.FPDFPage_SetRotation(page, (PdfiumNative.FPDFPage_GetRotation(page) + pages[k].QuarterTurns) & 3);
+                    if (reshape)
+                    {
+                        // After the turn, so "crop the top" means the top as the user now sees it.
+                        PageGeometryApplier.Apply(page, pages[k].Geometry!);
+                    }
+
+                    PdfiumNative.FPDF_ClosePage(page);
                 }
 
                 if (request.EditInPlaceOf is null)
@@ -208,6 +217,56 @@ internal static class PdfComposer
             {
                 SafeFile.TryDelete(temp);
             }
+        }
+    }
+
+    /// <summary>
+    /// Several pages on each sheet (2-up, 4-up) as a new PDF, for printing. PDFium draws each page
+    /// as artwork on the sheet, so links, comments and form fields are not carried over.
+    /// </summary>
+    public static async Task<PdfComposeResult> NUpAsync(
+        PdfiumThread thread,
+        PdfInputFile input,
+        string outputPath,
+        PdfPageSize sheet,
+        int across,
+        int down,
+        CancellationToken cancellationToken)
+    {
+        outputPath = Path.GetFullPath(outputPath);
+        RawPdf? source = null, result = null;
+        string temp = SafeFile.CreateTemp(outputPath);
+        try
+        {
+            int sheets = await thread.InvokeAsync(() =>
+            {
+                source = RawPdf.Load(input.Path, input.Password);
+                if (!source.CanAssemble)
+                {
+                    throw new PdfEditException(PdfEditError.NotAllowed, input.Path);
+                }
+
+                nint handle = PdfiumNative.FPDF_ImportNPagesToOne(source.Handle, sheet.Width, sheet.Height, (nuint)across, (nuint)down);
+                if (handle == 0)
+                {
+                    throw new PdfEditException(PdfEditError.BuildFailed, input.Path);
+                }
+
+                result = RawPdf.Wrap(handle);
+                return result.PageCount;
+            }, PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
+
+            await thread.InvokeAsync(() => Save(result!, temp, outputPath), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
+            await thread.InvokeAsync(() => Verify(temp, null, sheets, outputPath), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
+            await thread.InvokeAsync(() => { result?.Dispose(); source?.Dispose(); result = source = null; }, PdfWorkPriority.Background, CancellationToken.None).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            SafeFile.Commit(temp, outputPath);
+            return new PdfComposeResult(outputPath, sheets, BookmarksSkipped: false);
+        }
+        finally
+        {
+            await thread.InvokeAsync(() => { result?.Dispose(); source?.Dispose(); }, PdfWorkPriority.Visible, CancellationToken.None).ConfigureAwait(false);
+            SafeFile.TryDelete(temp);
         }
     }
 

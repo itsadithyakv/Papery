@@ -19,5 +19,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Papery.Pdf\Papery.Pdf.csproj" />
+    <ProjectReference Include="..\..\src\Papery.Core\Papery.Core.csproj" />
   </ItemGroup>
 </Project>

@@ -31,4 +31,14 @@ public sealed class PdfEngine
         IProgress<double>? progress = null,
         CancellationToken cancellationToken = default) =>
         PdfComposer.ComposeAsync(Thread, request, outputPath, progress, cancellationToken);
+
+    /// <summary>Puts <paramref name="across"/> × <paramref name="down"/> pages on each sheet of a new PDF (for printing).</summary>
+    public Task<PdfComposeResult> NUpAsync(
+        PdfInputFile input,
+        string outputPath,
+        PdfPageSize sheet,
+        int across,
+        int down,
+        CancellationToken cancellationToken = default) =>
+        PdfComposer.NUpAsync(Thread, input, outputPath, sheet, across, down, cancellationToken);
 }

@@ -1,0 +1,85 @@
+<!--
+  Crop: the page large, with a box to drag (or its eight handles). Shows the size in millimetres,
+  can fit the box to the content, and applies to this page, the selection, all, odd or even pages.
+-->
+<UserControl
+    x:Class="Papery.Views.CropEditor"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Papery.Controls"
+    KeyboardAcceleratorPlacementMode="Hidden">
+
+    <UserControl.KeyboardAccelerators>
+        <KeyboardAccelerator Key="Escape" Invoked="OnEscape" />
+        <KeyboardAccelerator Key="Enter" Invoked="OnEnter" />
+    </UserControl.KeyboardAccelerators>
+
+    <Grid Background="{ThemeResource PaperyCanvasBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border BorderThickness="0,0,0,1" BorderBrush="{ThemeResource PaperyDividerBrush}" Background="{ThemeResource PaperySurfaceBrush}">
+            <Grid MinHeight="{StaticResource PaperyToolbarHeight}" Padding="12,6" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE7A8;" FontSize="16" Foreground="{ThemeResource PaperyCoralBrush}" FontFamily="{StaticResource PaperyIcons}" />
+                    <TextBlock Text="Crop" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <Border Style="{StaticResource PaperyChipStyle}" VerticalAlignment="Center">
+                        <TextBlock x:Name="MeasureText" FontSize="12" AutomationProperties.LiveSetting="Polite" />
+                    </Border>
+                    <Button Style="{StaticResource PaperyQuietButtonStyle}" Click="OnFitContent" ToolTipService.ToolTip="Shrink the box to the content (trims white margins)">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE8B3;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
+                            <TextBlock Text="Fit to content" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource PaperyQuietButtonStyle}" Click="OnWholePage" ToolTipService.ToolTip="Keep the whole page (no crop)">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE7A7;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
+                            <TextBlock Text="Whole page" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled" HorizontalAlignment="Right">
+                    <controls:PillBar x:Name="ApplyTo" AutomationProperties.Name="Apply the crop to" />
+                </ScrollViewer>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Button Content="Cancel" Style="{StaticResource PaperyQuietButtonStyle}" Click="OnCancel" ToolTipService.ToolTip="Leave without cropping (Esc)" />
+                    <Button x:Name="ApplyButton" Style="{StaticResource PaperyPrimaryButtonStyle}" Click="OnApply" ToolTipService.ToolTip="Crop (Enter)">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE7A8;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
+                            <TextBlock Text="Crop" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid x:Name="Stage" Grid.Row="1" Padding="40" SizeChanged="OnStageSizeChanged">
+            <Grid x:Name="PageHost" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border x:Name="PageSheet" BorderThickness="1" BorderBrush="{ThemeResource PaperyCardBorderBrush}">
+                    <Image x:Name="PageImage" Stretch="Fill" />
+                </Border>
+                <controls:CropCanvas x:Name="Overlay" Background="Transparent"
+                                     PointerPressed="OnOverlayPressed" PointerMoved="OnOverlayMoved"
+                                     PointerReleased="OnOverlayReleased" PointerCanceled="OnOverlayReleased" PointerCaptureLost="OnOverlayReleased"
+                                     AutomationProperties.Name="Crop box. Drag it or its corners; Fit to content and Whole page set it for you.">
+                    <Rectangle x:Name="ShadeTop" Fill="#99000000" />
+                    <Rectangle x:Name="ShadeBottom" Fill="#99000000" />
+                    <Rectangle x:Name="ShadeLeft" Fill="#99000000" />
+                    <Rectangle x:Name="ShadeRight" Fill="#99000000" />
+                    <Border x:Name="Frame" BorderThickness="2" BorderBrush="{ThemeResource PaperyCoralBrush}" />
+                </controls:CropCanvas>
+            </Grid>
+            <ProgressRing x:Name="Spinner" IsActive="True" Width="36" Height="36" />
+        </Grid>
+    </Grid>
+</UserControl>

@@ -44,8 +44,8 @@ public sealed partial class DocumentView
 
         switch (tool.Key)
         {
-            case "organise":
-                Modes.SelectedIndex = OrganiseModeIndex;
+            case "organise" or "crop":
+                Modes.SelectedIndex = OrganiseModeIndex; // crop, page size and straighten live on the Organise board
                 break;
             case "split":
                 _ = ShowSplitAsync();
@@ -283,6 +283,7 @@ public sealed partial class DocumentView
         return
         [
             new("Organise pages", Tool("organise").Glyph, () => Modes.SelectedIndex = OrganiseModeIndex, Keywords: "reorder rotate turn delete remove move pages", CanExecute: hasDoc),
+            new("Crop, page size and straighten", Tool("crop").Glyph, () => Modes.SelectedIndex = OrganiseModeIndex, Keywords: "trim margins resize paper a4 letter deskew scan", CanExecute: hasDoc),
             new("Split into several PDFs", Tool("split").Glyph, () => _ = ShowSplitAsync(), Keywords: "separate chapters break apart", CanExecute: hasDoc),
             new("Merge with other PDFs", Tool("merge").Glyph, () => MergeRequested?.Invoke(this, FilePath), Keywords: "combine join append", CanExecute: hasDoc),
         ];

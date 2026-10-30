@@ -60,6 +60,16 @@
                             <FontIcon Glyph="&#xE8E5;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
                         <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
+                        <Button x:Name="CropButton" Style="{StaticResource ToolButtonStyle}" Click="OnCrop" AutomationProperties.Name="Crop" ToolTipService.ToolTip="Crop (trim the edges)">
+                            <FontIcon Glyph="&#xE7A8;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button x:Name="PageSizeButton" Style="{StaticResource ToolButtonStyle}" Click="OnPageSize" AutomationProperties.Name="Page size and margins" ToolTipService.ToolTip="Page size and margins">
+                            <FontIcon Glyph="&#xE7C3;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button x:Name="StraightenButton" Style="{StaticResource ToolButtonStyle}" Click="OnStraighten" AutomationProperties.Name="Straighten crooked scans" ToolTipService.ToolTip="Straighten crooked scans">
+                            <FontIcon Glyph="&#xED5E;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
                         <Button x:Name="ExtractButton" Style="{StaticResource ToolButtonStyle}" Click="OnExtract" AutomationProperties.Name="Save selected pages as a new PDF" ToolTipService.ToolTip="Save selected pages as a new PDF">
                             <FontIcon Glyph="&#xEDE1;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
@@ -81,6 +91,16 @@
                                     </MenuFlyoutItem>
                                     <MenuFlyoutItem x:Name="ReverseItem" Text="Reverse all pages" Click="OnReverse">
                                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8CB;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem x:Name="SplitDoubleItem" Text="Split double pages down the middle" Click="OnSplitDouble">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8C6;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Text="Undo the shape changes" x:Name="ResetShapeItem" Click="OnResetShape">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7A7;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Text="Several pages per sheet (for printing)..." Click="OnPagesPerSheet">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8A9;" /></MenuFlyoutItem.Icon>
                                     </MenuFlyoutItem>
                                     <MenuFlyoutSeparator />
                                     <MenuFlyoutItem x:Name="ReplaceItem" Text="Replace with pages from another PDF..." Click="OnReplace">

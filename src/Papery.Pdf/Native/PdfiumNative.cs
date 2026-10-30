@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace Papery.Pdf.Native;
 
@@ -328,6 +328,52 @@ internal static unsafe partial class PdfiumNative
 
     [LibraryImport(Dll)]
     internal static partial int FPDF_CopyViewerPreferences(nint destDocument, nint sourceDocument);
+
+    // ---- Page boxes and transforms (fpdf_transformpage.h) ----
+    // Boxes are in PDF user space: points, y pointing up, before the page's /Rotate.
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFPage_SetMediaBox(nint page, float left, float bottom, float right, float top);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFPage_SetCropBox(nint page, float left, float bottom, float right, float top);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFPage_SetBleedBox(nint page, float left, float bottom, float right, float top);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFPage_SetTrimBox(nint page, float left, float bottom, float right, float top);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFPage_SetArtBox(nint page, float left, float bottom, float right, float top);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPage_GetMediaBox(nint page, float* left, float* bottom, float* right, float* top);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPage_GetCropBox(nint page, float* left, float* bottom, float* right, float* top);
+
+    // Wraps the page's content in "q <clip> <matrix> cm ... Q". The clip is in the new (transformed) space.
+    [LibraryImport(Dll)]
+    internal static partial int FPDFPage_TransFormWithClip(nint page, FS_MATRIX* matrix, FS_RECTF* clipRect);
+
+    // A new document with N source pages drawn on each sheet (for printing; annotations are not carried over).
+    [LibraryImport(Dll)]
+    internal static partial nint FPDF_ImportNPagesToOne(nint sourceDocument, float outputWidth, float outputHeight, nuint pagesOnX, nuint pagesOnY);
+
+    // ---- Annotations, only their rectangles (fpdf_annot.h) ----
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFPage_GetAnnot(nint page, int index);
+
+    [LibraryImport(Dll)]
+    internal static partial void FPDFPage_CloseAnnot(nint annotation);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_GetRect(nint annotation, FS_RECTF* rect);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_SetRect(nint annotation, FS_RECTF* rect);
 
     // ---- Saving (fpdf_save.h) ----
 

@@ -49,13 +49,17 @@ public sealed partial class OrganisePage : ObservableObject
 
     public bool IsBlank => Reference.IsBlank;
 
-    public PageRef Current => Reference with { QuarterTurns = QuarterTurns };
+    public PageRef Current => Reference with { QuarterTurns = QuarterTurns, Geometry = Geometry is { IsEmpty: false } ? Geometry : null };
 
     /// <summary>The size after the turns added here (what the saved page will look like).</summary>
     public PdfPageSize TurnedSize => QuarterTurns % 2 == 0 ? Size : new PdfPageSize(Size.Height, Size.Width);
 
     [ObservableProperty]
     public partial int QuarterTurns { get; set; }
+
+    /// <summary>Crop, paper size, margins and straightening, as the page is displayed (after its turns).</summary>
+    [ObservableProperty]
+    public partial PageGeometry? Geometry { get; set; }
 
     [ObservableProperty]
     public partial ImageSource? Image { get; set; }
@@ -80,6 +84,11 @@ public sealed partial class OrganisePage : ObservableObject
             if (QuarterTurns != 0)
             {
                 name += $", turned {QuarterTurns * 90} degrees";
+            }
+
+            if (Geometry is { IsEmpty: false })
+            {
+                name += ", reshaped";
             }
 
             return FromFile != null ? $"{name}, from {FromFile}" : name;
@@ -110,4 +119,6 @@ public sealed partial class OrganisePage : ObservableObject
     }
 
     partial void OnQuarterTurnsChanged(int value) => OnPropertyChanged(nameof(AccessibleName));
+
+    partial void OnGeometryChanged(PageGeometry? value) => OnPropertyChanged(nameof(AccessibleName));
 }

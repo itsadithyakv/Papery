@@ -78,6 +78,9 @@ internal sealed unsafe class RawPdf : IDisposable
 
     public static RawPdf CreateNew() => new(null, PdfiumNative.FPDF_CreateNewDocument(), string.Empty);
 
+    /// <summary>Takes ownership of a document PDFium created in memory (e.g. by FPDF_ImportNPagesToOne).</summary>
+    public static RawPdf Wrap(nint handle) => new(null, handle, string.Empty);
+
     /// <summary>
     /// Releases PDFium's handle and the file. The PdfFileSource must outlive the handle,
     /// because PDFium may read from it until FPDF_CloseDocument returns.

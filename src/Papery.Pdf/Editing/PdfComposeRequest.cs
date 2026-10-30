@@ -5,9 +5,10 @@ public sealed record PdfInputFile(string Path, string? Password = null);
 
 /// <summary>
 /// One page of a result: page <see cref="Page"/> of input <see cref="Source"/>, turned by
-/// <see cref="QuarterTurns"/> extra quarter turns clockwise; or a blank page.
+/// <see cref="QuarterTurns"/> extra quarter turns clockwise, then reshaped by <see cref="Geometry"/>
+/// (crop, paper size, margins, straighten); or a blank page.
 /// </summary>
-public readonly record struct PageRef(int Source, int Page, int QuarterTurns = 0, PdfPageSize BlankSize = default)
+public readonly record struct PageRef(int Source, int Page, int QuarterTurns = 0, PdfPageSize BlankSize = default, PageGeometry? Geometry = null)
 {
     public bool IsBlank => Source < 0;
 

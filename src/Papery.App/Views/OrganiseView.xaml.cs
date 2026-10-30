@@ -144,7 +144,7 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
     // ================================================================= state, undo and redo
 
     /// <summary>The board as (page id, turns) pairs: cheap to copy, compare and restore.</summary>
-    private sealed record Snapshot((int Id, int Turns)[] Pages)
+    private sealed record Snapshot((int Id, int Turns, PageGeometry? Geometry)[] Pages)
     {
         public static readonly Snapshot Empty = new([]);
 
@@ -153,7 +153,7 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         public override int GetHashCode() => Pages.Length;
     }
 
-    private Snapshot Current() => new(_pages.Select(p => (p.Id, p.QuarterTurns)).ToArray());
+    private Snapshot Current() => new(_pages.Select(p => (p.Id, p.QuarterTurns, p.Geometry)).ToArray());
 
     /// <summary>Call before every change.</summary>
     private void RememberForUndo()
@@ -167,9 +167,10 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         // Move items rather than rebuild the list, so the board animates and keeps its scroll position.
         for (int i = 0; i < snapshot.Pages.Length; i++)
         {
-            var (id, turns) = snapshot.Pages[i];
+            var (id, turns, geometry) = snapshot.Pages[i];
             var page = _everyPage[id];
             page.QuarterTurns = turns;
+            page.Geometry = geometry;
             int at = _pages.IndexOf(page);
             if (at < 0)
             {
@@ -307,6 +308,7 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         {
             var copy = NewPage(original.Reference, original.Document, original.FromFile, original.Size);
             copy.QuarterTurns = original.QuarterTurns;
+            copy.Geometry = original.Geometry;
             _pages.Insert(original.Position + 1 + copies.Count, copy);
             copies.Add(copy);
         }
@@ -491,6 +493,241 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         _sourceDocuments.Add(document);
         return (_sources.Count - 1, document);
     }
+
+    // ================================================================= shape: crop, paper size, straighten
+
+    /// <summary>The selected pages, or every page when none are selected.</summary>
+    private List<OrganisePage> SelectedOrAll() => Board.SelectedItems.Count > 0 ? SelectedInOrder() : _pages.ToList();
+
+    private async Task OpenCropAsync()
+    {
+        var selected = SelectedInOrder();
+        var page = selected.FirstOrDefault() ?? _pages.FirstOrDefault();
+        if (page == null || _busy != null)
+        {
+            return;
+        }
+
+        var editor = new CropEditor();
+        Grid.SetRowSpan(editor, 3);
+        editor.Closed += (_, choice) =>
+        {
+            Root.Children.Remove(editor);
+            Board.Focus(FocusState.Programmatic);
+            if (choice != null)
+            {
+                ApplyCrop(choice, page, selected);
+            }
+        };
+        Root.Children.Add(editor);
+        Motion.Entrance(editor, 0, 8);
+        editor.Focus(FocusState.Programmatic);
+        await editor.ShowAsync(page, selected.Count);
+    }
+
+    private void ApplyCrop(CropChoice choice, OrganisePage current, List<OrganisePage> selected)
+    {
+        // Page numbers count from 1, so odd pages sit at even positions.
+        List<OrganisePage> targets = choice.Scope switch
+        {
+            CropScope.Selected => selected,
+            CropScope.All => _pages.ToList(),
+            CropScope.Odd => _pages.Where(p => p.Position % 2 == 0).ToList(),
+            CropScope.Even => _pages.Where(p => p.Position % 2 == 1).ToList(),
+            _ => [current],
+        };
+        if (targets.Count == 0)
+        {
+            return;
+        }
+
+        RememberForUndo();
+        foreach (var page in targets)
+        {
+            page.Geometry = Normalize((page.Geometry ?? new PageGeometry()) with { Crop = choice.Crop });
+        }
+
+        AfterChange();
+        string what = choice.Crop == null ? "Crop removed" : "Cropped";
+        Toaster.Show(targets.Count == 1 ? $"{what}" : $"{what} on {targets.Count:N0} pages", "\uE7A8", "Undo", Undo);
+    }
+
+    private async Task PageSizeAsync()
+    {
+        var targets = SelectedOrAll();
+        if (targets.Count == 0 || _busy != null)
+        {
+            return;
+        }
+
+        if (await PageSizeDialog.ShowAsync(XamlRoot, targets[0], targets.Count) is not { } choice)
+        {
+            return;
+        }
+
+        RememberForUndo();
+        foreach (var page in targets)
+        {
+            page.Geometry = PageSizeDialog.Apply(page.Geometry, choice, page.TurnedSize);
+        }
+
+        AfterChange();
+        Toaster.Show(targets.Count == 1 ? "Page size changed" : $"Page size changed on {targets.Count:N0} pages", "\uE7C3", "Undo", Undo);
+    }
+
+    /// <summary>Measures how crooked each page is (from its picture) and turns it straight.</summary>
+    private async Task StraightenAsync()
+    {
+        var targets = SelectedOrAll().Where(p => !p.IsBlank).ToList();
+        if (targets.Count == 0 || _busy != null)
+        {
+            return;
+        }
+
+        var angles = await RunAsync("Straightening", async ct =>
+        {
+            var found = new Dictionary<OrganisePage, double>();
+            for (int i = 0; i < targets.Count; i++)
+            {
+                var page = targets[i];
+                double scale = 1400 / Math.Max(page.Size.Width, page.Size.Height);
+                int w = Math.Max(16, (int)(page.Size.Width * scale)), h = Math.Max(16, (int)(page.Size.Height * scale));
+                var bitmap = await page.Document!.RenderPageAsync(page.Reference.Page, w, h, PdfRenderOptions.None, PdfWorkPriority.Background, ct);
+                int turns = page.QuarterTurns;
+                found[page] = await Task.Run(() =>
+                {
+                    var turned = PageBitmaps.Turn(bitmap, turns);
+                    return Core.Imaging.PageImageAnalysis.SkewDegrees(turned.Pixels, turned.Width, turned.Height, turned.Stride);
+                }, ct);
+                BusyProgress.Value = (i + 1.0) / targets.Count;
+            }
+
+            return found;
+        });
+        if (angles == null)
+        {
+            return;
+        }
+
+        var crooked = angles.Where(a => a.Value != 0 && a.Value != (a.Key.Geometry?.StraightenDegrees ?? 0)).ToList();
+        if (crooked.Count == 0)
+        {
+            Toaster.Show(targets.Count == 1 ? "This page already looks straight" : "These pages already look straight", "\uED5E");
+            return;
+        }
+
+        RememberForUndo();
+        foreach (var (page, angle) in crooked)
+        {
+            page.Geometry = Normalize((page.Geometry ?? new PageGeometry()) with { StraightenDegrees = (float)angle });
+        }
+
+        AfterChange();
+        Toaster.Show(crooked.Count == 1 ? $"Straightened by {Math.Abs(crooked[0].Value):0.0}°" : $"Straightened {crooked.Count:N0} pages", "\uED5E", "Undo", Undo);
+    }
+
+    /// <summary>A scanned book spread becomes two pages: the left half, then the right half.</summary>
+    private void SplitDoublePages()
+    {
+        var selected = SelectedInOrder();
+        if (selected.Count == 0)
+        {
+            Toaster.Show("Select the double pages first", "\uE8C6");
+            return;
+        }
+
+        RememberForUndo();
+        foreach (var page in Enumerable.Reverse(selected))
+        {
+            var crop = page.Geometry?.Crop ?? PageGeometry.Whole;
+            var left = crop with { Width = crop.Width / 2 };
+            var right = crop with { X = crop.X + (crop.Width / 2), Width = crop.Width / 2 };
+            var copy = NewPage(page.Reference, page.Document, page.FromFile, page.Size);
+            copy.QuarterTurns = page.QuarterTurns;
+            copy.Geometry = (page.Geometry ?? new PageGeometry()) with { Crop = right };
+            page.Geometry = (page.Geometry ?? new PageGeometry()) with { Crop = left };
+            _pages.Insert(_pages.IndexOf(page) + 1, copy);
+        }
+
+        AfterChange();
+        Toaster.Show(selected.Count == 1 ? "Split into two pages" : $"Split {selected.Count:N0} spreads into {selected.Count * 2:N0} pages", "\uE8C6", "Undo", Undo);
+    }
+
+    private void ResetShape()
+    {
+        var targets = SelectedOrAll().Where(p => p.Geometry != null).ToList();
+        if (targets.Count == 0)
+        {
+            return;
+        }
+
+        RememberForUndo();
+        foreach (var page in targets)
+        {
+            page.Geometry = null;
+        }
+
+        AfterChange();
+    }
+
+    /// <summary>2 or 4 pages on each sheet, saved as a new PDF for printing.</summary>
+    private async Task PagesPerSheetAsync()
+    {
+        if (HasChanges)
+        {
+            await Dialogs.ShowMessageAsync(XamlRoot, "Save first", "Pages per sheet works on the file as it's saved. Save your page changes first.");
+            return;
+        }
+
+        var perSheet = new PillBar();
+        perSheet.AddItem("2 per sheet", "\uE8A9", "2");
+        perSheet.AddItem("4 per sheet", "\uE80A", "4");
+        perSheet.SelectedIndex = 0;
+        var paper = new ComboBox { Header = "Paper", MinWidth = 200 };
+        paper.Items.Add("A4");
+        paper.Items.Add("US Letter");
+        paper.SelectedIndex = System.Globalization.RegionInfo.CurrentRegion.IsMetric ? 0 : 1;
+        var note = new TextBlock
+        {
+            Text = "Saved as a new PDF for printing. Links and comments aren't carried over.",
+            TextWrapping = TextWrapping.Wrap,
+            Style = (Style)Application.Current.Resources["PaperySecondaryTextStyle"],
+        };
+        var panel = new StackPanel { Spacing = 16, Width = 360 };
+        panel.Children.Add(perSheet);
+        panel.Children.Add(paper);
+        panel.Children.Add(note);
+        var dialog = new ContentDialog { Title = "Pages per sheet", Content = panel, PrimaryButtonText = "Save as...", CloseButtonText = "Cancel" };
+        if (await Dialogs.ShowAsync(dialog, XamlRoot) != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        bool four = perSheet.SelectedIndex == 1;
+        var size = paper.SelectedIndex == 0 ? PaperSizes.A4 : PaperSizes.Letter;
+        var sheet = four ? size : new PdfPageSize(size.Height, size.Width); // 2-up sits side by side on landscape paper
+        string name = $"{Path.GetFileNameWithoutExtension(_document.FilePath)} ({(four ? 4 : 2)} per sheet).pdf";
+        string? path = await Pickers.PickSavePdfAsync(GetWindowHandle(), name, _document.FilePath);
+        if (path == null)
+        {
+            return;
+        }
+
+        if (string.Equals(Path.GetFullPath(path), Path.GetFullPath(_document.FilePath), StringComparison.OrdinalIgnoreCase))
+        {
+            await Dialogs.ShowMessageAsync(XamlRoot, "Pick a different name", "Pages per sheet makes a new file, so the open file stays as it is.");
+            return;
+        }
+
+        var input = new PdfInputFile(_document.FilePath, _document.Password);
+        var result = await RunAsync("Arranging pages", ct => PdfEngine.Shared.NUpAsync(input, path, sheet, 2, four ? 2 : 1, ct), path);
+        if (result != null)
+        {
+            Toaster.Show($"Saved {result.PageCount:N0} sheets: {Path.GetFileName(path)}", "\uE8A9", "Open", () => OpenRequested?.Invoke(this, path));
+        }
+    }
+
+    private static PageGeometry? Normalize(PageGeometry geometry) => geometry.IsEmpty ? null : geometry;
 
     // ================================================================= saving
 
@@ -862,12 +1099,25 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
     private void OnMoreMenuOpening(object sender, object e)
     {
         bool any = Board.SelectedItems.Count > 0 && _busy == null;
-        Rotate180Item.IsEnabled = ReplaceItem.IsEnabled = any;
+        Rotate180Item.IsEnabled = ReplaceItem.IsEnabled = SplitDoubleItem.IsEnabled = any;
+        ResetShapeItem.IsEnabled = SelectedOrAll().Any(p => p.Geometry != null);
         MoveStartItem.IsEnabled = MoveEndItem.IsEnabled = any && Board.SelectedItems.Count < _pages.Count;
         ReverseItem.Text = Board.SelectedItems.Count > 1 ? "Reverse the selected pages" : "Reverse all pages";
     }
 
     private void OnRotate180(object sender, RoutedEventArgs e) => Rotate(SelectedInOrder(), 2);
+
+    private void OnCrop(object sender, RoutedEventArgs e) => Guard.Run(OpenCropAsync, "Opening crop");
+
+    private void OnPageSize(object sender, RoutedEventArgs e) => Guard.Run(PageSizeAsync, "Changing page size");
+
+    private void OnStraighten(object sender, RoutedEventArgs e) => Guard.Run(StraightenAsync, "Straightening");
+
+    private void OnSplitDouble(object sender, RoutedEventArgs e) => SplitDoublePages();
+
+    private void OnResetShape(object sender, RoutedEventArgs e) => ResetShape();
+
+    private void OnPagesPerSheet(object sender, RoutedEventArgs e) => Guard.Run(PagesPerSheetAsync, "Pages per sheet");
 
     private void OnMoveToStart(object sender, RoutedEventArgs e) => MoveSelected(toStart: true);
 

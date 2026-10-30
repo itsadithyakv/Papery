@@ -16,7 +16,6 @@ internal static class PageBitmaps
     private static readonly (int B, int G, int R) SepiaPaper = (217, 238, 250);
     private static readonly (int B, int G, int R) SepiaInk = (28, 40, 60);
 
-    /// <summary>Must be called on the UI thread.</summary>
     /// <summary>The colour of blank paper in each reading mode (behind pages while they render).</summary>
     public static Windows.UI.Color PaperColor(ReadingMode mode) => mode switch
     {
@@ -25,6 +24,39 @@ internal static class PageBitmaps
         _ => Microsoft.UI.Colors.White,
     };
 
+    /// <summary>
+    /// Turns a rendered page by quarter turns clockwise, so tools that work on the page as the user
+    /// sees it (crop, straighten) can use plain screen coordinates. Any thread.
+    /// </summary>
+    public static PdfBitmap Turn(PdfBitmap bitmap, int quarterTurns)
+    {
+        int q = ((quarterTurns % 4) + 4) % 4;
+        if (q == 0)
+        {
+            return bitmap;
+        }
+
+        int w = bitmap.Width, h = bitmap.Height;
+        int outW = q % 2 == 0 ? w : h, outH = q % 2 == 0 ? h : w;
+        var pixels = new byte[outW * outH * 4];
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                (int nx, int ny) = q switch
+                {
+                    1 => (h - 1 - y, x),
+                    2 => (w - 1 - x, h - 1 - y),
+                    _ => (y, w - 1 - x),
+                };
+                Buffer.BlockCopy(bitmap.Pixels, (y * bitmap.Stride) + (x * 4), pixels, ((ny * outW) + nx) * 4, 4);
+            }
+        }
+
+        return new PdfBitmap(outW, outH, outW * 4, pixels);
+    }
+
+    /// <summary>Must be called on the UI thread.</summary>
     public static WriteableBitmap ToWriteableBitmap(PdfBitmap bitmap)
     {
         var result = new WriteableBitmap(bitmap.Width, bitmap.Height);
