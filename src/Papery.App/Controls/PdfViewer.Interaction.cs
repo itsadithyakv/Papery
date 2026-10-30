@@ -189,7 +189,8 @@ public sealed partial class PdfViewer
         int page = visual.PageIndex;
         try
         {
-            _pressedLink = await LinkAtAsync(page, x, y);
+            // With a marking tool, a press on a link starts marking its words instead of following it.
+            _pressedLink = MarkTextOnSelect ? null : await LinkAtAsync(page, x, y);
             if (_pressedLink == null)
             {
                 _anchorChar = await _document.GetCharIndexAtAsync(page, x, y);

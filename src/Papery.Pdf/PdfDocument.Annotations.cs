@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Papery.Pdf.Editing;
 using Papery.Pdf.Native;
 
@@ -12,6 +14,10 @@ public sealed partial class PdfDocument
 {
     private const int DeviceScale = 1_000_000;
     private const double NoteSize = 20;
+
+    // Papery keeps how it drew an annotation inside the annotation (a private PDF key other apps
+    // ignore), so its own annotations stay fully editable after the file is saved and reopened.
+    private const string DraftKey = "PaperyDraft";
 
     // What Papery drew in this session, so it can be redrawn in another colour or place.
     private readonly Dictionary<string, PdfAnnotationDraft> _drafts = [];
@@ -90,7 +96,10 @@ public sealed partial class PdfDocument
         })), cancellationToken);
     }
 
-    /// <summary>Changes colour. Papery's own are redrawn; another app's lose their old look and each viewer redraws them.</summary>
+    /// <summary>
+    /// Changes colour. Papery's own are redrawn; another app's lose their old look and each viewer redraws
+    /// them. Returns false when that isn't possible (another app's ink or stamp).
+    /// </summary>
     public Task<bool> RecolorAnnotationAsync(int pageIndex, string name, PdfColor color, CancellationToken cancellationToken = default)
     {
         CheckPageIndex(pageIndex);
@@ -101,11 +110,13 @@ public sealed partial class PdfDocument
                 return Replace(page, name, draft with { Color = color });
             }
 
-            return WithAnnotation(page, name, (annotation, _) =>
+            bool changed = false;
+            WithAnnotation(page, name, (annotation, _) =>
             {
-                _ = PdfiumNative.FPDFAnnot_SetColor(annotation, PdfiumNative.FPDFANNOT_COLORTYPE_Color, color.R, color.G, color.B, color.A);
-                HasAnnotationChanges = true;
+                changed = PdfiumNative.FPDFAnnot_SetColor(annotation, PdfiumNative.FPDFANNOT_COLORTYPE_Color, color.R, color.G, color.B, color.A) != 0;
+                HasAnnotationChanges |= changed;
             });
+            return changed;
         }), cancellationToken);
     }
 
@@ -115,7 +126,7 @@ public sealed partial class PdfDocument
         CheckPageIndex(pageIndex);
         return Run(() => WithPage(pageIndex, page =>
         {
-            if (_drafts.TryGetValue(name, out var draft) && draft.Kind is PdfAnnotationKind.TextBox or PdfAnnotationKind.Callout or PdfAnnotationKind.Stamp)
+            if (_drafts.TryGetValue(name, out var draft) && draft.Kind is PdfAnnotationKind.TextBox or PdfAnnotationKind.Callout or PdfAnnotationKind.Stamp or PdfAnnotationKind.Measure)
             {
                 return Replace(page, name, draft with { Text = text }); // the words are part of how it looks
             }
@@ -210,6 +221,11 @@ public sealed partial class PdfDocument
         if (PdfiumNative.FPDFAnnot_GetRect(annotation, &rect) == 0)
         {
             return null;
+        }
+
+        if (!_drafts.ContainsKey(name) && GetString(annotation, DraftKey) is { } saved && Parse(saved) is { } restored)
+        {
+            _drafts[name] = restored;
         }
 
         var kind = KindOf(subtype, GetString(annotation, "Subj"));
@@ -353,6 +369,7 @@ public sealed partial class PdfDocument
             _ = PdfiumNative.FPDFAnnot_SetColor(annotation, PdfiumNative.FPDFANNOT_COLORTYPE_Color, c.R, c.G, c.B, c.A);
             SetString(annotation, "NM", name);
             SetString(annotation, "Subj", draft.Kind.ToString());
+            SetString(annotation, DraftKey, JsonSerializer.Serialize(draft, AnnotationJson.Default.PdfAnnotationDraft));
             SetString(annotation, "M", $"D:{DateTime.UtcNow:yyyyMMddHHmmss}Z");
             if (draft.Text != null)
             {
@@ -568,6 +585,18 @@ public sealed partial class PdfDocument
         }
     }
 
+    private static PdfAnnotationDraft? Parse(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize(json, AnnotationJson.Default.PdfAnnotationDraft);
+        }
+        catch (JsonException)
+        {
+            return null; // not ours or damaged: treat it like another app's annotation
+        }
+    }
+
     // ================================================================= small helpers
 
     /// <summary>A point in display fractions to user space (handles /Rotate and crop boxes).</summary>
@@ -616,3 +645,6 @@ public sealed partial class PdfDocument
         }
     }
 }
+
+[JsonSerializable(typeof(PdfAnnotationDraft))]
+internal sealed partial class AnnotationJson : JsonSerializerContext;

@@ -33,7 +33,7 @@ public sealed partial class DocumentView
         (PdfAnnotationKind.StrikeOut, "Strike through text", "", null, false, 0),
         (PdfAnnotationKind.Squiggly, "Squiggly underline", null, "M1,8 L4,4 L7,8 L10,4 L13,8 L16,4 L16,7 L13,11 L10,7 L7,11 L4,7 L1,11 Z", false, 0),
         (PdfAnnotationKind.Pen, "Pen", "", null, false, 2),
-        (PdfAnnotationKind.Marker, "Highlighter pen", "", null, false, 12),
+        (PdfAnnotationKind.Marker, "Highlighter pen", null, "M2,10 Q8,3 14,7 L14,11 Q8,7 2,14 Z", false, 12),
         (PdfAnnotationKind.Rectangle, "Rectangle", null, "M1,3 H15 V13 H1 Z M3,5 V11 H13 V5 Z", false, 2),
         (PdfAnnotationKind.Ellipse, "Ellipse", null, "M8,2 A7,6 0 1 1 8,14 A7,6 0 1 1 8,2 Z M8,4 A5,4 0 1 0 8,12 A5,4 0 1 0 8,4 Z", false, 2),
         (PdfAnnotationKind.Line, "Line", null, "M2,13 L13,2 L14,3 L3,14 Z", false, 2),
@@ -42,7 +42,7 @@ public sealed partial class DocumentView
         (PdfAnnotationKind.Cloud, "Cloud", null, "M4,13 A3,3 0 0 1 3,7 A4,4 0 0 1 10,4 A3,3 0 0 1 13,8 A3,3 0 0 1 12,13 Z", false, 1.5f),
         (PdfAnnotationKind.TextBox, "Text box", "", null, false, 1),
         (PdfAnnotationKind.Callout, "Callout (drag from the thing to where the words go)", "", null, false, 1.5f),
-        (PdfAnnotationKind.Stamp, "Stamp", "", null, false, 2),
+        (PdfAnnotationKind.Stamp, "Stamp", null, "M6,2 H10 L9,8 H13 V11 H3 V8 H7 Z M2,12.5 H14 V14 H2 Z", false, 2),
         (PdfAnnotationKind.Measure, "Measure a distance", "", null, false, 1.5f),
     ];
 
@@ -102,8 +102,17 @@ public sealed partial class DocumentView
                 MinWidth = 0,
                 Padding = new Thickness(0),
                 CornerRadius = new CornerRadius(11),
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, swatch.R, swatch.G, swatch.B)),
+                BorderThickness = new Thickness(0),
+                Style = (Style)Application.Current.Resources["PaperyQuietButtonStyle"],
                 VerticalAlignment = VerticalAlignment.Center,
+
+                // The colour is the content, so hovering (which repaints a button's background) can't hide it.
+                Content = new Microsoft.UI.Xaml.Shapes.Ellipse
+                {
+                    Width = 18,
+                    Height = 18,
+                    Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(255, swatch.R, swatch.G, swatch.B)),
+                },
             };
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(dot, $"Colour {swatch.R},{swatch.G},{swatch.B}");
             dot.Click += (_, _) => Guard.Run(() => ChooseColourAsync(swatch), "Choosing a colour");
@@ -205,7 +214,6 @@ public sealed partial class DocumentView
         _pen = null;
         Viewer.MarkTextOnSelect = false;
         Viewer.Tool = null;
-        AnnotateColours.Visibility = def.Kind == null ? Visibility.Collapsed : Visibility.Visible;
         switch (def.Kind)
         {
             case null:
@@ -318,7 +326,12 @@ public sealed partial class DocumentView
         }
 
         var old = info.Color;
-        await document.RecolorAnnotationAsync(info.PageIndex, info.Name, colour);
+        if (!await document.RecolorAnnotationAsync(info.PageIndex, info.Name, colour))
+        {
+            Toaster.Show("This one came from another app, so Papery can't recolour it", "\uE946");
+            return;
+        }
+
         await AfterAnnotationChangeAsync(info.PageIndex);
         Remember(
             async () => { await document.RecolorAnnotationAsync(info.PageIndex, info.Name, old); await AfterAnnotationChangeAsync(info.PageIndex); },
@@ -454,7 +467,12 @@ public sealed partial class DocumentView
         if (reload)
         {
             await ReloadAsync();
+            await PreloadAnnotationsAsync(); // the Select tool picks from this list
             Toaster.Show("Saved", "");
+            if (CommentsPanel.Visibility == Visibility.Visible)
+            {
+                await LoadCommentsAsync();
+            }
         }
 
         UpdateAnnotateButtons();
@@ -524,7 +542,7 @@ public sealed partial class DocumentView
         {
             var infos = await document.GetAnnotationsAsync(page, PdfWorkPriority.Background);
             _annotationCache[page] = infos;
-            found.AddRange(infos.Select(i => new CommentItem(i)));
+            found.AddRange(infos.OrderBy(i => i.Bounds.Y).Select(i => new CommentItem(i))); // reading order
         }
 
         if (document != _document)

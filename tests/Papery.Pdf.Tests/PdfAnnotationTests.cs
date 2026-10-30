@@ -169,6 +169,45 @@ public sealed class PdfAnnotationTests : IDisposable
         Assert.InRange(moved.Bounds.Y, 0.08, 0.12);
     }
 
+    [Theory]
+    [InlineData(PdfAnnotationKind.Rectangle)]
+    [InlineData(PdfAnnotationKind.Pen)]
+    [InlineData(PdfAnnotationKind.Stamp)]
+    [InlineData(PdfAnnotationKind.Highlight)]
+    public async Task Papery_annotations_can_still_be_recoloured_after_reopening(PdfAnnotationKind kind)
+    {
+        string path = _files.Create(1, "Hello");
+        await using (var doc = await Engine.OpenAsync(path))
+        {
+            await doc.AddAnnotationAsync(0, Draft(kind));
+            await doc.SaveAsync(path);
+        }
+
+        await using var reopened = await Engine.OpenAsync(path);
+        var info = Assert.Single(await reopened.GetAnnotationsAsync(0));
+        Assert.Equal(Red, info.Color);
+
+        Assert.True(await reopened.RecolorAnnotationAsync(0, info.Name, new PdfColor(0, 0, 200)));
+
+        Assert.Equal(0, await RedPixels(reopened));
+    }
+
+    [Fact]
+    public async Task Words_of_a_saved_text_box_can_be_changed_after_reopening()
+    {
+        string path = _files.Create(1, "Hello");
+        await using (var doc = await Engine.OpenAsync(path))
+        {
+            await doc.AddAnnotationAsync(0, Draft(PdfAnnotationKind.TextBox));
+            await doc.SaveAsync(path);
+        }
+
+        await using var reopened = await Engine.OpenAsync(path);
+        var info = Assert.Single(await reopened.GetAnnotationsAsync(0));
+        Assert.True(await reopened.SetAnnotationTextAsync(0, info.Name, "New words"));
+        Assert.Equal("New words", Assert.Single(await reopened.GetAnnotationsAsync(0)).Text);
+    }
+
     [Fact]
     public async Task Annotations_on_a_turned_page_land_where_the_user_drew_them()
     {

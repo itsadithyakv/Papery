@@ -58,13 +58,21 @@ public sealed class CommentItem(Papery.Pdf.Editing.PdfAnnotationInfo info)
 {
     public Papery.Pdf.Editing.PdfAnnotationInfo Info { get; } = info;
 
-    public string Title => string.IsNullOrWhiteSpace(Info.Text) ? Info.Kind.ToString() : Info.Text;
+    public string Title => string.IsNullOrWhiteSpace(Info.Text) ? KindName : Info.Text;
+
+    private string KindName => Info.Kind switch
+    {
+        Papery.Pdf.Editing.PdfAnnotationKind.StrikeOut => "Strikethrough",
+        Papery.Pdf.Editing.PdfAnnotationKind.Marker => "Highlighter pen",
+        Papery.Pdf.Editing.PdfAnnotationKind.Other => "Annotation",
+        _ => Info.Kind.ToString(),
+    };
 
     public string PageLabel => $"Page {Info.PageIndex + 1}";
 
     public SolidColorBrush Swatch => new(Windows.UI.Color.FromArgb(255, Info.Color.R, Info.Color.G, Info.Color.B));
 
-    public string AccessibleName => $"{Info.Kind} on page {Info.PageIndex + 1}: {Info.Text}";
+    public string AccessibleName => $"{KindName} on page {Info.PageIndex + 1}: {Info.Text}";
 }
 
 /// <summary>A search match in the sidebar list.</summary>
