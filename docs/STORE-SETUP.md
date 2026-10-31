@@ -201,13 +201,13 @@ Don't say "free" without mentioning Pro, and don't list Pro features as if they 
 
 ## Part 11 – Host the privacy policy
 
-The Store needs a web address for it. The free way, using the GitHub repo you already have:
+It's already live, so paste this address into **Properties** and the Store listing:
 
-1. Open `branding/listing/privacy-policy.html`, replace both `YOUR-SUPPORT-EMAIL` with your real address, save, and push.
-2. In GitHub, make a new **public** repository called `papery-privacy` (your main repo is private or holds code you may not want public).
-3. Upload the file there, renamed `index.html`.
-4. In that repository: **Settings › Pages** › **Deploy from a branch** › **main** › **Save**.
-5. After a minute, your page is at `https://itsadithyakv.github.io/papery-privacy/`. Open it to check, then paste it into **Properties** and the Store listing.
+`https://itsadithyakv.github.io/papery/privacy-policy.html`
+
+The page is published from its own public repository, `itsadithyakv/itsadithyakv.github.io`, in `papery/privacy-policy.html`. That keeps it online even if the Papery repository is private, because GitHub's free plan only publishes from public repositories.
+
+To change it, edit `branding/listing/privacy-policy.html` here, then copy it over the one in that repository and push. Questions currently go to that repository's Issues page. To use a support email instead, change the last line of the policy in both places.
 
 ## Part 12 – Later updates
 

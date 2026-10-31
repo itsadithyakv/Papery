@@ -8,7 +8,7 @@ Everything for the Store listing, in one place.
 | `store/` | Store listing art: 1:1 logos (300, 1080, 2160), 9:16 posters (720x1080, 1440x2160), 16:9 hero art (1920x1080, 3840x2160) |
 | `screenshots/` | Screenshots from the real app, in dark and light, at 1800x1125 |
 | `listing/store-listing.md` | Ready-to-paste name, descriptions, features, search terms, add-on text and certification notes |
-| `listing/privacy-policy.html` | The privacy policy page. Put your support email in it, then host it (see `docs/STORE-SETUP.md`) |
+| `listing/privacy-policy.html` | The privacy policy page, published at https://itsadithyakv.github.io/papery/privacy-policy.html (see `docs/STORE-SETUP.md`) |
 
 Which art goes where in Partner Center (Store listings › Store logos and Screenshots):
 

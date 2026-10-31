@@ -90,7 +90,7 @@ Productivity
 Leave empty, unless you have your own terms.
 
 ## Privacy policy URL
-Host branding/listing/privacy-policy.html and paste its address. See docs/STORE-SETUP.md, step 11.
+https://itsadithyakv.github.io/papery/privacy-policy.html
 
 ## Website and support contact
 Use your support email. The Store requires a way to contact you.
