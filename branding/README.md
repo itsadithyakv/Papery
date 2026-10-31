@@ -15,7 +15,7 @@ Which art goes where in Partner Center (Store listings › Store logos and Scree
 - **1:1 Box art**: `store/StoreLogo-1x1-2160x2160.png` (also 1080)
 - **9:16 Poster art**: `store/PosterArt-9x16-1440x2160.png` (also 720x1080)
 - **16:9 Super hero art**: `store/HeroArt-16x9-3840x2160.png` (also 1920x1080)
-- **Screenshots**: add up to 10 from `screenshots/`. Start with home, reading, organise, signing, compress, merge.
+- **Screenshots**: add up to 10 from `screenshots/`. Start with home, reading, organise, signing, filters, compress, merge.
 
 Colours: coral `#E5533D` (light), `#FF7A63` (dark). Font: Segoe UI Variable.
 

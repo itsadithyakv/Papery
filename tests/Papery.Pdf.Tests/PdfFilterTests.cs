@@ -643,6 +643,66 @@ public sealed class PdfFilterTests : IDisposable
         Assert.Single(await doc.GetPageImagesAsync(0));
     }
 
+    /// <summary>Real-world shapes of PDF, from the repo's test set: nothing may break, and every page must survive.</summary>
+    [Fact]
+    public async Task Every_ordinary_test_file_survives_filters_and_compress()
+    {
+        const long Largest = 40 * 1024 * 1024;
+        string? folder = AppContext.BaseDirectory;
+        while (folder != null && !Directory.Exists(Path.Combine(folder, "PaperyTestFiles")))
+        {
+            folder = Path.GetDirectoryName(folder);
+        }
+
+        if (folder == null)
+        {
+            return; // the set isn't there, as on a machine with only the code
+        }
+
+        var checkedFiles = new List<string>();
+        foreach (string file in Directory.EnumerateFiles(Path.Combine(folder, "PaperyTestFiles"), "*.pdf"))
+        {
+            string name = Path.GetFileName(file);
+            if (name.StartsWith("damaged", StringComparison.OrdinalIgnoreCase) || name.Contains("password", StringComparison.OrdinalIgnoreCase) || new FileInfo(file).Length > Largest)
+            {
+                continue;
+            }
+
+            PdfDocument original;
+            try
+            {
+                original = await Engine.OpenAsync(file);
+            }
+            catch (PdfOpenException)
+            {
+                continue; // locked or broken on purpose
+            }
+
+            int pages = original.PageCount;
+            await original.DisposeAsync();
+
+            string filtered = NewPath, smaller = NewPath;
+            var result = await Engine.FilterPicturesAsync(new PdfInputFile(file, null), new PictureFilterOptions(PictureLook.Document, Sharpen: 20), null, filtered);
+            if (result.Changed > 0)
+            {
+                await using var doc = await Engine.OpenAsync(filtered);
+                Assert.Equal(pages, doc.PageCount);
+                _ = await doc.RenderPageAsync(0, 100, 100);
+            }
+
+            var compressed = await Engine.CompressAsync(new PdfInputFile(file, null), CompressOptions.Balanced, smaller);
+            if (compressed.Changed)
+            {
+                await using var doc = await Engine.OpenAsync(smaller);
+                Assert.Equal(pages, doc.PageCount);
+            }
+
+            checkedFiles.Add(name);
+        }
+
+        Assert.NotEmpty(checkedFiles);
+    }
+
     // ================================================================= merging copies
 
     [Fact]
