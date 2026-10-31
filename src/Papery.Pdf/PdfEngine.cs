@@ -88,6 +88,13 @@ public sealed class PdfEngine
     public Task<CompressResult> CompressToFitAsync(PdfInputFile input, long limitBytes, string outputPath, CancellationToken cancellationToken = default) =>
         PdfCompressor.FitUnderAsync(Thread, input, limitBytes, outputPath, cancellationToken);
 
+    /// <summary>
+    /// Tries to change a line of text inside the page's own content. False means it couldn't be done safely and nothing
+    /// was written, usually because the font doesn't hold the letters wanted.
+    /// </summary>
+    public Task<bool> TryReplaceLineAsync(PdfInputFile input, int page, NormalizedRect line, string oldText, string newText, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfTextReplacer.TryAsync(Thread, input, page, line, oldText, newText, outputPath, cancellationToken);
+
     /// <summary>Improves the pictures in a PDF. With nothing to change, the output isn't written and the result says so.</summary>
     /// <param name="pages">Which pages, or null for all of them.</param>
     public Task<PictureFilterResult> FilterPicturesAsync(PdfInputFile input, PictureFilterOptions options, IReadOnlyCollection<int>? pages, string outputPath, IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>

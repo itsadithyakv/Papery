@@ -32,6 +32,7 @@ PAPERY PRO: ONE PAYMENT, EVERY TOOL
 • Convert: images to PDF, PDF to images, text and Word, and scan from a scanner or camera
 • OCR: make scans searchable with the text recognition built into Windows, in any language you've installed
 • Compress: presets, or fit under a size you choose
+• Filters: clean up scans with whiter paper, darker text and no shadows, or use grey, black and white, brightness, contrast, sharpen and straighten
 • Protect: AES-256 passwords and permissions
 • Redact: permanently remove private details, not just cover them, then check they're gone
 • Remove hidden data, such as comments, attachments and details about the author
@@ -62,6 +63,7 @@ Convert images to PDF, and PDF to images, text or Word
 Scan to PDF from a scanner or camera
 Make scans searchable with offline text recognition
 Compress PDFs, or fit them under a size you choose
+Clean up scans with filters: whiter paper, darker text, no shadows
 Password-protect with AES-256
 Permanently redact private details and check they're gone
 Compare two versions side by side

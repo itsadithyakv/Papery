@@ -16,6 +16,14 @@ The test build can't reach the Store, so Pro is locked in it. To test Pro tools,
 - [ ] Fill and sign `forms-interactive.pdf`, then open it in Edge and Adobe
 - [ ] OCR `scanned-document.pdf`: search for "lighthouse" afterwards
 - [ ] Compress to under 5 MB with **Fit under**
+- [ ] **Tools > Filters** on a real phone scan and a real flatbed scan: try each look, the sliders and Straighten, then Apply and Undo. Does it look better, and is the text intact?
+- [ ] **Filters > Save a copy**, then open that copy in Edge and Adobe Reader
+- [ ] **Scan to PDF > Camera**: the live picture appears, the page can be lined up, and the camera light goes off after closing
+- [ ] **Edit > Change existing text** on a PDF from Word: change a few letters, then check the old words are gone when you search for them
+- [ ] **Convert > Save as Word** on a PDF with a table and one with two columns, then open them in Word
+- [ ] **Make searchable** on a Chinese, Japanese or Arabic scan (needs that language in Windows), then search and copy in Edge and Adobe Reader
+- [ ] Annotate: the coloured dot button picks a colour and a line thickness
+- [ ] Forms: Tab to a tick box and see the focus ring around it
 - [ ] Redact `redaction-test.pdf`: then search, and copy all the text, to confirm the words are gone
 - [ ] Password-protect a file, and open it in Edge with the password
 - [ ] Buy Pro, and restore it on another PC (needs the Store: Part 7 of the Store guide)

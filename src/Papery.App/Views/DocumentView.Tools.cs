@@ -80,6 +80,121 @@ public sealed partial class DocumentView
         }
     }
 
+    // ================================================================= locks on the toolbars
+
+    // These work without Pro, or only show up once something has been picked.
+    private static readonly HashSet<string> OpenToEveryone =
+    [
+        "Select, move or resize", "Change the words", "Turn", "Delete", "Snapshot", "Save as text", "Copy all the text",
+        "Make a PDF from any app", "Clear the marks", "Document details", "Save a copy",
+    ];
+
+    private readonly List<(Microsoft.UI.Xaml.Controls.Primitives.ButtonBase Button, string Name, object? Tip)> _lockableButtons = [];
+
+    /// <summary>Pro tools look a little quieter until unlocked, and Narrator says so.</summary>
+    private void UpdateToolbarLocks(bool pro)
+    {
+        if (_lockableButtons.Count == 0)
+        {
+            foreach (var toolbar in new FrameworkElement[] { EditToolbar, ConvertToolbar, ProtectToolbar, ToolsToolbar })
+            {
+                foreach (var button in Buttons(toolbar))
+                {
+                    string name = Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(button);
+                    if (!string.IsNullOrEmpty(name) && !OpenToEveryone.Contains(name))
+                    {
+                        _lockableButtons.Add((button, name, ToolTipService.GetToolTip(button)));
+                    }
+                }
+            }
+        }
+
+        foreach (var (button, name, tip) in _lockableButtons)
+        {
+            button.Opacity = pro ? 1 : 0.55;
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, pro ? name : $"{name}, Pro feature");
+            ToolTipService.SetToolTip(button, pro ? tip : $"{tip ?? name} (Papery Pro)");
+        }
+
+        static IEnumerable<Microsoft.UI.Xaml.Controls.Primitives.ButtonBase> Buttons(object? element)
+        {
+            if (element is Microsoft.UI.Xaml.Controls.Primitives.ButtonBase button)
+            {
+                return [button];
+            }
+
+            return element switch
+            {
+                Panel panel => panel.Children.SelectMany(Buttons),
+                ScrollViewer scroller => Buttons(scroller.Content),
+                Border border => Buttons(border.Child),
+                _ => [],
+            };
+        }
+    }
+
+    // ================================================================= filters
+
+    private void OnFilters(object sender, RoutedEventArgs e) => Guard.Run(FilterAsync, "Applying filters");
+
+    private async Task FilterAsync()
+    {
+        if (_document is not { } document || XamlRoot == null || !await ProDialogs.RequireProAsync(XamlRoot, Tool("filters")) || !await SaveAnnotationsFirstAsync("Filtering"))
+        {
+            return;
+        }
+
+        document = _document!;
+        if (await FilterDialog.ShowAsync(XamlRoot, document, FilePath, Math.Clamp(Viewer.CurrentPage, 0, document.PageCount - 1)) is not { } choice)
+        {
+            return;
+        }
+
+        string work = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "Papery", "filter-result", Guid.NewGuid().ToString("N"))).FullName;
+        string made = Path.Combine(work, "filtered.pdf");
+        try
+        {
+            PictureFilterResult? result = null;
+            var input = new PdfInputFile(FilePath, document.Password);
+            if (!await BusyDialog.RunAsync(XamlRoot, "Improving the pictures", async (progress, cancel) => result = await PdfEngine.Shared.FilterPicturesAsync(input, choice.Options, choice.Pages, made, progress, cancel)))
+            {
+                return;
+            }
+
+            if (result is not { Changed: > 0 })
+            {
+                await Dialogs.ShowMessageAsync(XamlRoot, "No pictures to change", result is { LeftAlone: > 0 }
+                    ? "The pictures here are see-through or already pure black and white, so Papery left them as they are."
+                    : "Filters change pictures and scans. These pages only have text and shapes.");
+                return;
+            }
+
+            string done = result.Changed == 1 ? "1 picture improved" : $"{result.Changed:N0} pictures improved";
+            if (result.LeftAlone > 0)
+            {
+                done += $", {result.LeftAlone:N0} left as they were";
+            }
+
+            if (!choice.SaveElsewhere)
+            {
+                await ChangeFileAsync(done, "\uE790", file => PdfEngine.Shared.RestoreCopyAsync(made, file.Password, FilePath));
+            }
+            else if (await Pickers.PickSavePdfAsync(GetWindowHandle?.Invoke() ?? 0, Path.GetFileNameWithoutExtension(FilePath) + "-filtered", FilePath) is { } output)
+            {
+                await PdfEngine.Shared.RestoreCopyAsync(made, document.Password, output);
+                Toaster.Show(done, "\uE790", "Open", () => NewPdfMade?.Invoke(this, output));
+            }
+        }
+        catch (Exception ex) when (ex is PdfEditException or PdfOpenException or IOException or UnauthorizedAccessException)
+        {
+            await EditErrors.ShowAsync(ex, XamlRoot);
+        }
+        finally
+        {
+            CompressDialog.PdfCleanup(work);
+        }
+    }
+
     // ================================================================= compare and batch
 
     private void OnCompare(object sender, RoutedEventArgs e) => Guard.Run(async () =>
@@ -143,8 +258,8 @@ public sealed partial class DocumentView
     }
 
     /// <summary>
-    /// Fonts in PDFs usually hold only the letters they already use, so old words can't be retyped in place
-    /// reliably. Instead the line is covered and new words go on top in the nearest font, which is honest and always works.
+    /// Fonts in PDFs usually hold only the letters they already use. So when the look is unchanged the words are first tried in
+    /// place, which really removes the old ones; otherwise the line is covered and new words go on top in the nearest font, which always works.
     /// </summary>
     private async Task ChangeLineAsync(int page, PagePoint point)
     {
@@ -189,6 +304,12 @@ public sealed partial class DocumentView
             return;
         }
 
+        bool sameLook = chosen.Font == draft.Font && chosen.Bold == draft.Bold && chosen.Italic == draft.Italic && Math.Abs(chosen.FontSize - draft.FontSize) < 0.01 && chosen.Color == draft.Color;
+        if (sameLook && chosen.Text is { Length: > 0 } typed && !typed.Contains('\n', StringComparison.Ordinal) && !document.HasAnnotationChanges && await ReplaceInPlaceAsync(document, page, cover, draft.Text!, typed))
+        {
+            return;
+        }
+
         var paper = await PaperColourAsync(document, page, cover);
         double newHeight = Math.Max(cover.Height, TextDialog.HeightFor(chosen.Text!, chosen.FontSize, Math.Max(cover.Width * size.Width, 60)) / size.Height);
         var covered = new PdfAnnotationDraft(PdfAnnotationKind.Whiteout, paper, [cover]);
@@ -210,6 +331,30 @@ public sealed partial class DocumentView
                 await AfterAnnotationChangeAsync(page);
             });
         Toaster.Show("Changed. The old words are covered, not removed: use Redact to remove them", "", seconds: 7);
+    }
+
+    private async Task<bool> ReplaceInPlaceAsync(PdfDocument document, int page, NormalizedRect line, string oldText, string newText)
+    {
+        string work = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "Papery", "text-change", Guid.NewGuid().ToString("N"))).FullName;
+        string made = Path.Combine(work, "changed.pdf");
+        try
+        {
+            if (!await PdfEngine.Shared.TryReplaceLineAsync(new PdfInputFile(FilePath, document.Password), page, line, oldText, newText, made))
+            {
+                return false;
+            }
+
+            return await ChangeFileAsync("Changed", "", input => PdfEngine.Shared.RestoreCopyAsync(made, input.Password, FilePath));
+        }
+        catch (Exception ex) when (ex is PdfEditException or PdfOpenException or IOException or UnauthorizedAccessException)
+        {
+            Log.Info($"Couldn't change the words in place: {ex.GetType().Name}");
+            return false;
+        }
+        finally
+        {
+            CompressDialog.PdfCleanup(work);
+        }
     }
 
     /// <summary>The colour just beside the words, so tinted paper doesn't get a white patch.</summary>

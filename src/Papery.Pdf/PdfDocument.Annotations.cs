@@ -165,6 +165,71 @@ public sealed partial class PdfDocument
         }), cancellationToken);
     }
 
+    /// <summary>
+    /// A picture annotation ready to be drawn again, reading its pixels back from the file if it was saved in an earlier
+    /// session. Null when it holds no picture. See-through or already turned pictures come back as they appear on
+    /// the page, because that's the only form PDFium gives them in.
+    /// </summary>
+    public unsafe Task<PdfAnnotationDraft?> GetPictureDraftAsync(int pageIndex, string name, CancellationToken cancellationToken = default)
+    {
+        CheckPageIndex(pageIndex);
+        return Run(() => WithPage(pageIndex, page =>
+        {
+            var info = Find(page, pageIndex, name);
+            var known = _drafts.GetValueOrDefault(name);
+            if (known?.Picture != null || info == null)
+            {
+                return known;
+            }
+
+            PdfAnnotationDraft? result = null;
+            WithAnnotation(page, name, (annotation, _) =>
+            {
+                int count = PdfiumNative.FPDFAnnot_GetObjectCount(annotation);
+                for (int i = 0; i < count && result == null; i++)
+                {
+                    nint obj = PdfiumNative.FPDFAnnot_GetObject(annotation, i);
+                    if (obj == 0 || PdfiumNative.FPDFPageObj_GetType(obj) != PdfiumNative.FPDF_PAGEOBJ_IMAGE)
+                    {
+                        continue;
+                    }
+
+                    PdfiumNative.FS_MATRIX matrix;
+                    bool turned = PdfiumNative.FPDFPageObj_GetMatrix(obj, &matrix) != 0 && (Math.Abs(matrix.B) > 0.01 || Math.Abs(matrix.C) > 0.01);
+                    bool asShown = turned || Editing.PdfCompressor.IsSeeThrough(_handle, page, obj);
+                    nint bitmap = asShown ? PdfiumNative.FPDFImageObj_GetRenderedBitmap(_handle, page, obj) : PdfiumNative.FPDFImageObj_GetBitmap(obj);
+                    if (bitmap == 0)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        if (ToBgra(bitmap) is { } picture)
+                        {
+                            result = (known ?? new PdfAnnotationDraft(PdfAnnotationKind.Image, info.Color, [info.Bounds])) with
+                            {
+                                Picture = picture,
+                                Areas = [info.Bounds],
+                                RotationDegrees = 0,
+                            };
+                        }
+                    }
+                    finally
+                    {
+                        PdfiumNative.FPDFBitmap_Destroy(bitmap);
+                    }
+                }
+            });
+            if (result != null)
+            {
+                _drafts[name] = result;
+            }
+
+            return result;
+        }), cancellationToken);
+    }
+
     /// <summary>How Papery drew an annotation, or null for another app's (or a picture from an earlier session).</summary>
     public Task<PdfAnnotationDraft?> GetAnnotationDraftAsync(int pageIndex, string name, CancellationToken cancellationToken = default)
     {

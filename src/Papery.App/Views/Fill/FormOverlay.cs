@@ -166,6 +166,9 @@ internal sealed class FormOverlay(
         return box;
     }
 
+    private static readonly ControlTemplate ClearToggle = (ControlTemplate)Microsoft.UI.Xaml.Markup.XamlReader.Load(
+        """<ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" TargetType="CheckBox"><Grid Background="Transparent" /></ControlTemplate>""");
+
     private CheckBox Toggle(PdfDocument doc, PdfFormField field, Canvas layer, int page)
     {
         bool radio = field.Kind == PdfFormFieldKind.RadioButton;
@@ -175,7 +178,7 @@ internal sealed class FormOverlay(
             MinWidth = 0,
             MinHeight = 0,
             Padding = new Thickness(0),
-            Opacity = 0, // the page itself draws the box and its tick; this catches the click and the keyboard
+            Template = ClearToggle, // the page itself draws the box and its tick; this catches the click and the keyboard, and shows the focus ring
         };
         button.Click += (_, _) =>
         {

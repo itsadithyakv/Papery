@@ -65,6 +65,10 @@ Write-Host 'Compress'
 Start-App @((& $q 'scanned-document.pdf'))
 Drive @($size, 'wait:1', 'select:Tools', 'wait:2', 'click:Compress', 'wait:10', (Shot "05-compress-$Theme"))
 
+Write-Host 'Filters'
+Start-App @((& $q 'scanned-document.pdf'))
+Drive @($size, 'wait:1', 'select:Tools', 'wait:2', 'click:Filters', 'wait:5', 'select:Black and white', 'wait:4', 'select:Clean document', 'wait:5', (Shot "09-filters-$Theme"))
+
 Write-Host 'Merge'
 $set = Get-ChildItem (Join-Path $files 'merge-set') -Filter *.pdf | Select-Object -First 5 | ForEach-Object { '"' + $_.FullName + '"' }
 Start-App (@('--merge') + $set)

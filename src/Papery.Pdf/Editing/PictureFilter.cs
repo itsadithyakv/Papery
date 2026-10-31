@@ -75,6 +75,7 @@ internal static class PictureFilter
             case PictureLook.Document:
             case PictureLook.BlackAndWhite:
                 EvenOutPaper(pixels, width, height);
+                RemoveDust(pixels, width, height);
                 break;
         }
 
@@ -343,6 +344,95 @@ internal static class PictureFilter
         }
 
         return soft;
+    }
+
+    /// <summary>
+    /// Clears dust from clean paper. Size alone can't tell a speck from a full stop, but a full stop always has words
+    /// beside it: very tiny blobs go wherever they are, and slightly larger ones only when nothing else is near.
+    /// </summary>
+    private static void RemoveDust(byte[] pixels, int width, int height)
+    {
+        const int Dark = 190;
+        double scale = Math.Max(width, height) / 1000.0;
+        int tiny = Math.Max(2, (int)(scale * scale * 2));
+        int small = Math.Max(4, (int)(scale * scale * 14));
+        int reach = Math.Max(4, (int)(scale * 14));
+
+        // A running total of dark pixels, so "is anything near this blob?" is one quick sum.
+        int stride = width + 1;
+        int[] totals = new int[stride * (height + 1)];
+        for (int y = 0; y < height; y++)
+        {
+            int row = 0;
+            for (int x = 0; x < width; x++)
+            {
+                row += Luma(pixels, ((y * width) + x) * 4) < Dark ? 1 : 0;
+                totals[((y + 1) * stride) + x + 1] = totals[(y * stride) + x + 1] + row;
+            }
+        }
+
+        bool[] seen = new bool[width * height];
+        var blob = new List<int>(small + 1);
+        var waiting = new Stack<int>();
+        for (int start = 0; start < seen.Length; start++)
+        {
+            if (seen[start] || Luma(pixels, start * 4) >= Dark)
+            {
+                continue;
+            }
+
+            blob.Clear();
+            waiting.Push(start);
+            seen[start] = true;
+            int total = 0, left = width, right = 0, top = height, bottom = 0;
+            while (waiting.TryPop(out int at))
+            {
+                total++;
+                if (blob.Count <= small)
+                {
+                    blob.Add(at);
+                }
+
+                int x = at % width, y = at / width;
+                left = Math.Min(left, x);
+                right = Math.Max(right, x);
+                top = Math.Min(top, y);
+                bottom = Math.Max(bottom, y);
+                for (int ny = Math.Max(0, y - 1); ny <= Math.Min(height - 1, y + 1); ny++)
+                {
+                    for (int nx = Math.Max(0, x - 1); nx <= Math.Min(width - 1, x + 1); nx++)
+                    {
+                        int next = (ny * width) + nx;
+                        if (!seen[next] && Luma(pixels, next * 4) < Dark)
+                        {
+                            seen[next] = true;
+                            waiting.Push(next);
+                        }
+                    }
+                }
+            }
+
+            if (total > small)
+            {
+                continue;
+            }
+
+            if (total > tiny)
+            {
+                int l = Math.Max(0, left - reach), r = Math.Min(width, right + reach + 1), u = Math.Max(0, top - reach), d = Math.Min(height, bottom + reach + 1);
+                int nearby = totals[(d * stride) + r] - totals[(u * stride) + r] - totals[(d * stride) + l] + totals[(u * stride) + l];
+                if (nearby > total)
+                {
+                    continue; // it has company, so it may well be a full stop or part of a letter
+                }
+            }
+
+            foreach (int at in blob)
+            {
+                int to = at * 4;
+                pixels[to] = pixels[to + 1] = pixels[to + 2] = 255;
+            }
+        }
     }
 
     private static void BlackAndWhite(byte[] pixels, int width, int height)

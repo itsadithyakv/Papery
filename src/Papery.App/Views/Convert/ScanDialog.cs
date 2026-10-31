@@ -42,6 +42,8 @@ internal static class ScanDialog
         top.Children.Add(get);
 
         var cropper = new CornerCropper { Width = 500, Height = 340 };
+        var live = new Image { Width = 500, Height = 340, Stretch = Stretch.Uniform, Visibility = Visibility.Collapsed };
+        CameraPreview? preview = null;
         var looks = new PillBar();
         looks.AddItem("Colour", null, "colour");
         looks.AddItem("Grey", null, "grey");
@@ -61,6 +63,7 @@ internal static class ScanDialog
         var panel = new StackPanel { Spacing = 12, Width = 500 };
         panel.Children.Add(top);
         panel.Children.Add(cropper);
+        panel.Children.Add(live);
         panel.Children.Add(bottom);
 
         var dialog = new ContentDialog
@@ -75,6 +78,47 @@ internal static class ScanDialog
         dialog.Resources["ContentDialogMaxWidth"] = 620.0;
 
         void Say(string words) => status.Text = words;
+
+        async Task StopCameraAsync()
+        {
+            if (preview is { } running)
+            {
+                preview = null;
+                await running.DisposeAsync();
+            }
+
+            live.Source = null;
+            live.Visibility = Visibility.Collapsed;
+            cropper.Visibility = Visibility.Visible;
+        }
+
+        async Task ShowCameraAsync()
+        {
+            if (preview == null)
+            {
+                preview = await CameraPreview.StartAsync(live);
+                if (preview == null)
+                {
+                    Say("Papery can't use the camera. Check Settings > Privacy & security > Camera.");
+                    return;
+                }
+            }
+
+            cropper.Visibility = Visibility.Collapsed;
+            live.Visibility = Visibility.Visible;
+            get.Content = "Take the picture";
+            Say("Line up the page, then take the picture.");
+        }
+
+        sources.SelectionChanged += (_, _) => Guard.Run(async () =>
+        {
+            get.Content = "Get a page";
+            await StopCameraAsync();
+            if (sources.SelectedIndex == 1)
+            {
+                await ShowCameraAsync();
+            }
+        }, "Using the camera");
 
         async Task ShowPageAsync(PdfBitmap? page)
         {
@@ -98,8 +142,38 @@ internal static class ScanDialog
                 switch (sources.SelectedIndex)
                 {
                     case 1:
-                        Say("Taking a picture…");
-                        await ShowPageAsync(await FromCameraAsync(Say));
+                        if (live.Visibility != Visibility.Visible || preview == null)
+                        {
+                            await ShowCameraAsync(); // back to the live picture for another page
+                            break;
+                        }
+
+                        Say("Taking the picture…");
+                        if (await preview.TakePhotoAsync() is not { } shot)
+                        {
+                            Say("The camera didn't take the picture. Try again.");
+                            break;
+                        }
+
+                        try
+                        {
+                            var taken = await ImageFiles.LoadAsync(shot, MaxSide);
+                            if (taken == null)
+                            {
+                                Say("Papery couldn't read the camera's picture.");
+                                break;
+                            }
+
+                            live.Visibility = Visibility.Collapsed;
+                            cropper.Visibility = Visibility.Visible;
+                            get.Content = "Another picture";
+                            await ShowPageAsync(taken);
+                        }
+                        finally
+                        {
+                            File.Delete(shot);
+                        }
+
                         break;
                     case 2:
                         if (await ImageFiles.PickAsync(hwnd) is { } path)
@@ -147,7 +221,9 @@ internal static class ScanDialog
             Say(kept.Count == 1 ? "1 page kept. Get another, or make the PDF." : $"{kept.Count:N0} pages kept. Get another, or make the PDF.");
         }, "Keeping a page");
 
-        if (await Dialogs.ShowAsync(dialog, root) != ContentDialogResult.Primary || kept.Count == 0)
+        var answer = await Dialogs.ShowAsync(dialog, root);
+        await StopCameraAsync();
+        if (answer != ContentDialogResult.Primary || kept.Count == 0)
         {
             return null;
         }
@@ -204,38 +280,6 @@ internal static class ScanDialog
         return page;
     }
 
-    private static async Task<PdfBitmap?> FromCameraAsync(Action<string> say)
-    {
-        using var camera = new MediaCapture();
-        try
-        {
-            await camera.InitializeAsync(new MediaCaptureInitializationSettings { StreamingCaptureMode = StreamingCaptureMode.Video });
-        }
-        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Runtime.InteropServices.COMException)
-        {
-            say("Papery can't use the camera. Check Settings > Privacy & security > Camera.");
-            Log.Info($"Camera wouldn't start: {ex.GetType().Name}");
-            return null;
-        }
-
-        var folder = ApplicationData.Current.TemporaryFolder;
-        var file = await folder.CreateFileAsync("scan-photo.jpg", CreationCollisionOption.GenerateUniqueName);
-        try
-        {
-            await camera.CapturePhotoToStorageFileAsync(ImageEncodingProperties.CreateJpeg(), file);
-            var photo = await ImageFiles.LoadAsync(file.Path, MaxSide);
-            if (photo == null)
-            {
-                say("Papery couldn't read the camera's picture.");
-            }
-
-            return photo;
-        }
-        finally
-        {
-            await file.DeleteAsync(StorageDeleteOption.PermanentDelete);
-        }
-    }
 }
 
 /// <summary>A picture with four corner handles to drag onto the edges of the page in it.</summary>

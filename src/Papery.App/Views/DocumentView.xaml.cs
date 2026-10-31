@@ -265,6 +265,7 @@ public sealed partial class DocumentView : UserControl
             new("Show in folder", "", ShowInFolder, Keywords: "explorer location", CanExecute: hasDoc),
             new("Save a copy", "\uE792", () => Guard.Run(MoveToCopyAsync, "Saving a copy"), "Ctrl+Shift+S", "save as duplicate", hasDoc),
             new("Compress", "\uE7B8", () => Guard.Run(CompressAsync, "Compressing"), Keywords: "shrink smaller size reduce", CanExecute: hasDoc),
+            new("Filters", "\uE790", () => Guard.Run(FilterAsync, "Applying filters"), Keywords: "scan enhance clean improve brightness contrast sharpen black white grey straighten deskew picture image", CanExecute: hasDoc),
             new("Add a password", "\uE72E", () => Guard.Run(AddPasswordAsync, "Adding a password"), Keywords: "protect encrypt lock security", CanExecute: hasDoc),
             new("Remove the password", "\uE785", () => Guard.Run(RemovePasswordAsync, "Removing the password"), Keywords: "unlock decrypt", CanExecute: hasDoc),
             new("Redact", "\uE75C", () => Modes.SelectedIndex = ProtectModeIndex, Keywords: "remove private hide black censor", CanExecute: hasDoc),

@@ -191,7 +191,7 @@ public sealed partial class DocumentView
 
     private void OnEditTurn(object sender, RoutedEventArgs e) => Guard.Run(TurnSelectedAsync, "Turning");
 
-    /// <summary>Turns a picture a little at a time. Pictures from an earlier session can only be moved and resized.</summary>
+    /// <summary>Turns a picture a little at a time.</summary>
     private async Task TurnSelectedAsync()
     {
         if (_document is not { } document || _picker?.Selected is not { } selected)
@@ -199,9 +199,9 @@ public sealed partial class DocumentView
             return;
         }
 
-        if (await document.GetAnnotationDraftAsync(selected.PageIndex, selected.Name) is not { Picture: not null } old)
+        if (await document.GetPictureDraftAsync(selected.PageIndex, selected.Name) is not { Picture: not null } old)
         {
-            Toaster.Show("Pictures saved earlier can be moved and resized, but not turned", "");
+            Toaster.Show("Papery couldn't read this picture, so it can only be moved and resized", "");
             return;
         }
 

@@ -223,7 +223,7 @@ public sealed partial class PdfViewer
                 _dragged = true;
             }
 
-            if (_dragged && _anchorChar >= 0)
+            if (_dragged && _pressedLink == null)
             {
                 _pendingSelectionPoint = point.Position;
                 await UpdateDragSelectionAsync(visual);
@@ -297,13 +297,19 @@ public sealed partial class PdfViewer
         _selectionBusy = true;
         try
         {
-            while (_pendingSelectionPoint is Point p && _document != null && _anchorChar >= 0)
+            while (_pendingSelectionPoint is Point p && _document != null)
             {
                 _pendingSelectionPoint = null;
                 var (x, y) = Normalize(visual, p);
                 int index = await _document.GetCharIndexAtAsync(visual.PageIndex, x, y);
                 if (index >= 0)
                 {
+                    // A drag that began in a margin starts selecting at the first letter it reaches.
+                    if (_anchorChar < 0)
+                    {
+                        _anchorChar = index;
+                    }
+
                     SetSelection(await _document.GetSelectionAsync(visual.PageIndex, _anchorChar, index));
                 }
             }

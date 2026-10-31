@@ -291,6 +291,7 @@ internal static unsafe partial class PdfiumNative
     // ---- Page objects (fpdf_edit.h) ----
 
     internal const int FPDF_PAGEOBJ_IMAGE = 3;
+    internal const int FPDF_PAGEOBJ_TEXT = 1;
     internal const int FPDF_PAGEOBJ_FORM = 5;
 
     [LibraryImport(Dll)]
@@ -469,6 +470,12 @@ internal static unsafe partial class PdfiumNative
     [LibraryImport(Dll)]
     internal static partial int FPDFAnnot_AppendObject(nint annotation, nint pageObject);
 
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_GetObjectCount(nint annotation);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFAnnot_GetObject(nint annotation, int index);
+
     // ---- Page objects, for stamps and text boxes (fpdf_edit.h) ----
 
     internal const int FPDF_FILLMODE_NONE = 0;
@@ -530,6 +537,18 @@ internal static unsafe partial class PdfiumNative
 
     [LibraryImport(Dll)]
     internal static partial int FPDFText_SetText(nint textObject, char* text);
+
+    [LibraryImport(Dll)]
+    internal static partial float FPDF_GetPageWidthF(nint page);
+
+    [LibraryImport(Dll)]
+    internal static partial float FPDF_GetPageHeightF(nint page);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFTextObj_GetText(nint textObject, nint textPage, char* buffer, uint length);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFTextObj_GetFont(nint textObject);
 
     [LibraryImport(Dll)]
     internal static partial int FPDFText_SetCharcodes(nint textObject, uint* charcodes, nuint count);

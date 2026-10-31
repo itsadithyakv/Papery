@@ -233,6 +233,12 @@ public sealed partial class PdfDocument
         }
     }
 
+    internal static string AllText(nint textPage)
+    {
+        int count = PdfiumNative.FPDFText_CountChars(textPage);
+        return count <= 0 ? string.Empty : GetText(textPage, 0, count);
+    }
+
     private static unsafe string GetText(nint textPage, int start, int count)
     {
         if (textPage == 0 || count <= 0)

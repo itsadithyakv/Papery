@@ -122,6 +122,34 @@ public sealed class PdfFilterTests : IDisposable
     }
 
     [Fact]
+    public void Dust_goes_but_full_stops_stay()
+    {
+        const int Side = 2500; // about a 300 dpi page
+        byte[] pixels = new byte[Side * Side * 4];
+        Array.Fill(pixels, (byte)235);
+        void Blob(int left, int top, int size)
+        {
+            for (int y = top; y < top + size; y++)
+            {
+                for (int x = left; x < left + size; x++)
+                {
+                    int at = ((y * Side) + x) * 4;
+                    pixels[at] = pixels[at + 1] = pixels[at + 2] = 20;
+                }
+            }
+        }
+
+        Blob(500, 500, 3); // tiny dust: 9 pixels
+        Blob(1500, 1500, 6); // a larger speck, alone on the paper: 36 pixels
+        Blob(900, 900, 6); // a full stop, the same size...
+        Blob(860, 880, 30); // ...right after a letter
+        var result = PictureFilter.Apply(new PdfBitmap(Side, Side, Side * 4, pixels), new PictureFilterOptions(PictureLook.Document));
+        Assert.Equal(255, result.Pixels[(((501 * Side) + 501) * 4) + 1]);
+        Assert.Equal(255, result.Pixels[(((1502 * Side) + 1502) * 4) + 1]);
+        Assert.True(result.Pixels[(((902 * Side) + 902) * 4) + 1] < 100, "the full stop must survive");
+    }
+
+    [Fact]
     public void Auto_removes_a_colour_cast()
     {
         var result = PictureFilter.Apply(Scan(), new PictureFilterOptions(PictureLook.Auto));
@@ -478,6 +506,28 @@ public sealed class PdfFilterTests : IDisposable
     }
 
     [Fact]
+    public void A_table_becomes_well_formed_word_xml()
+    {
+        var words = new List<PdfWord>();
+        for (int i = 0; i < 2; i++)
+        {
+            words.Add(Word("A & B", 0.1, 0.1 + (i * 0.02)));
+            words.Add(Word("2", 0.5, 0.1 + (i * 0.02)));
+        }
+
+        var body = new System.Text.StringBuilder();
+        DocxWriter.AppendBlock(body, DocxLayout.Blocks(words)[0].Block, [], true, new PdfPageSize(612, 792));
+        var xml = System.Xml.Linq.XDocument.Parse($"""<body xmlns:w="urn:w">{body}</body>""");
+        System.Xml.Linq.XNamespace w = "urn:w";
+        Assert.Equal(2, xml.Descendants(w + "tr").Count());
+        Assert.Equal(4, xml.Descendants(w + "tc").Count());
+        Assert.Equal(2, xml.Descendants(w + "gridCol").Count());
+        Assert.Single(xml.Descendants(w + "br"));
+        Assert.All(xml.Descendants(w + "tc"), c => Assert.NotNull(c.Element(w + "p")));
+        Assert.Contains("A & B", xml.Descendants(w + "t").Select(t => t.Value));
+    }
+
+    [Fact]
     public void One_line_with_a_gap_is_not_a_table()
     {
         var blocks = DocxLayout.Blocks([Word("Name", 0.1, 0.1), Word("Date", 0.7, 0.1), Word("Plain", 0.1, 0.2), Word("text", 0.17, 0.2)]);
@@ -502,6 +552,95 @@ public sealed class PdfFilterTests : IDisposable
         string all = string.Concat(blocks.SelectMany(b => b.Block.Runs).Select(r => r.Text));
         Assert.True(all.IndexOf("L11w4", StringComparison.Ordinal) < all.IndexOf("R0w0", StringComparison.Ordinal), "the left column should finish before the right one starts");
         Assert.All(blocks, b => Assert.Null(b.Block.Table));
+    }
+
+    [Theory]
+    [InlineData(255)]
+    [InlineData(120)]
+    public async Task A_picture_saved_earlier_can_be_read_back_to_turn_it(byte alpha)
+    {
+        string input = _files.Create(1, name: $"pic{alpha}.pdf");
+        string saved = NewPath;
+        byte[] pixels = new byte[200 * 100 * 4];
+        for (int i = 0; i < pixels.Length; i += 4)
+        {
+            pixels[i] = 200;
+            pixels[i + 1] = 40;
+            pixels[i + 2] = 40;
+            pixels[i + 3] = alpha;
+        }
+
+        string name;
+        await using (var doc = await Engine.OpenAsync(input))
+        {
+            var added = await doc.AddAnnotationAsync(0, new PdfAnnotationDraft(PdfAnnotationKind.Image, new PdfColor(0, 0, 0), [new NormalizedRect(0.1, 0.1, 0.4, 0.2)], Picture: new PdfBitmap(200, 100, 800, pixels)));
+            name = added.Name;
+            await doc.SaveAsync(saved);
+        }
+
+        await using var again = await Engine.OpenAsync(saved);
+        var before = await again.GetAnnotationDraftAsync(0, name);
+        Assert.Null(before?.Picture);
+        var draft = await again.GetPictureDraftAsync(0, name);
+        Assert.NotNull(draft?.Picture);
+        Assert.Equal(PdfAnnotationKind.Image, draft!.Kind);
+
+        // Turning it works and leaves a picture behind.
+        await again.ChangeAnnotationAsync(0, name, draft with { RotationDegrees = 15 });
+        var afterTurn = await again.GetPictureDraftAsync(0, name);
+        Assert.Equal(15, afterTurn!.RotationDegrees);
+
+        if (alpha < 255)
+        {
+            byte seen = draft.Picture!.Pixels[(draft.Picture.Stride * (draft.Picture.Height / 2)) + ((draft.Picture.Width / 2) * 4) + 3];
+            Assert.InRange((int)seen, 80, 160);
+        }
+    }
+
+    private async Task<(NormalizedRect Line, string Text)> LineOf(string path)
+    {
+        await using var doc = await Engine.OpenAsync(path);
+        var words = await doc.GetPageWordsAsync(0);
+        double left = words.Min(w => w.Area.X), top = words.Min(w => w.Area.Y), right = words.Max(w => w.Area.Right), bottom = words.Max(w => w.Area.Bottom);
+        return (new NormalizedRect(left, top, right - left, bottom - top), string.Join(' ', words.Select(w => w.Text)));
+    }
+
+    [Fact]
+    public async Task Words_with_letters_the_font_has_change_in_place()
+    {
+        string input = _files.Create(1, "Hello Papery", name: "inplace.pdf");
+        var (line, text) = await LineOf(input);
+        string output = NewPath;
+        Assert.True(await Engine.TryReplaceLineAsync(new PdfInputFile(input, null), 0, line, text, "Pale Help", output), "the letters are all there, so this should work");
+
+        await using var doc = await Engine.OpenAsync(output);
+        string now = await doc.GetPageTextAsync(0);
+        Assert.Contains("Pale Help", now);
+        Assert.DoesNotContain("Hello Papery", now);
+    }
+
+    [Fact]
+    public async Task Words_with_missing_letters_are_refused_and_nothing_is_written()
+    {
+        string input = _files.Create(1, "Hello Papery", name: "missing.pdf");
+        var (line, text) = await LineOf(input);
+        string output = NewPath;
+        Assert.False(await Engine.TryReplaceLineAsync(new PdfInputFile(input, null), 0, line, text, "Zebra XQ", output));
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task Pictures_inside_page_fragments_are_found()
+    {
+        string input = _files.Create(1, name: "fragment.pdf");
+        string stamped = NewPath;
+        byte[] pixels = new byte[80 * 80 * 4];
+        Array.Fill(pixels, (byte)255);
+        await Engine.StampPagesAsync(new PdfInputFile(input, null), new PdfPageStamp { Picture = new PdfBitmap(80, 80, 320, pixels), Opacity = 1 }, stamped);
+
+        // Importing pages as a fragment is what "put several pages on a sheet" does; here it's enough that top-level pictures still come back.
+        await using var doc = await Engine.OpenAsync(stamped);
+        Assert.Single(await doc.GetPageImagesAsync(0));
     }
 
     // ================================================================= merging copies

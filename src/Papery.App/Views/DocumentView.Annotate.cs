@@ -115,8 +115,42 @@ public sealed partial class DocumentView
                 },
             };
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(dot, $"Colour {swatch.R},{swatch.G},{swatch.B}");
-            dot.Click += (_, _) => Guard.Run(() => ChooseColourAsync(swatch), "Choosing a colour");
+            dot.Click += (_, _) =>
+            {
+                AnnotateStyleDot.Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(255, swatch.R, swatch.G, swatch.B));
+                Guard.Run(() => ChooseColourAsync(swatch), "Choosing a colour");
+            };
             AnnotateColours.Children.Add(dot);
+        }
+
+        foreach (var (name, width) in new[] { ("Thin line", 1f), ("Medium line", 2.5f), ("Thick line", 5f) })
+        {
+            var line = new Button
+            {
+                Width = 26,
+                Height = 26,
+                MinWidth = 0,
+                Padding = new Thickness(0),
+                Style = (Style)Application.Current.Resources["PaperyQuietButtonStyle"],
+                VerticalAlignment = VerticalAlignment.Center,
+                Content = new Microsoft.UI.Xaml.Shapes.Rectangle
+                {
+                    Width = 16,
+                    Height = Math.Max(1, width),
+                    RadiusX = width / 2,
+                    RadiusY = width / 2,
+                    Fill = (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"],
+                },
+            };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(line, name);
+            ToolTipService.SetToolTip(line, name);
+            line.Click += (_, _) =>
+            {
+                _lineWidth = width;
+                ApplyTool();
+                AnnotateStyle.Flyout?.Hide();
+            };
+            AnnotateColours.Children.Add(line);
         }
 
         Viewer.TextMarked += (_, selection) => Guard.Run(() => MarkTextAsync(selection), "Marking text");
@@ -151,6 +185,8 @@ public sealed partial class DocumentView
         };
     }
 
+    private float? _lineWidth;
+
     /// <summary>Pro tools look a little quieter until unlocked; picking one shows the unlock screen.</summary>
     private void UpdateToolLocks()
     {
@@ -161,7 +197,10 @@ public sealed partial class DocumentView
             button.Opacity = locked ? 0.55 : 1;
             string name = AnnotationTools[index].Name;
             ToolTipService.SetToolTip(button, locked ? $"{name} (Papery Pro)" : name);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, locked ? $"{name}, Pro feature" : name);
         }
+
+        UpdateToolbarLocks(pro);
     }
 
     // ================================================================= entering and leaving
@@ -224,7 +263,7 @@ public sealed partial class DocumentView
                 Viewer.MarkTextOnSelect = true; // drag across text as usual
                 break;
             default:
-                _pen = new AnnotationPen(def.Kind.Value, ColourFor(def.Kind.Value), def.Width, page => Viewer.Document!.PageSizes[page]);
+                _pen = new AnnotationPen(def.Kind.Value, ColourFor(def.Kind.Value), _lineWidth ?? def.Width, page => Viewer.Document!.PageSizes[page]);
                 _pen.StampText = _stampWord;
                 _pen.Drawn += (page, draft) => Guard.Run(() => FinishDrawingAsync(page, draft), "Adding");
                 Viewer.Tool = _pen;

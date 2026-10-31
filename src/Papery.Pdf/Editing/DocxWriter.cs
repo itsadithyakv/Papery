@@ -480,7 +480,7 @@ internal static class DocxWriter
         body.Append("</w:tbl><w:p/>");
     }
 
-    private static void AppendBlock(StringBuilder body, DocxBlock block, List<byte[]> pictures, bool pageBreak, PdfPageSize size)
+    internal static void AppendBlock(StringBuilder body, DocxBlock block, List<byte[]> pictures, bool pageBreak, PdfPageSize size)
     {
         if (block.Table != null)
         {

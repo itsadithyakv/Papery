@@ -66,6 +66,10 @@ public sealed partial class DocumentView
                 Modes.SelectedIndex = ToolsModeIndex;
                 Guard.Run(CompressAsync, "Compressing");
                 break;
+            case "filters":
+                Modes.SelectedIndex = ToolsModeIndex;
+                Guard.Run(FilterAsync, "Applying filters");
+                break;
             case "protect" or "redact":
                 Modes.SelectedIndex = ProtectModeIndex;
                 break;

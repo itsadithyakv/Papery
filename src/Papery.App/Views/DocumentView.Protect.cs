@@ -214,17 +214,11 @@ public sealed partial class DocumentView
             return;
         }
 
-        if (document.Password != null)
-        {
-            await Dialogs.ShowMessageAsync(XamlRoot, "Remove the password first", "Redaction needs the password taken off first. You can add one again afterwards.");
-            return;
-        }
-
         int pages = _redactions.Select(r => r.PageIndex).Distinct().Count();
         var confirm = new ContentDialog
         {
             Title = "Remove this for good?",
-            Content = Dialogs.Wrap($"What's under the marks on {(pages == 1 ? "1 page" : $"{pages:N0} pages")} will be permanently removed, and those pages become pictures with their other words still searchable. If the file has a form, its answers become permanent too. Your original stays as it is: this makes a new copy."),
+            Content = Dialogs.Wrap($"What's under the marks on {(pages == 1 ? "1 page" : $"{pages:N0} pages")} will be permanently removed, and those pages become pictures with their other words still searchable. If the file has a form, its answers become permanent too. Your original stays as it is: this makes a new copy{(document.Password != null ? " with the same password" : string.Empty)}."),
             PrimaryButtonText = "Choose where to save",
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Close,
@@ -244,7 +238,7 @@ public sealed partial class DocumentView
         try
         {
             var areas = _redactions.ToArray();
-            if (!await BusyDialog.RunAsync(XamlRoot, "Removing and checking", (_, cancel) => PdfEngine.Shared.RedactAsync(new PdfInputFile(FilePath), areas, output, cancel)))
+            if (!await BusyDialog.RunAsync(XamlRoot, "Removing and checking", (_, cancel) => PdfEngine.Shared.RedactAsync(new PdfInputFile(FilePath, document.Password), areas, output, cancel)))
             {
                 Pickers.RemoveIfEmpty(output);
                 return;

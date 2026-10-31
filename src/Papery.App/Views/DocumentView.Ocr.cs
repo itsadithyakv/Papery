@@ -48,7 +48,7 @@ public sealed partial class DocumentView
             }
 
             await document.AddLiveTextAsync(read);
-            Toaster.Show("Ready. Drag across the words to select them", "");
+            Toaster.Show("Ready. Drag across the words to select them. They stay in the file if you save it", "");
         }
         finally
         {
