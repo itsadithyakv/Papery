@@ -16,7 +16,6 @@ internal static class PdfDeduper
 {
     // Below this it isn't worth rewriting the file at all.
     private const long WorthwhileSaving = 4 * 1024;
-    private const int SmallestStream = 1024;
     private const int SameDrawingCheckSide = 200;
     private const int SameDrawingTolerance = 2;
 
@@ -62,7 +61,7 @@ internal static class PdfDeduper
             bool any = false;
             foreach (var item in all)
             {
-                if (item is not PdfDictionary { Stream: { } stream } dictionary || stream.Value is not { Length: >= SmallestStream } data
+                if (item is not PdfDictionary { Stream: { } stream } dictionary || stream.Value is not { Length: > 0 } data
                     || dictionary.Reference is not { } reference || replaced.ContainsKey(reference.ObjectID))
                 {
                     continue;

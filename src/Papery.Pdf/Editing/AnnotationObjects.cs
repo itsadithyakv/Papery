@@ -39,6 +39,12 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
     {
         var (width, height) = AreaSize(area);
         float size = (float)Math.Max(1, height);
+        if (text.Any(c => c >= 256))
+        {
+            AnyScriptWord(text, area, width, height, size);
+            return;
+        }
+
         double measured = Measure(text, size, default);
 
         // The space runs into the gap after the word. Without it, search and copy read "twowords".
@@ -55,6 +61,42 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
 
         double stretch = width / measured;
         var origin = At(area, 0, height * 0.8); // the baseline, roughly: letters sit above it and descenders below
+        PdfiumNative.FPDFPageObj_Transform(obj, _across.X * stretch, _across.Y * stretch, -_down.X, -_down.Y, origin.X, origin.Y);
+        _ = PdfiumNative.FPDFTextObj_SetTextRenderMode(obj, PdfiumNative.FPDF_TEXTRENDERMODE_INVISIBLE);
+        Append(obj);
+    }
+
+    /// <summary>
+    /// Words in Chinese, Japanese, Korean, Arabic, Cyrillic and so on. Embedding a font that has them would add many
+    /// megabytes for letters nobody sees, so these use a tiny blank font and tell readers what each code means.
+    /// </summary>
+    private void AnyScriptWord(string text, NormalizedRect area, double width, double height, float size)
+    {
+        nint font = fonts?.Blank(() => BlankFont.Load(document)) ?? 0;
+        if (font == 0)
+        {
+            return;
+        }
+
+        nint obj = PdfiumNative.FPDFPageObj_CreateTextObj(document, font, size);
+        if (obj == 0)
+        {
+            return;
+        }
+
+        uint[] codes = (text + " ").Select(c => (uint)c).ToArray();
+        fixed (uint* c = codes)
+        {
+            if (PdfiumNative.FPDFText_SetCharcodes(obj, c, (nuint)codes.Length) == 0)
+            {
+                PdfiumNative.FPDFPageObj_Destroy(obj);
+                return;
+            }
+        }
+
+        // Every letter in the blank font is one em wide.
+        double stretch = width / (size * Math.Max(1, text.Length));
+        var origin = At(area, 0, height * 0.8);
         PdfiumNative.FPDFPageObj_Transform(obj, _across.X * stretch, _across.Y * stretch, -_down.X, -_down.Y, origin.X, origin.Y);
         _ = PdfiumNative.FPDFTextObj_SetTextRenderMode(obj, PdfiumNative.FPDF_TEXTRENDERMODE_INVISIBLE);
         Append(obj);

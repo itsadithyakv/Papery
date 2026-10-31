@@ -127,6 +127,11 @@ internal static class PageStamper
             await thread.InvokeAsync(() => PdfComposer.Save(doc!, temp, outputPath), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
             await thread.InvokeAsync(() => PdfComposer.Verify(temp, input.Password, pages, outputPath), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
             await thread.InvokeAsync(() => { doc?.Dispose(); doc = null; }, PdfWorkPriority.Background, CancellationToken.None).ConfigureAwait(false);
+            if (stamp.Picture != null)
+            {
+                await StoreOnceAsync(thread, temp, input.Password, pages, outputPath, cancellationToken).ConfigureAwait(false);
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
             SafeFile.Commit(temp, outputPath);
         }
@@ -134,6 +139,30 @@ internal static class PageStamper
         {
             await thread.InvokeAsync(() => doc?.Dispose(), PdfWorkPriority.Visible, CancellationToken.None).ConfigureAwait(false);
             SafeFile.TryDelete(temp);
+        }
+    }
+
+    /// <summary>PDFium stores a picture again for every page it's added to, so a picture watermark is merged down to one.</summary>
+    private static async Task StoreOnceAsync(PdfiumThread thread, string temp, string? password, int pages, string outputPath, CancellationToken cancellationToken)
+    {
+        string work = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "Papery", "stamp", Guid.NewGuid().ToString("N"))).FullName;
+        try
+        {
+            string merged = await PdfDeduper.MergeCopiesAsync(thread, temp, password, work, cancellationToken).ConfigureAwait(false);
+            if (merged == temp)
+            {
+                return;
+            }
+
+            await thread.InvokeAsync(() => PdfComposer.Verify(merged, password, pages, outputPath), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
+            await using var from = new FileStream(merged, FileMode.Open, FileAccess.Read, FileShare.Read);
+            await using var to = new FileStream(temp, FileMode.Open, FileAccess.Write, FileShare.None);
+            to.SetLength(0);
+            await from.CopyToAsync(to, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            PdfCompressor.DeleteFolder(work);
         }
     }
 

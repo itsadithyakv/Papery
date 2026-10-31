@@ -50,7 +50,7 @@ public enum PdfRenderOptions
 public sealed record PdfLink(NormalizedRect Area, int? TargetPage, double? TargetY, string? Uri, bool IsDetected = false);
 
 /// <summary>One bookmark in the document outline.</summary>
-public sealed record PdfOutlineItem(string Title, int? PageIndex, IReadOnlyList<PdfOutlineItem> Children);
+public sealed record PdfOutlineItem(string Title, int? PageIndex, IReadOnlyList<PdfOutlineItem> Children, double? Top = null, string? Uri = null);
 
 [Flags]
 public enum PdfSearchOptions

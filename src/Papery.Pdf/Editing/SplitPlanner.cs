@@ -106,9 +106,9 @@ public static class SplitPlanner
         {
             int? page = item.PageIndex is int p ? pageMap(p) : null;
             var children = RemapOutline(item.Children, pageMap);
-            if (page.HasValue || children.Count > 0)
+            if (page.HasValue || children.Count > 0 || item.Uri != null)
             {
-                result.Add(new PdfOutlineItem(item.Title, page, children));
+                result.Add(item with { PageIndex = page, Children = children });
             }
         }
 

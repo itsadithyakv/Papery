@@ -1,7 +1,9 @@
 namespace Papery.Pdf.Editing;
 
 /// <summary>One bookmark as a row in a flat, indented list.</summary>
-public sealed record OutlineRow(string Title, int? PageIndex, int Depth);
+/// <param name="Top">Where on the page it lands, as a share of the page's height from the top.</param>
+/// <param name="Uri">A web address, for a bookmark that opens one instead of going to a page.</param>
+public sealed record OutlineRow(string Title, int? PageIndex, int Depth, double? Top = null, string? Uri = null);
 
 /// <summary>
 /// Edits bookmarks as an indented list, which is far easier to keep valid than a tree. A row's
@@ -31,7 +33,7 @@ public sealed class OutlineEditor
 
     public void Rename(int index, string title) => _rows[index] = _rows[index] with { Title = title };
 
-    public void SetPage(int index, int page) => _rows[index] = _rows[index] with { PageIndex = page };
+    public void SetPage(int index, int page) => _rows[index] = _rows[index] with { PageIndex = page, Top = null, Uri = null };
 
     /// <summary>Removes a bookmark and everything under it.</summary>
     public void Remove(int index) => _rows.RemoveRange(index, FamilySize(index));
@@ -106,9 +108,9 @@ public sealed class OutlineEditor
         while (position < _rows.Count && _rows[position].Depth >= depth)
         {
             var row = _rows[position++];
-            int? page = row.PageIndex ?? parentPage;
-            var children = Read(row.Depth + 1, ref position, page);
-            level.Add(new PdfOutlineItem(row.Title, page ?? (children.Count == 0 ? 0 : null), children));
+            int? page = row.Uri != null ? row.PageIndex : row.PageIndex ?? parentPage;
+            var children = Read(row.Depth + 1, ref position, page ?? parentPage);
+            level.Add(new PdfOutlineItem(row.Title, page ?? (children.Count == 0 && row.Uri == null ? 0 : null), children, row.Top, row.Uri));
         }
 
         return level;
@@ -138,7 +140,7 @@ public sealed class OutlineEditor
     {
         foreach (var item in items)
         {
-            _rows.Add(new OutlineRow(item.Title, item.PageIndex, depth));
+            _rows.Add(new OutlineRow(item.Title, item.PageIndex, depth, item.Top, item.Uri));
             Flatten(item.Children, depth + 1);
         }
     }

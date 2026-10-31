@@ -353,6 +353,157 @@ public sealed class PdfFilterTests : IDisposable
         Assert.True(new FileInfo(output).Length < new FileInfo(single).Length * 1.5, $"{new FileInfo(output).Length} against {new FileInfo(single).Length} for one page");
     }
 
+    // ================================================================= other limits fixed alongside
+
+    [Fact]
+    public async Task Invisible_words_in_any_alphabet_can_be_found_and_add_almost_nothing()
+    {
+        string input = await ScanPdfAsync(Scan(300, 300));
+        string output = NewPath;
+        string[] words = ["\u6771\u4eac\u90fd", "\u041c\u043e\u0441\u043a\u0432\u0430", "\uc11c\uc6b8", "\u0391\u03b8\u03ae\u03bd\u03b1"];
+        var ocr = new OcrPage(0, words.Select((w, i) => new OcrWord(w, new NormalizedRect(0.1, 0.1 + (i * 0.1), 0.3, 0.05))).ToArray());
+        await Engine.AddTextLayerAsync(new PdfInputFile(input, null), [ocr], output);
+
+        Assert.True(new FileInfo(output).Length < new FileInfo(input).Length + (64 * 1024), "the blank font should be tiny");
+        await using var doc = await Engine.OpenAsync(output);
+        var found = await doc.GetPageWordsAsync(0);
+        foreach (string word in words)
+        {
+            Assert.Contains(found, w => w.Text == word);
+        }
+    }
+
+    [Fact]
+    public void The_blank_font_is_a_real_font_file()
+    {
+        // PAPERY_KEEP_BLANK_FONT saves it, so a font tool such as fontTools can check it as well.
+        byte[] font = BlankFont.Build();
+        string keep = Environment.GetEnvironmentVariable("PAPERY_KEEP_BLANK_FONT") ?? string.Empty;
+        if (keep.Length > 0)
+        {
+            File.WriteAllBytes(keep, font);
+        }
+
+        Assert.InRange(font.Length, 200, 2048);
+        Assert.Equal(new byte[] { 0, 1, 0, 0 }, font[..4]);
+    }
+
+    [Fact]
+    public async Task Bookmarks_keep_their_spot_and_web_addresses()
+    {
+        string input = _files.Create(3);
+        string output = NewPath;
+        IReadOnlyList<PdfOutlineItem> outline =
+        [
+            new("Half way down", 1, [], Top: 0.5),
+            new("Our site", null, [], Uri: "https://example.com/papery"),
+        ];
+        await Engine.SetOutlineAsync(new PdfInputFile(input, null), outline, output);
+
+        await using var doc = await Engine.OpenAsync(output);
+        var back = await doc.GetOutlineAsync();
+        Assert.Equal(1, back[0].PageIndex);
+        Assert.InRange(back[0].Top ?? -1, 0.45, 0.55);
+        Assert.Equal("https://example.com/papery", back[1].Uri);
+        Assert.Null(back[1].PageIndex);
+
+        // And through the list editor, as the dialog uses it.
+        var edited = new OutlineEditor(back);
+        edited.Rename(0, "Renamed");
+        var tree = edited.ToTree();
+        Assert.InRange(tree[0].Top ?? -1, 0.45, 0.55);
+        Assert.Equal("https://example.com/papery", tree[1].Uri);
+    }
+
+    [Fact]
+    public async Task A_picture_watermark_is_stored_once()
+    {
+        string one = _files.Create(1, name: "one.pdf"), many = _files.Create(20, name: "many.pdf");
+        var random = new Random(9);
+        byte[] pixels = new byte[300 * 300 * 4];
+        random.NextBytes(pixels);
+        for (int i = 3; i < pixels.Length; i += 4)
+        {
+            pixels[i] = 255;
+        }
+
+        var stamp = new PdfPageStamp { Picture = new PdfBitmap(300, 300, 1200, pixels) };
+        string smallOut = NewPath, bigOut = NewPath;
+        await Engine.StampPagesAsync(new PdfInputFile(one, null), stamp, smallOut);
+        await Engine.StampPagesAsync(new PdfInputFile(many, null), stamp, bigOut);
+        long perFile = new FileInfo(smallOut).Length;
+        Assert.True(new FileInfo(bigOut).Length < perFile * 3, $"{new FileInfo(bigOut).Length} for 20 pages against {perFile} for one");
+    }
+
+    [Fact]
+    public async Task Redacting_a_locked_file_keeps_it_locked_and_removes_the_words()
+    {
+        string plain = _files.Create(2, "secret-word here");
+        string locked = NewPath;
+        await Engine.ProtectAsync(new PdfInputFile(plain, null), new PdfProtection("open-me"), locked);
+        string output = NewPath;
+        await Engine.RedactAsync(new PdfInputFile(locked, "open-me"), [new RedactionArea(0, new NormalizedRect(0, 0, 1, 1))], output);
+
+        await Assert.ThrowsAnyAsync<PdfOpenException>(() => Engine.OpenAsync(output));
+        await using var doc = await Engine.OpenAsync(output, "open-me");
+        Assert.Empty(await doc.GetPageWordsAsync(0));
+        Assert.NotEmpty(await doc.GetPageWordsAsync(1));
+    }
+
+    private static PdfWord Word(string text, double x, double y, double width = 0.06, double height = 0.015) =>
+        new(text, new NormalizedRect(x, y, width, height), 0, text.Length, 11, false, false, "Arial", new PdfColor(0, 0, 0));
+
+    [Fact]
+    public void Lines_that_line_up_become_a_table()
+    {
+        var words = new List<PdfWord> { Word("Heading", 0.1, 0.05, 0.1) };
+        string[] names = ["Apples", "Pears", "Plums"];
+        for (int i = 0; i < names.Length; i++)
+        {
+            double y = 0.1 + (i * 0.02);
+            words.Add(Word(names[i], 0.1, y));
+            words.Add(Word("12", 0.4, y));
+            words.Add(Word("9.50", 0.7, y));
+        }
+
+        words.Add(Word("After", 0.1, 0.3, 0.1));
+        var blocks = DocxLayout.Blocks(words);
+        Assert.Equal(3, blocks.Count);
+        var table = blocks[1].Block.Table;
+        Assert.NotNull(table);
+        Assert.Equal(3, table!.Count);
+        Assert.Equal(3, table[0].Count);
+        Assert.Contains("Pears", table[1][0][0].Text);
+        Assert.Contains("9.50", table[2][2][0].Text);
+    }
+
+    [Fact]
+    public void One_line_with_a_gap_is_not_a_table()
+    {
+        var blocks = DocxLayout.Blocks([Word("Name", 0.1, 0.1), Word("Date", 0.7, 0.1), Word("Plain", 0.1, 0.2), Word("text", 0.17, 0.2)]);
+        Assert.All(blocks, b => Assert.Null(b.Block.Table));
+    }
+
+    [Fact]
+    public void Two_text_columns_are_read_one_after_the_other()
+    {
+        var words = new List<PdfWord>();
+        for (int line = 0; line < 12; line++)
+        {
+            double y = 0.1 + (line * 0.02);
+            for (int w = 0; w < 5; w++)
+            {
+                words.Add(Word($"L{line}w{w}", 0.05 + (w * 0.08), y));
+                words.Add(Word($"R{line}w{w}", 0.55 + (w * 0.08), y));
+            }
+        }
+
+        var blocks = DocxLayout.Blocks(words);
+        string all = string.Concat(blocks.SelectMany(b => b.Block.Runs).Select(r => r.Text));
+        Assert.True(all.IndexOf("L11w4", StringComparison.Ordinal) < all.IndexOf("R0w0", StringComparison.Ordinal), "the left column should finish before the right one starts");
+        Assert.All(blocks, b => Assert.Null(b.Block.Table));
+    }
+
     // ================================================================= merging copies
 
     [Fact]

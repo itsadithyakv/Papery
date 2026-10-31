@@ -24,8 +24,8 @@ internal static class PdfRedactor
     {
         if (input.Password != null)
         {
-            // A password would have to be carried through steps that can't keep its permissions.
-            throw new PdfEditException(PdfEditError.NotAllowed, input.Path);
+            await ApplyKeepingPasswordAsync(thread, input, areas, alsoFlatten, outputPath, cancellationToken).ConfigureAwait(false);
+            return;
         }
 
         string work = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "Papery", "redact", Guid.NewGuid().ToString("N"))).FullName;
@@ -89,6 +89,40 @@ internal static class PdfRedactor
 
             await thread.InvokeAsync(() => CheckNothingRemains(final, byPage, outputPath), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
             await PdfCompressor.CommitAsync(thread, final, null, pageCount, outputPath, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            PdfCompressor.DeleteFolder(work);
+        }
+    }
+
+    /// <summary>
+    /// The steps below need an unlocked file, so a locked one is unlocked into a private folder, redacted, and locked again
+    /// with the same password and permissions. Nothing unlocked reaches the output.
+    /// </summary>
+    private static async Task ApplyKeepingPasswordAsync(PdfiumThread thread, PdfInputFile input, IReadOnlyList<RedactionArea> areas, IReadOnlyList<int> alsoFlatten, string outputPath, CancellationToken cancellationToken)
+    {
+        string work = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "Papery", "redact", Guid.NewGuid().ToString("N"))).FullName;
+        try
+        {
+            var allowed = await thread.InvokeAsync(() =>
+            {
+                using var doc = RawPdf.Load(input.Path, input.Password);
+                return PdfiumNative.FPDF_GetDocPermissions(doc.Handle);
+            }, PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
+
+            const uint Print = 1 << 2, Modify = 1 << 3, Copy = 1 << 4;
+            if ((allowed & Modify) == 0)
+            {
+                // Someone restricted changes and only they can lift that; the open password alone isn't enough.
+                throw new PdfEditException(PdfEditError.NotAllowed, input.Path);
+            }
+
+            string plain = Path.Combine(work, "plain.pdf"), redacted = Path.Combine(work, "redacted.pdf");
+            await PdfSecurity.RemovePasswordAsync(thread, input, plain, cancellationToken).ConfigureAwait(false);
+            await ApplyAsync(thread, new PdfInputFile(plain), areas, alsoFlatten, redacted, cancellationToken).ConfigureAwait(false);
+            var protection = new PdfProtection(input.Password!, (allowed & Print) != 0, (allowed & Copy) != 0);
+            await PdfSecurity.ProtectAsync(thread, new PdfInputFile(redacted), protection, outputPath, cancellationToken).ConfigureAwait(false);
         }
         finally
         {

@@ -58,12 +58,31 @@ internal static class PdfOutlineWriter
             // A bookmark without a target (or whose page was removed) takes its first child's page,
             // so the tree keeps its shape; with no target anywhere below, it is dropped.
             int? page = FirstPage(item);
-            if (page is not int index || (uint)index >= (uint)doc.PageCount)
+            bool opensWeb = !string.IsNullOrEmpty(item.Uri);
+            if (!opensWeb && (page is not int index || (uint)index >= (uint)doc.PageCount))
             {
                 continue;
             }
 
-            var added = into.Add(item.Title, doc.Pages[index], opened: depth == 0 && item.Children.Count > 0 && items.Count <= 1);
+            // PDFsharp insists on a page. A web bookmark points at the first page here, then its address replaces the target.
+            var target = doc.Pages[opensWeb ? 0 : page!.Value];
+            var added = into.Add(item.Title, target, opened: depth == 0 && item.Children.Count > 0 && items.Count <= 1);
+            if (opensWeb)
+            {
+                var action = new PdfDictionary(doc);
+                action.Elements["/S"] = new PdfName("/URI");
+                action.Elements["/URI"] = new PdfString(item.Uri);
+                added.Elements["/A"] = action;
+                added.DestinationPage = null!;
+            }
+            else if (item.Top is double top)
+            {
+                // PDFsharp counts this down from the top of the page, like everything in its drawing world.
+                added.PageDestinationType = PdfPageDestinationType.Xyz;
+                added.Left = 0;
+                added.Top = top * target.Height.Point;
+            }
+
             if (item.Children.Count > 0 && depth < MaxDepth)
             {
                 Add(doc, added.Outlines, item.Children, depth + 1);

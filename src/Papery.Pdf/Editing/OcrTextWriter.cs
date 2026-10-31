@@ -12,6 +12,7 @@ public sealed record OcrPage(int PageIndex, IReadOnlyList<OcrWord> Words);
 internal sealed class FontBook : IDisposable
 {
     private readonly Dictionary<(TextLook Look, bool Western), nint> _fonts = [];
+    private nint _blank;
 
     public nint Get(TextLook look, bool western, Func<nint> load)
     {
@@ -24,8 +25,25 @@ internal sealed class FontBook : IDisposable
         return font;
     }
 
+    /// <summary>The blank font that invisible words in any alphabet use.</summary>
+    public nint Blank(Func<nint> load)
+    {
+        if (_blank == 0)
+        {
+            _blank = load();
+        }
+
+        return _blank;
+    }
+
     public void Dispose()
     {
+        if (_blank != 0)
+        {
+            PdfiumNative.FPDFFont_Close(_blank);
+            _blank = 0;
+        }
+
         foreach (nint font in _fonts.Values.Where(f => f != 0))
         {
             PdfiumNative.FPDFFont_Close(font);

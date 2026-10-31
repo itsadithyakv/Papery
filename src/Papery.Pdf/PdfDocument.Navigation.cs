@@ -138,6 +138,7 @@ public sealed partial class PdfDocument
                 {
                     string title = ReadUtf16(buffer => PdfiumNative.FPDFBookmark_GetTitle(bookmark, buffer.Ptr, buffer.Length));
                     nint dest = PdfiumNative.FPDFBookmark_GetDest(_handle, bookmark);
+                    string? uri = null;
                     if (dest == 0)
                     {
                         nint action = PdfiumNative.FPDFBookmark_GetAction(bookmark);
@@ -145,15 +146,14 @@ public sealed partial class PdfDocument
                         {
                             dest = PdfiumNative.FPDFAction_GetDest(_handle, action);
                         }
+                        else if (action != 0 && PdfiumNative.FPDFAction_GetType(action) == PdfiumNative.PDFACTION_URI)
+                        {
+                            uri = GetUri(action);
+                        }
                     }
 
-                    int? page = dest == 0 ? null : PdfiumNative.FPDFDest_GetDestPageIndex(_handle, dest);
-                    if (page < 0 || page >= PageCount)
-                    {
-                        page = null;
-                    }
-
-                    items.Add(new PdfOutlineItem(string.IsNullOrWhiteSpace(title) ? "(untitled)" : title.Trim(), page, ReadChildren(bookmark, depth + 1)));
+                    var (page, top) = dest == 0 ? (null, null) : ResolveDest(dest);
+                    items.Add(new PdfOutlineItem(string.IsNullOrWhiteSpace(title) ? "(untitled)" : title.Trim(), page, ReadChildren(bookmark, depth + 1), top, uri));
                 }
 
                 return items;

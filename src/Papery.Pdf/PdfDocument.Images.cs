@@ -8,9 +8,9 @@ public sealed partial class PdfDocument
     private const int SmallestPictureSide = 16;
 
     /// <summary>
-    /// The pictures on a page, in BGRA with their original pixels, however small they're shown. A picture's
-    /// transparency isn't included, and pictures tucked inside reusable page fragments (form XObjects)
-    /// aren't reached, so this can miss some that a page shows.
+    /// The pictures on a page, including those tucked inside reusable page fragments (form XObjects), in BGRA with
+    /// their original pixels however small they're shown. See-through pictures come at the size they're shown,
+    /// because that's the only way PDFium gives their transparency.
     /// </summary>
     public unsafe Task<IReadOnlyList<PdfBitmap>> GetPageImagesAsync(int pageIndex, PdfWorkPriority priority = PdfWorkPriority.Background, CancellationToken cancellationToken = default)
     {
@@ -21,33 +21,56 @@ public sealed partial class PdfDocument
             int count = PdfiumNative.FPDFPage_CountObjects(page);
             for (int i = 0; i < count; i++)
             {
-                nint obj = PdfiumNative.FPDFPage_GetObject(page, i);
-                if (obj == 0 || PdfiumNative.FPDFPageObj_GetType(obj) != PdfiumNative.FPDF_PAGEOBJ_IMAGE)
-                {
-                    continue;
-                }
-
-                nint bitmap = PdfiumNative.FPDFImageObj_GetBitmap(obj);
-                if (bitmap == 0)
-                {
-                    continue;
-                }
-
-                try
-                {
-                    if (ToBgra(bitmap) is { Width: >= SmallestPictureSide, Height: >= SmallestPictureSide } picture)
-                    {
-                        found.Add(picture);
-                    }
-                }
-                finally
-                {
-                    PdfiumNative.FPDFBitmap_Destroy(bitmap);
-                }
+                AddPictures(page, PdfiumNative.FPDFPage_GetObject(page, i), found, 0);
             }
 
             return (IReadOnlyList<PdfBitmap>)found;
         }), cancellationToken, priority);
+    }
+
+    private void AddPictures(nint page, nint obj, List<PdfBitmap> found, int depth)
+    {
+        const int DeepestFragment = 8;
+        if (obj == 0 || depth > DeepestFragment)
+        {
+            return;
+        }
+
+        int type = PdfiumNative.FPDFPageObj_GetType(obj);
+        if (type == PdfiumNative.FPDF_PAGEOBJ_FORM)
+        {
+            int inside = PdfiumNative.FPDFFormObj_CountObjects(obj);
+            for (int i = 0; i < inside; i++)
+            {
+                AddPictures(page, PdfiumNative.FPDFFormObj_GetObject(obj, (uint)i), found, depth + 1);
+            }
+
+            return;
+        }
+
+        if (type != PdfiumNative.FPDF_PAGEOBJ_IMAGE)
+        {
+            return;
+        }
+
+        bool seeThrough = Editing.PdfCompressor.IsSeeThrough(_handle, page, obj);
+        nint bitmap = seeThrough ? PdfiumNative.FPDFImageObj_GetRenderedBitmap(_handle, page, obj) : PdfiumNative.FPDFImageObj_GetBitmap(obj);
+        if (bitmap == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            if (ToBgra(bitmap) is { Width: >= SmallestPictureSide, Height: >= SmallestPictureSide } picture)
+            {
+                found.Add(picture);
+            }
+        }
+        finally
+        {
+            PdfiumNative.FPDFBitmap_Destroy(bitmap);
+        }
     }
 
     /// <summary>Pictures on a page and where they sit (for Word export, which keeps them in reading order).</summary>

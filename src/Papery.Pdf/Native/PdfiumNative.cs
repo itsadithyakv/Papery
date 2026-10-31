@@ -531,6 +531,12 @@ internal static unsafe partial class PdfiumNative
     [LibraryImport(Dll)]
     internal static partial int FPDFText_SetText(nint textObject, char* text);
 
+    [LibraryImport(Dll)]
+    internal static partial int FPDFText_SetCharcodes(nint textObject, uint* charcodes, nuint count);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFText_LoadCidType2Font(nint document, byte* fontData, uint fontDataSize, byte* toUnicodeCmap, byte* codesToGlyphs, uint codesToGlyphsSize);
+
         // ---- Form filling (fpdf_formfill.h) ----
 
     internal const int FPDF_FORMFIELD_PUSHBUTTON = 1;
