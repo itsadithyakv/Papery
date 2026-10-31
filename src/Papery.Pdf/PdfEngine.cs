@@ -88,6 +88,15 @@ public sealed class PdfEngine
     public Task<CompressResult> CompressToFitAsync(PdfInputFile input, long limitBytes, string outputPath, CancellationToken cancellationToken = default) =>
         PdfCompressor.FitUnderAsync(Thread, input, limitBytes, outputPath, cancellationToken);
 
+    /// <summary>Improves the pictures in a PDF. With nothing to change, the output isn't written and the result says so.</summary>
+    /// <param name="pages">Which pages, or null for all of them.</param>
+    public Task<PictureFilterResult> FilterPicturesAsync(PdfInputFile input, PictureFilterOptions options, IReadOnlyCollection<int>? pages, string outputPath, IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>
+        PdfPictureFilter.ApplyAsync(Thread, input, options, pages, outputPath, progress, cancellationToken);
+
+    /// <summary>Draws one page as the filter would leave it. Nothing is saved.</summary>
+    public Task<PdfBitmap> PreviewPictureFilterAsync(PdfInputFile input, int page, PictureFilterOptions options, int width, int height, CancellationToken cancellationToken = default) =>
+        PdfPictureFilter.PreviewAsync(Thread, input, page, options, width, height, cancellationToken);
+
     /// <summary>Adds recognised words to a saved PDF as an invisible layer, so it can be searched and copied.</summary>
     public Task AddTextLayerAsync(PdfInputFile input, IReadOnlyList<OcrPage> pages, string outputPath, CancellationToken cancellationToken = default) =>
         OcrTextWriter.ApplyAsync(Thread, input, pages, outputPath, cancellationToken);

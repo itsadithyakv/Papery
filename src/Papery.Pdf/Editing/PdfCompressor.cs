@@ -159,13 +159,29 @@ internal static class PdfCompressor
                 await thread.InvokeAsync(() => CountPictures(doc!, index, uses, input.Path), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
             }
 
+            // A password-protected file can't have its copies merged afterwards, so its shared pictures stay as they are.
+            bool canShare = input.Password == null;
+            var shared = new Dictionary<string, byte[]>();
             for (int page = 0; page < pages; page++)
             {
                 int index = page;
-                var candidates = await thread.InvokeAsync(() => ReadCandidates(doc!, index, options, uses, input.Path), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
+                var candidates = await thread.InvokeAsync(() => ReadCandidates(doc!, index, options, uses, input.Path, canShare), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
                 try
                 {
-                    var encoded = await Task.Run(() => candidates.Items.Select(c => (c.Object, c.RawLength, Jpeg: Encode(c, options))).ToArray(), cancellationToken).ConfigureAwait(false);
+                    var encoded = await Task.Run(() => candidates.Items.Select(c =>
+                    {
+                        if (uses.GetValueOrDefault(c.Hash) <= 1)
+                        {
+                            return (c.Object, c.RawLength, Jpeg: Encode(c, options));
+                        }
+
+                        if (!shared.TryGetValue(c.Hash, out byte[]? jpeg))
+                        {
+                            jpeg = shared[c.Hash] = Encode(c, options);
+                        }
+
+                        return (c.Object, c.RawLength, Jpeg: jpeg);
+                    }).ToArray(), cancellationToken).ConfigureAwait(false);
                     await thread.InvokeAsync(() => Replace(candidates.Page, encoded, input.Path), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
                 }
                 finally
@@ -181,7 +197,8 @@ internal static class PdfCompressor
             await thread.InvokeAsync(() => doc?.Dispose(), PdfWorkPriority.Visible, CancellationToken.None).ConfigureAwait(false);
         }
 
-        await QpdfTool.RunAsync(QpdfTool.Tight(QpdfTool.Job(pictures, final, input.Password)), input.Path, cancellationToken).ConfigureAwait(false);
+        string merged = await PdfDeduper.MergeCopiesAsync(thread, pictures, input.Password, work, cancellationToken).ConfigureAwait(false);
+        await QpdfTool.RunAsync(QpdfTool.Tight(QpdfTool.Job(merged, final, input.Password)), input.Path, cancellationToken).ConfigureAwait(false);
         await thread.InvokeAsync(() => PdfComposer.Verify(final, input.Password, PageCountOf(input), input.Path), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
         return final;
     }
@@ -192,13 +209,13 @@ internal static class PdfCompressor
         return doc.PageCount;
     }
 
-    private static nint LoadPage(RawPdf doc, int index, string path)
+    internal static nint LoadPage(RawPdf doc, int index, string path)
     {
         nint page = PdfiumNative.FPDF_LoadPage(doc.Handle, index);
         return page != 0 ? page : throw new PdfEditException(PdfEditError.BuildFailed, path);
     }
 
-    private static unsafe byte[] RawData(nint image)
+    internal static unsafe byte[] RawData(nint image)
     {
         uint length = PdfiumNative.FPDFImageObj_GetImageDataRaw(image, null, 0);
         byte[] data = new byte[length];
@@ -210,7 +227,7 @@ internal static class PdfCompressor
         return data;
     }
 
-    private static int CountPictures(RawPdf doc, int index, Dictionary<string, int> uses, string path)
+    internal static int CountPictures(RawPdf doc, int index, Dictionary<string, int> uses, string path)
     {
         nint page = LoadPage(doc, index, path);
         try
@@ -234,7 +251,7 @@ internal static class PdfCompressor
         return 0;
     }
 
-    private static unsafe (nint Page, List<Candidate> Items) ReadCandidates(RawPdf doc, int index, CompressOptions options, Dictionary<string, int> uses, string path)
+    private static unsafe (nint Page, List<Candidate> Items) ReadCandidates(RawPdf doc, int index, CompressOptions options, Dictionary<string, int> uses, string path, bool canShare)
     {
         nint page = LoadPage(doc, index, path);
         var items = new List<Candidate>();
@@ -262,7 +279,8 @@ internal static class PdfCompressor
             }
 
             byte[] raw = RawData(obj);
-            if (uses.GetValueOrDefault(Convert.ToHexString(SHA256.HashData(raw))) > 1)
+            string hash = Convert.ToHexString(SHA256.HashData(raw));
+            if (!canShare && uses.GetValueOrDefault(hash) > 1)
             {
                 continue;
             }
@@ -279,7 +297,7 @@ internal static class PdfCompressor
                 {
                     double dpi = Math.Max(info.horizontal_dpi, info.vertical_dpi);
                     double scale = dpi > options.MaxDpi ? options.MaxDpi / dpi : 1;
-                    items.Add(new Candidate(obj, raw.Length, picture, scale));
+                    items.Add(new Candidate(obj, raw.Length, picture, scale, hash));
                 }
             }
             finally
@@ -292,7 +310,7 @@ internal static class PdfCompressor
     }
 
     /// <summary>PDFium has no direct "has a mask" question, so this looks at the picture as it would draw.</summary>
-    private static unsafe bool IsSeeThrough(nint document, nint page, nint image)
+    internal static unsafe bool IsSeeThrough(nint document, nint page, nint image)
     {
         nint bitmap = PdfiumNative.FPDFImageObj_GetRenderedBitmap(document, page, image);
         if (bitmap == 0)
@@ -346,12 +364,7 @@ internal static class PdfCompressor
                 continue;
             }
 
-            fixed (byte* bytes = jpeg)
-            {
-                var access = new PdfiumNative.FPDF_FILEACCESS { m_FileLen = (uint)jpeg.Length, m_GetBlock = &ReadBlock, m_Param = (nint)bytes };
-                nint noPages = 0;
-                changed |= PdfiumNative.FPDFImageObj_LoadJpegFileInline(&noPages, 0, obj, &access) != 0;
-            }
+            changed |= LoadJpeg(obj, jpeg);
         }
 
         if (changed && PdfiumNative.FPDFPage_GenerateContent(page) == 0)
@@ -362,6 +375,17 @@ internal static class PdfCompressor
         return 0;
     }
 
+    /// <summary>Swaps the picture in an image object for a JPEG.</summary>
+    internal static unsafe bool LoadJpeg(nint obj, byte[] jpeg)
+    {
+        fixed (byte* bytes = jpeg)
+        {
+            var access = new PdfiumNative.FPDF_FILEACCESS { m_FileLen = (uint)jpeg.Length, m_GetBlock = &ReadBlock, m_Param = (nint)bytes };
+            nint noPages = 0;
+            return PdfiumNative.FPDFImageObj_LoadJpegFileInline(&noPages, 0, obj, &access) != 0;
+        }
+    }
+
     [System.Runtime.InteropServices.UnmanagedCallersOnly(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     private static unsafe int ReadBlock(nint param, uint position, byte* buffer, uint size)
     {
@@ -370,7 +394,7 @@ internal static class PdfCompressor
     }
 
     /// <summary>Scales down by averaging the pixels each new pixel covers, which keeps detail from turning jagged.</summary>
-    private static PdfBitmap Shrunk(PdfBitmap source, double scale)
+    internal static PdfBitmap Shrunk(PdfBitmap source, double scale)
     {
         int width = Math.Max(1, (int)(source.Width * scale)), height = Math.Max(1, (int)(source.Height * scale));
         byte[] pixels = new byte[width * height * 4];
@@ -418,5 +442,5 @@ internal static class PdfCompressor
         }
     }
 
-    private sealed record Candidate(nint Object, long RawLength, PdfBitmap Picture, double Scale);
+    private sealed record Candidate(nint Object, long RawLength, PdfBitmap Picture, double Scale, string Hash);
 }
