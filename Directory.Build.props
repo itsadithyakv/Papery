@@ -11,7 +11,7 @@
     <Deterministic>true</Deterministic>
 
     <Company>Papery</Company>
-    <Product>Papery – PDF Editor, Merge &amp; Sign</Product>
+    <Product>Papery: PDF Editor, Merge &amp; Sign</Product>
     <Copyright>© Papery</Copyright>
 
     <!-- Papery talks to native PDFium through unsafe pointers in Papery.Pdf only. -->

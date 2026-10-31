@@ -1,4 +1,4 @@
-# Papery – PDF Editor, Merge & Sign
+# Papery: PDF Editor, Merge & Sign
 
 A fast, calm PDF app for Windows 10/11. Free to read; every other tool unlocks with a one-time
 Papery Pro purchase. No subscription, no ads, no account, no cloud.

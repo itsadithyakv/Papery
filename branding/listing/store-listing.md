@@ -3,15 +3,15 @@
 Paste these into Partner Center › Papery › Store listings › English. Fields marked "limit" have a Store character limit, and this text fits.
 
 ## Product name
-Papery
+Papery: PDF Editor, Merge & Sign
 
-(Reserved as "Papery". The longer form "Papery – PDF Editor, Merge & Sign" only works if you reserve that exact name too.)
+(This is the exact name reserved in Partner Center.)
 
 ## Short description (limit 1,000; shown at the top on some devices)
-Free PDF reader. Unlock every tool once for $9.99. No subscription, ever. Read, search and fill forms for free. Unlock merging, signing, editing, compressing, OCR and redaction with one payment.
+Free PDF reader. Unlock every tool once for $4.99. No subscription, ever. Read, search and fill forms for free. Unlock merging, signing, editing, compressing, OCR and redaction with one payment.
 
 ## Description (limit 10,000)
-Free PDF reader. Unlock every tool once for $9.99. No subscription, ever.
+Free PDF reader. Unlock every tool once for $4.99. No subscription, ever.
 
 Papery is a fast, calm PDF app for Windows. It opens big files quickly, stays out of your way, and works entirely on your PC. There's no account, no cloud and no ads, and your files never leave your computer.
 
@@ -108,7 +108,7 @@ Keywords: pdf, pro, unlock, editor
 
 Icon: branding/store/StoreLogo-1x1-300x300.png
 
-Settings: Product ID `papery_pro`, type Durable, Product lifetime Forever, price $9.99 (Tier). Content type: "Software as a service"? No: choose "Online data storage/services"? No: choose **"Unlocks app features"** if offered, otherwise the closest match, "Electronic software download".
+Settings: Product ID `papery_pro`, type Durable, Product lifetime Forever, price $4.99 (Tier). Content type: "Software as a service"? No: choose "Online data storage/services"? No: choose **"Unlocks app features"** if offered, otherwise the closest match, "Electronic software download".
 
 ---
 
@@ -116,4 +116,4 @@ Settings: Product ID `papery_pro`, type Durable, Product lifetime Forever, price
 
 Paste into Submission options › Notes for certification:
 
-Papery is free. The Papery Pro add-on (product ID papery_pro, Durable, $9.99, one time) unlocks tools marked with a small lock. To test: open any PDF, choose Organise (or any locked tool), and the unlock screen appears with the Store price. There's no account, and nothing is sent anywhere except the Store's own purchase check. The app declares the webcam capability only for Scan to PDF's camera option, which runs only if the person chooses it. runFullTrust is needed because it's a WinUI 3 desktop app that also runs a bundled PDF tool (QPDF) for compressing and protecting files.
+Papery is free. The Papery Pro add-on (product ID papery_pro, Durable, $4.99, one time) unlocks tools marked with a small lock. To test: open any PDF, choose Organise (or any locked tool), and the unlock screen appears with the Store price. There's no account, and nothing is sent anywhere except the Store's own purchase check. The app declares the webcam capability only for Scan to PDF's camera option, which runs only if the person chooses it. runFullTrust is needed because it's a WinUI 3 desktop app that also runs a bundled PDF tool (QPDF) for compressing and protecting files.

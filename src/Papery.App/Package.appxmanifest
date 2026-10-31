@@ -16,7 +16,7 @@
   <Identity Name="Papery.Dev" Publisher="CN=Papery Dev" Version="1.0.0.0" />
 
   <Properties>
-    <DisplayName>Papery</DisplayName>
+    <DisplayName>Papery: PDF Editor, Merge &amp; Sign</DisplayName>
     <PublisherDisplayName>Papery</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>

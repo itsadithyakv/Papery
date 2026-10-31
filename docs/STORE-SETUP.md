@@ -4,7 +4,7 @@ Plain-language steps, in the order to do them: **Part 4** (payout and tax) first
 
 ---
 
-## Part 1 – Associate the app with your reserved name "Papery"
+## Part 1 – Associate the app with your reserved name "Papery: PDF Editor, Merge & Sign"
 
 Licence checks and purchases only work when the app's package identity matches the name you
 reserved in Partner Center. Until then, Papery runs as the development package `Papery.Dev`
@@ -16,9 +16,10 @@ and the Store can't answer for it.
 2. Open `D:\Papery\Papery.slnx`.
 3. In **Solution Explorer**, right-click **Papery.App** › **Package and Publish** › **Associate App with the Store…**
 4. Sign in with the Microsoft account you use for Partner Center.
-5. Pick **Papery** from the list of reserved names › **Next** › **Associate**.
+5. Pick **Papery: PDF Editor, Merge & Sign** from the list of reserved names › **Next** › **Associate**.
 6. Visual Studio updates `src/Papery.App/Package.appxmanifest` (the `<Identity Name=… Publisher=…>`
-   and display names) and adds a `Package.StoreAssociation.xml` file. Commit both.
+   and display names) and adds a `Package.StoreAssociation.xml` file. Commit both. If it also changes the tile name
+   (`DisplayName` on `uap:VisualElements`), put that one back to `Papery`, so Start and the taskbar stay short.
 
 **Option B – by hand (no Visual Studio)**
 
@@ -42,7 +43,7 @@ and the Store can't answer for it.
 3. Product ID: **papery_pro** (exactly this; it can't be changed later).
 4. **Properties**: Product lifetime **Forever**. For Content type, pick the closest match to
    "unlocks features in the app" (usually **Electronic software download**).
-5. **Pricing and availability**: base price **USD 9.99**. The Store converts it for each market.
+5. **Pricing and availability**: base price **USD 4.99**. The Store converts it for each market.
 6. **Age ratings**: answer the questionnaire (no violence, no user interaction, no purchases of
    physical goods); the result should match the app's rating.
 7. **Store listing** (English): paste the text below.

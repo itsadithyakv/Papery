@@ -138,7 +138,7 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <Image Source="ms-appx:///Assets/AppIcon-64.png" Width="32" Height="32" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="Papery – PDF Editor, Merge &amp; Sign" />
+                        <TextBlock Text="Papery: PDF Editor, Merge &amp; Sign" />
                         <TextBlock x:Name="VersionText" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
                     <Button Grid.Column="2" Content="Third-party notices" Click="OnNoticesClick" VerticalAlignment="Center" />
