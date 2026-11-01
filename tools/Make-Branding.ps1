@@ -121,6 +121,8 @@ function Save-Art([string]$name, [int]$w, [int]$h) {
     $c[0].Dispose()
 }
 
+Save-Art 'StoreLogo-1x1-71x71' 71 71
+Save-Art 'StoreLogo-1x1-150x150' 150 150
 Save-Art 'StoreLogo-1x1-300x300' 300 300
 Save-Art 'StoreLogo-1x1-1080x1080' 1080 1080
 Save-Art 'StoreLogo-1x1-2160x2160' 2160 2160
