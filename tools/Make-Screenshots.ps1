@@ -50,7 +50,9 @@ $q = { param($n) '"' + (Join-Path $scratch $n) + '"' }
 
 Write-Host 'Home'
 Start-App @()
-Drive @($size, 'wait:2', 'size:1790x1120', 'wait:1', $size, 'wait:2', 'click:Clear', 'wait:3', (Shot "01-home-tools-$Theme"))
+Drive @($size, 'wait:2', 'size:1790x1120', 'wait:1', $size, 'wait:2')
+Drive @('click:Clear', 'wait:3') # nothing to clear when Recent is already empty, and the shot is still wanted
+Drive @((Shot "01-home-tools-$Theme"))
 
 Write-Host 'Reading'
 Start-App @((& $q 'bookmarks-and-links.pdf'))
@@ -61,7 +63,7 @@ Drive @('select:Organise', 'wait:4', (Shot "03-organise-$Theme"))
 
 Write-Host 'Fill and sign'
 Start-App @((& $q 'forms-interactive.pdf'))
-Drive @($size, 'wait:1', 'select:Fill and Sign', 'wait:3', 'click:Sign', 'wait:2', 'click:New signature', 'wait:3', 'select:Type', 'wait:1', 'type:Your name=Alex Morgan', 'wait:2', (Shot "04-fill-and-sign-$Theme"))
+Drive @($size, 'wait:1', 'select:Fill and Sign', 'wait:4', 'click:Sign', 'wait:4', 'click:New signature', 'wait:4', 'select:Type', 'wait:1', 'type:Your name=Alex Morgan', 'wait:2', (Shot "04-fill-and-sign-$Theme"))
 
 Write-Host 'Compress'
 Start-App @((& $q 'scanned-document.pdf'))
@@ -74,7 +76,7 @@ Drive @($size, 'wait:1', 'select:Tools', 'wait:2', 'click:Filters', 'wait:5', 's
 Write-Host 'Merge'
 $set = Get-ChildItem (Join-Path $files 'merge-set') -Filter *.pdf | Select-Object -First 5 | ForEach-Object { '"' + $_.FullName + '"' }
 Start-App (@('--merge') + $set)
-Drive @($size, 'wait:3', (Shot "06-merge-$Theme"))
+Drive @($size, 'wait:2', 'size:1790x1120', 'wait:1', $size, 'wait:8', (Shot "06-merge-$Theme"))
 
 Write-Host 'Redact'
 Start-App @((& $q 'redaction-test.pdf'))
