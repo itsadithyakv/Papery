@@ -17,4 +17,9 @@
     <!-- Papery talks to native PDFium through unsafe pointers in Papery.Pdf only. -->
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
+  <!-- tools/Build-Release.ps1 sets this for the installers you test with. See StoreIds.IsConfigured. -->
+  <PropertyGroup Condition="'$(PaperyTestBuild)' == 'true'">
+    <DefineConstants>$(DefineConstants);PAPERY_TEST_BUILD</DefineConstants>
+  </PropertyGroup>
+
 </Project>

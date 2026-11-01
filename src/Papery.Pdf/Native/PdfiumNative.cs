@@ -544,6 +544,49 @@ internal static unsafe partial class PdfiumNative
     [LibraryImport(Dll)]
     internal static partial float FPDF_GetPageHeightF(nint page);
 
+    // ---- Attached files (fpdf_attachment.h) ----
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFDoc_GetAttachmentCount(nint document);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFDoc_GetAttachment(nint document, int index);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFAttachment_GetName(nint attachment, void* buffer, uint length);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAttachment_GetFile(nint attachment, void* buffer, uint length, uint* written);
+
+    [LibraryImport(Dll, StringMarshalling = StringMarshalling.Utf16)]
+    internal static partial nint FPDFDoc_AddAttachment(nint document, string name);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAttachment_SetFile(nint attachment, nint document, void* contents, uint length);
+
+    // ---- Digital signatures (fpdf_signature.h) ----
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDF_GetSignatureCount(nint document);
+
+    [LibraryImport(Dll)]
+    internal static partial nint FPDF_GetSignatureObject(nint document, int index);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFSignatureObj_GetContents(nint signature, byte* buffer, uint length);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFSignatureObj_GetByteRange(nint signature, int* buffer, uint length);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFSignatureObj_GetSubFilter(nint signature, byte* buffer, uint length);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFSignatureObj_GetReason(nint signature, char* buffer, uint length);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFSignatureObj_GetTime(nint signature, byte* buffer, uint length);
+
     [LibraryImport(Dll)]
     internal static partial uint FPDFTextObj_GetText(nint textObject, nint textPage, char* buffer, uint length);
 

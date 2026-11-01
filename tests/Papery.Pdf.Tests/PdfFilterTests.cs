@@ -703,6 +703,191 @@ public sealed class PdfFilterTests : IDisposable
         Assert.NotEmpty(checkedFiles);
     }
 
+    // ================================================================= Excel
+
+    [Theory]
+    [InlineData("1,234.50", 1234.5)]
+    [InlineData("$12", 12.0)]
+    [InlineData("(45.00)", -45.0)]
+    [InlineData("-7", -7.0)]
+    [InlineData("0.5", 0.5)]
+    [InlineData("\u20b9 1,00,000", null)]
+    [InlineData("007", null)]
+    [InlineData("123456789012", null)]
+    [InlineData("12 Jan", null)]
+    [InlineData("45%", null)]
+    public void Only_clear_numbers_become_numbers(string text, double? expected)
+    {
+        Assert.Equal(expected, XlsxWriter.ParseNumber(text));
+    }
+
+    [Fact]
+    public void Column_names_roll_over()
+    {
+        Assert.Equal("A", XlsxWriter.ColumnName(0));
+        Assert.Equal("Z", XlsxWriter.ColumnName(25));
+        Assert.Equal("AA", XlsxWriter.ColumnName(26));
+    }
+
+    [Fact]
+    public void A_table_keeps_its_columns_in_a_sheet()
+    {
+        var words = new List<PdfWord> { Word("Statement", 0.1, 0.05, 0.1) };
+        string[] names = ["Rent & bills", "Food"];
+        string[] sums = ["1,200.00", "(35.50)"];
+        for (int i = 0; i < names.Length; i++)
+        {
+            double y = 0.1 + (i * 0.02);
+            words.Add(Word(names[i], 0.1, y));
+            words.Add(Word(sums[i], 0.7, y));
+        }
+
+        var rows = XlsxWriter.Rows(words);
+        Assert.Equal(3, rows.Count);
+        Assert.Equal("Statement", rows[0][0].Text);
+        Assert.Equal(1200, rows[1][1].Number);
+        Assert.Equal(-35.5, rows[2][1].Number);
+
+        var xml = System.Xml.Linq.XDocument.Parse(XlsxWriter.Sheet(rows));
+        System.Xml.Linq.XNamespace s = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        var cells = xml.Descendants(s + "c").ToArray();
+        Assert.Contains(cells, c => (string?)c.Attribute("r") == "B2" && c.Element(s + "v")?.Value == "1200");
+        Assert.Contains(cells, c => (string?)c.Attribute("r") == "A2" && c.Descendants(s + "t").First().Value == "Rent & bills");
+    }
+
+    [Fact]
+    public async Task An_excel_file_is_a_valid_package()
+    {
+        string input = _files.Create(2, "Words here", name: "excel.pdf");
+        string keep = Environment.GetEnvironmentVariable("PAPERY_KEEP_XLSX") ?? NewPath + ".xlsx";
+        await using var doc = await Engine.OpenAsync(input);
+        int rows = await Engine.ExportExcelAsync(doc, oneSheet: false, keep);
+        Assert.Equal(2, rows);
+
+        using var zip = System.IO.Compression.ZipFile.OpenRead(keep);
+        foreach (string part in new[] { "[Content_Types].xml", "_rels/.rels", "xl/workbook.xml", "xl/_rels/workbook.xml.rels", "xl/styles.xml", "xl/worksheets/sheet1.xml", "xl/worksheets/sheet2.xml" })
+        {
+            var entry = zip.GetEntry(part);
+            Assert.NotNull(entry);
+            using var stream = entry!.Open();
+            _ = System.Xml.Linq.XDocument.Load(stream);
+        }
+    }
+
+    [Fact]
+    public async Task A_scan_with_no_text_makes_no_spreadsheet()
+    {
+        string input = await ScanPdfAsync(Scan(200, 200));
+        string output = NewPath + ".xlsx";
+        await using var doc = await Engine.OpenAsync(input);
+        Assert.Equal(0, await Engine.ExportExcelAsync(doc, false, output));
+        Assert.False(File.Exists(output));
+    }
+
+    // ================================================================= attachments
+
+    [Fact]
+    public async Task Attached_files_can_be_listed_and_read()
+    {
+        string input = _files.Create(1, name: "attach.pdf");
+        string output = NewPath;
+        byte[] data = [1, 2, 3, 4, 5, 250];
+        Attach(input, output, "notes.txt", data);
+
+        await using var doc = await Engine.OpenAsync(output);
+        var found = Assert.Single(await doc.GetAttachmentsAsync());
+        Assert.Equal("notes.txt", found.Name);
+        Assert.Equal(data.Length, found.Size);
+        Assert.Equal(data, await doc.ReadAttachmentAsync(found.Index));
+    }
+
+    [Fact]
+    public async Task A_file_without_attachments_lists_none()
+    {
+        await using var doc = await Engine.OpenAsync(_files.Create(1, name: "none.pdf"));
+        Assert.Empty(await doc.GetAttachmentsAsync());
+    }
+
+    private static unsafe void Attach(string input, string output, string name, byte[] data)
+    {
+        Engine.Thread.InvokeAsync(() =>
+        {
+            using var raw = RawPdf.Load(input, null);
+            nint attachment = Native.PdfiumNative.FPDFDoc_AddAttachment(raw.Handle, name);
+            Assert.NotEqual(0, attachment);
+            fixed (byte* d = data)
+            {
+                Assert.NotEqual(0, Native.PdfiumNative.FPDFAttachment_SetFile(attachment, raw.Handle, d, (uint)data.Length));
+            }
+
+            File.WriteAllBytes(output, []);
+            PdfComposer.Save(raw, output, output);
+            return 0;
+        }, PdfWorkPriority.Background, CancellationToken.None).GetAwaiter().GetResult();
+    }
+
+    // ================================================================= checking signatures
+
+    private async Task<string> SignedPdfAsync()
+    {
+        using var key = System.Security.Cryptography.RSA.Create(2048);
+        var request = new System.Security.Cryptography.X509Certificates.CertificateRequest("CN=Papery Test", key, System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new System.Security.Cryptography.X509Certificates.X509KeyUsageExtension(System.Security.Cryptography.X509Certificates.X509KeyUsageFlags.DigitalSignature, true));
+        using var made = request.CreateSelfSigned(DateTimeOffset.Now.AddDays(-1), DateTimeOffset.Now.AddYears(1));
+        using var certificate = System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadPkcs12(made.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pfx), null);
+        string output = NewPath;
+        await Engine.SignAsync(new PdfInputFile(_files.Create(1, "Signed words", name: $"s{Guid.NewGuid():N}.pdf")), new PdfSignatureRequest(certificate, "I agree", "Kochi"), output);
+        return output;
+    }
+
+    [Fact]
+    public async Task A_good_signature_checks_out_but_a_self_made_certificate_is_not_trusted()
+    {
+        var check = Assert.Single(await Engine.CheckSignaturesAsync(new PdfInputFile(await SignedPdfAsync())));
+        Assert.True(check.CanCheck);
+        Assert.True(check.Intact);
+        Assert.True(check.CoversWholeFile);
+        Assert.False(check.TrustedSigner);
+        Assert.Equal("Papery Test", check.Signer);
+        Assert.Equal("I agree", check.Reason);
+        Assert.NotNull(check.SignedAt);
+    }
+
+    [Fact]
+    public async Task Changing_a_signed_file_breaks_the_signature()
+    {
+        string path = await SignedPdfAsync();
+        byte[] file = await File.ReadAllBytesAsync(path);
+        var match = System.Text.RegularExpressions.Regex.Match(System.Text.Encoding.Latin1.GetString(file), @"/Creator|/Producer|/Title");
+        Assert.True(match.Success);
+        file[match.Index + 2] ^= 0x01; // one letter of the file's own details, inside the signed part
+        await File.WriteAllBytesAsync(path, file);
+
+        var check = Assert.Single(await Engine.CheckSignaturesAsync(new PdfInputFile(path)));
+        Assert.True(check.CanCheck);
+        Assert.False(check.Intact);
+    }
+
+    [Fact]
+    public async Task Adding_to_a_signed_file_is_noticed()
+    {
+        string path = await SignedPdfAsync();
+        await using (var stream = new FileStream(path, FileMode.Append))
+        {
+            stream.Write("\n% something added later\n"u8);
+        }
+
+        var check = Assert.Single(await Engine.CheckSignaturesAsync(new PdfInputFile(path)));
+        Assert.True(check.Intact);
+        Assert.False(check.CoversWholeFile);
+    }
+
+    [Fact]
+    public async Task An_unsigned_file_has_nothing_to_check()
+    {
+        Assert.Empty(await Engine.CheckSignaturesAsync(new PdfInputFile(_files.Create(1, name: "unsigned.pdf"))));
+    }
+
     // ================================================================= merging copies
 
     [Fact]

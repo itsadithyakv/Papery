@@ -543,7 +543,7 @@ internal static class DocxWriter
     }
 
     /// <summary>XML can't hold most control characters, and PDFs sometimes contain them.</summary>
-    private static string Escape(string text)
+    internal static string Escape(string text)
     {
         var clean = new StringBuilder(text.Length);
         foreach (char c in text)

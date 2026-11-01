@@ -121,7 +121,7 @@ internal static class ProDialogs
                     Show(status, "Papery couldn't reach the Microsoft Store. Check your internet connection and try again.", InfoBarSeverity.Warning);
                     break;
                 case PurchaseOutcome.NotConfigured:
-#if DEBUG
+#if DEBUG || PAPERY_TEST_BUILD
                     // Developer builds with no Store ID yet: simulate a purchase so the whole flow can be tried.
                     AppServices.Pro.SetDebugMode(DebugLicenseMode.ForcePro);
                     AppServices.Settings.Update(s => s.DebugLicenseMode = DebugLicenseMode.ForcePro);

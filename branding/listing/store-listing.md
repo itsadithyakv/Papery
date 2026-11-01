@@ -63,6 +63,8 @@ Convert images to PDF, and PDF to images, text or Word
 Scan to PDF from a scanner or camera
 Make scans searchable with offline text recognition
 Compress PDFs, or fit them under a size you choose
+Save PDFs as Excel, with tables in columns
+Check digital signatures, and listen to pages read aloud
 Clean up scans with filters: whiter paper, darker text, no shadows
 Password-protect with AES-256
 Permanently redact private details and check they're gone

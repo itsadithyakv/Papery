@@ -117,6 +117,7 @@ public sealed partial class DocumentView : UserControl
     {
         _document = document;
         FilePath = document.FilePath;
+        Guard.Run(() => MentionAttachmentsAsync(document), "Looking for attached files");
         var settings = AppServices.Settings.Current;
         var state = settings.RememberPosition ? AppServices.ViewState.Get(FilePath) : null;
 
@@ -271,6 +272,10 @@ public sealed partial class DocumentView : UserControl
             new("Redact", "\uE75C", () => Modes.SelectedIndex = ProtectModeIndex, Keywords: "remove private hide black censor", CanExecute: hasDoc),
             new("Remove hidden data", "\uE74D", () => Guard.Run(RemoveHiddenDataAsync, "Removing hidden data"), Keywords: "metadata clean privacy scrub", CanExecute: hasDoc),
             new("Document details", "\uE70F", () => Guard.Run(EditDetailsAsync, "Changing details"), Keywords: "metadata title author edit", CanExecute: hasDoc),
+            new("Save as Excel", "\uE80A", () => Guard.Run(ExportExcelAsync, "Saving as Excel"), Keywords: "xlsx spreadsheet table convert csv", CanExecute: hasDoc),
+            new("Attached files", "\uE723", () => Guard.Run(ShowAttachmentsAsync, "Showing attached files"), Keywords: "attachment embedded portfolio", CanExecute: hasDoc),
+            new("Check digital signatures", "\uE73E", () => Guard.Run(CheckSignaturesAsync, "Checking signatures"), Keywords: "verify validate certificate signed", CanExecute: hasDoc),
+            new("Read aloud", "\uE767", () => { ReadAloudButton.IsChecked = ReadAloudButton.IsChecked != true; Guard.Run(ToggleReadAloudAsync, "Reading aloud"); }, Keywords: "speak speech voice listen narrate tts", CanExecute: hasDoc),
             new("Save as Word", "\uE8A5", () => Guard.Run(ExportWordAsync, "Saving as Word"), Keywords: "docx convert doc", CanExecute: hasDoc),
             new("Make searchable", "\uE721", () => Guard.Run(MakeSearchableAsync, "Making it searchable"), Keywords: "ocr scan read text", CanExecute: hasDoc),
             new("Page numbers", "\uE8EF", () => Guard.Run(() => StampAsync(Edit.StampKind.PageNumbers), "Adding to pages"), Keywords: "number footer", CanExecute: hasDoc),

@@ -66,6 +66,10 @@ public sealed partial class DocumentView
                 Modes.SelectedIndex = ToolsModeIndex;
                 Guard.Run(CompressAsync, "Compressing");
                 break;
+            case "pdf-to-excel":
+                Modes.SelectedIndex = ConvertModeIndex;
+                Guard.Run(ExportExcelAsync, "Saving as Excel");
+                break;
             case "filters":
                 Modes.SelectedIndex = ToolsModeIndex;
                 Guard.Run(FilterAsync, "Applying filters");
@@ -89,6 +93,7 @@ public sealed partial class DocumentView
         }
 
         _closingTab = true;
+        StopReadingAloud();
         bool close = await _organise.ConfirmLeaveAsync();
         _closingTab = close;
         return close;

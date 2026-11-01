@@ -22,7 +22,7 @@ public sealed partial class SettingsView : UserControl
         RememberSwitch.IsOn = s.RememberPosition;
         AlwaysCopySwitch.IsOn = s.AlwaysSaveCopy;
         VersionText.Text = $"Version {AppVersion()}";
-#if DEBUG
+#if DEBUG || PAPERY_TEST_BUILD
         // The Free/Pro switch exists only in developer builds; Release (Store) builds don't compile this.
         DeveloperSection.Visibility = Visibility.Visible;
         DebugLicenseBox.SelectedIndex = (int)AppServices.Pro.DebugMode;
@@ -74,7 +74,7 @@ public sealed partial class SettingsView : UserControl
 
     private void OnDebugLicenseChanged(object sender, SelectionChangedEventArgs e)
     {
-#if DEBUG
+#if DEBUG || PAPERY_TEST_BUILD
         if (_loading)
         {
             return;

@@ -143,6 +143,9 @@
                                 </MenuFlyout>
                             </DropDownButton.Flyout>
                         </DropDownButton>
+                        <ToggleButton x:Name="ReadAloudButton" Style="{StaticResource ToolToggleButtonStyle}" Click="OnReadAloud" AutomationProperties.Name="Read aloud" ToolTipService.ToolTip="Read aloud from this page">
+                            <FontIcon Glyph="&#xE767;" Style="{StaticResource ToolIconStyle}" />
+                        </ToggleButton>
                         <DropDownButton x:Name="ReadingButton" Style="{StaticResource ToolDropDownStyle}" AutomationProperties.Name="Reading mode" ToolTipService.ToolTip="Reading mode: page colours">
                             <FontIcon Glyph="&#xE793;" Style="{StaticResource ToolIconStyle}" />
                             <DropDownButton.Flyout>
@@ -361,6 +364,12 @@
                         <Button Style="{StaticResource ToolButtonStyle}" Click="OnExportWord" AutomationProperties.Name="Save as Word" ToolTipService.ToolTip="Save as Word (best effort: tables and columns may need tidying)">
                             <FontIcon Glyph="&#xE8F1;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnExportExcel" AutomationProperties.Name="Save as Excel" ToolTipService.ToolTip="Save as Excel (tables keep their columns)">
+                            <FontIcon Glyph="&#xE80A;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnAttachments" AutomationProperties.Name="Attached files" ToolTipService.ToolTip="Files attached to this PDF">
+                            <FontIcon Glyph="&#xE723;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
                         <Button Style="{StaticResource ToolButtonStyle}" Click="OnSaveText" AutomationProperties.Name="Save as text" ToolTipService.ToolTip="Save as text">
                             <FontIcon Glyph="&#xE8A5;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
@@ -417,6 +426,9 @@
                             </Button>
                             <Button Style="{StaticResource ToolButtonStyle}" Click="OnEditDetails" AutomationProperties.Name="Document details" ToolTipService.ToolTip="Title, author, subject and keywords">
                                 <FontIcon Glyph="&#xE946;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnCheckSignatures" AutomationProperties.Name="Check digital signatures" ToolTipService.ToolTip="Check digital signatures: is it unchanged since signing?">
+                                <FontIcon Glyph="&#xE73E;" Style="{StaticResource ToolIconStyle}" />
                             </Button>
                             <Button Style="{StaticResource ToolButtonStyle}" Click="OnCertifiedSign" AutomationProperties.Name="Certified digital signature" ToolTipService.ToolTip="Certified digital signature">
                                 <FontIcon Glyph="&#xEB95;" Style="{StaticResource ToolIconStyle}" />

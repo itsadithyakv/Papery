@@ -73,6 +73,8 @@ Ready-to-paste add-on listing:
 
 ### Testing both states before publishing
 
+Debug builds and the installers from `tools/Build-Release.ps1` never talk to the real Store: **Buy** only simulates a purchase, so you can try every Pro tool. Only `tools/Build-StoreUpload.ps1` makes a build with real purchases, and it refuses to finish if it finds a test build.
+
 - **Debug builds** have **Settings › Developer › Pretend licence** (Real / Pretend Free / Pretend Pro).
   With the Store ID still a placeholder, **Buy** simulates a purchase so you can see the Welcome screen.
 - **Release builds** (what you upload) contain none of this: it is removed by the compiler (`#if DEBUG`).

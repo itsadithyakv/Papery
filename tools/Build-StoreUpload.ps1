@@ -28,8 +28,17 @@ if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 
 dotnet build $project -c Release -p:Platform=x64 -nologo -v q `
     -p:GenerateAppxPackageOnBuild=true -p:UapAppxPackageBuildMode=StoreUpload -p:AppxBundle=Always "-p:AppxBundlePlatforms=x64|ARM64" `
-    -p:AppxPackageSigningEnabled=false -p:AppxSymbolPackageEnabled=false "-p:AppxPackageDir=$out" -p:GenerateTestArtifacts=false
+    -p:AppxPackageSigningEnabled=false -p:AppxSymbolPackageEnabled=false "-p:AppxPackageDir=$out" -p:GenerateTestArtifacts=false -p:PaperyTestBuild=false
 if ($LASTEXITCODE -ne 0) { throw 'The Store package failed to build.' }
+
+# Test builds only simulate buying Pro, so make sure this really is the Store build, on both processors.
+$marker = [Text.Encoding]::Unicode.GetBytes('PaperyTestBuildMarker')
+$markerText = [Text.Encoding]::Unicode.GetString($marker)
+$built = Get-ChildItem (Join-Path $repo 'src\Papery.Core\bin') -Recurse -Filter Papery.Core.dll | Where-Object { $_.FullName -match '\\Release\\' -and $_.LastWriteTime -gt (Get-Date).AddHours(-1) }
+if (-not $built) { throw "Couldn't find the freshly built Papery.Core.dll to check." }
+foreach ($dll in $built) {
+    if ([Text.Encoding]::Unicode.GetString([IO.File]::ReadAllBytes($dll.FullName)).Contains($markerText)) { throw "$($dll.FullName) is a test build. Don't upload this." }
+}
 
 $upload = Get-ChildItem $out -Recurse -Include *.msixupload, *.appxupload | Select-Object -First 1
 if (-not $upload) { throw 'No upload file came out.' }

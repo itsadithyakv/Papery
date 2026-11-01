@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Makes the Store screenshots by working the real app through accessibility, no mouse or display needed.
-    Run after tools/Run-Papery.ps1 has registered a Debug build (Debug unlocks Pro, so no lock icons show).
+    Run after tools/Run-Papery.ps1 has registered a Debug build. Pro is switched on for the shots, so no lock icons show.
 #>
 param([ValidateSet('Dark', 'Light')] [string] $Theme = 'Dark')
 
@@ -40,6 +40,7 @@ $stateBackup = New-Item -ItemType Directory -Force (Join-Path $env:TEMP 'papery-
 Copy-Item (Join-Path $stateFolder '*.json') $stateBackup -Force
 $settings = $settingsBefore | ConvertFrom-Json
 $settings.Theme = $Theme
+$settings | Add-Member -NotePropertyName DebugLicenseMode -NotePropertyValue 'ForcePro' -Force
 $settings | ConvertTo-Json -Depth 8 | Set-Content $settingsFile -Encoding utf8
 
 # Work on copies, so the test files stay as they are.

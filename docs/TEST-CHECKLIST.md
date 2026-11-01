@@ -23,6 +23,11 @@ The test build can't reach the Store, so Pro is locked in it. To test Pro tools,
 - [ ] **Convert > Save as Word** on a PDF with a table and one with two columns, then open them in Word
 - [ ] **Make searchable** on a Chinese, Japanese or Arabic scan (needs that language in Windows), then search and copy in Edge and Adobe Reader
 - [ ] Annotate: the coloured dot button picks a colour and a line thickness
+- [ ] **Convert > Save as Excel** on a bank statement or invoice, both layouts, opened in real Excel. Do the numbers add up?
+- [ ] A PDF with attached files says so when it opens, and each one saves correctly
+- [ ] **Protect > Check digital signatures** on a real signed PDF, such as an e-signed contract or government form. Compare what it says with Adobe Reader
+- [ ] **Read aloud** in the View toolbar: it speaks, turns pages, and stops when you click it again or close the tab
+- [ ] Stamp tool: right-click or open its menu, add **Your own words...**, place it, then restart and see it's still listed
 - [ ] Forms: Tab to a tick box and see the focus ring around it
 - [ ] Redact `redaction-test.pdf`: then search, and copy all the text, to confirm the words are gone
 - [ ] Password-protect a file, and open it in Edge with the password

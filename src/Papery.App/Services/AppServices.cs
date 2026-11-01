@@ -31,8 +31,8 @@ internal static class AppServices
         Settings = new SettingsStore(Path.Combine(DataFolder, "settings.json"));
         ViewState = new ViewStateStore(Path.Combine(DataFolder, "state.json"));
         Pro = new ProEntitlement(Path.Combine(DataFolder, "license.bin"), new DpapiProtector());
-#if DEBUG
-        // Developer builds only: the Settings switch to pretend Free or Pro. Not compiled into Store builds.
+#if DEBUG || PAPERY_TEST_BUILD
+        // Developer builds only: the Settings switch to pretend Free or Pro. Not compiled into Store uploads.
         Pro.SetDebugMode(Settings.Current.DebugLicenseMode);
 #endif
     }

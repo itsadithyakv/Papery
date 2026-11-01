@@ -86,7 +86,7 @@ public sealed partial class DocumentView
     private static readonly HashSet<string> OpenToEveryone =
     [
         "Select, move or resize", "Change the words", "Turn", "Delete", "Snapshot", "Save as text", "Copy all the text",
-        "Make a PDF from any app", "Clear the marks", "Document details", "Save a copy",
+        "Make a PDF from any app", "Clear the marks", "Document details", "Save a copy", "Attached files",
     ];
 
     private readonly List<(Microsoft.UI.Xaml.Controls.Primitives.ButtonBase Button, string Name, object? Tip)> _lockableButtons = [];
@@ -212,6 +212,85 @@ public sealed partial class DocumentView
             BatchRequested?.Invoke(this, EventArgs.Empty);
         }
     }, "Batch");
+
+    // ================================================================= Excel, attachments and signatures
+
+    private void OnExportExcel(object sender, RoutedEventArgs e) => Guard.Run(ExportExcelAsync, "Saving as Excel");
+
+    private async Task ExportExcelAsync()
+    {
+        if (_document is not { } document || !await AllowConvertAsync("pdf-to-excel"))
+        {
+            return;
+        }
+
+        var layout = new Papery.Controls.PillBar();
+        layout.AddItem("A sheet for each page", null, "pages");
+        layout.AddItem("All on one sheet", null, "one");
+        layout.SelectedIndex = 0;
+        var choose = new ContentDialog { Title = "Save as Excel", Content = layout, PrimaryButtonText = "Choose where to save", CloseButtonText = "Cancel", DefaultButton = ContentDialogButton.Primary };
+        if (await Dialogs.ShowAsync(choose, XamlRoot) != ContentDialogResult.Primary)
+        {
+            return;
+        }
+
+        bool oneSheet = layout.SelectedIndex == 1;
+        if (await Pickers.PickSaveAsync(GetWindowHandle?.Invoke() ?? 0, Path.GetFileNameWithoutExtension(FilePath), "Excel workbook", ".xlsx") is not { } output)
+        {
+            return;
+        }
+
+        int rows = 0;
+        bool done = await BusyDialog.RunAsync(XamlRoot, "Making a spreadsheet", async (progress, cancel) => rows = await PdfEngine.Shared.ExportExcelAsync(document, oneSheet, output, progress, cancel));
+        if (done && rows > 0)
+        {
+            Toaster.Show($"Saved {rows:N0} rows. Check the numbers against the PDF", "\uE80A", "Show", () => Shell.ShowInFolder(output));
+            return;
+        }
+
+        Pickers.RemoveIfEmpty(output);
+        if (done)
+        {
+            await Dialogs.ShowMessageAsync(XamlRoot, "No text to save", "This PDF has no text Papery can read. If it's a scan, use Make searchable first.");
+        }
+    }
+
+    private void OnAttachments(object sender, RoutedEventArgs e) => Guard.Run(ShowAttachmentsAsync, "Showing attached files");
+
+    private async Task ShowAttachmentsAsync()
+    {
+        if (_document is { } document && XamlRoot != null)
+        {
+            await Protect.FileExtrasDialogs.ShowAttachmentsAsync(XamlRoot, document, GetWindowHandle?.Invoke() ?? 0, path => NewPdfMade?.Invoke(this, path), output => Toaster.Show("Saved", "", "Show", () => Shell.ShowInFolder(output)));
+        }
+    }
+
+    /// <summary>Attached files are easy to miss, so a file that has them says so once when it opens.</summary>
+    private async Task MentionAttachmentsAsync(PdfDocument document)
+    {
+        int count = (await document.GetAttachmentsAsync()).Count;
+        if (count > 0 && _document == document)
+        {
+            Toaster.Show(count == 1 ? "This PDF has 1 attached file" : $"This PDF has {count:N0} attached files", "\uE723", "Show", () => Guard.Run(ShowAttachmentsAsync, "Showing attached files"));
+        }
+    }
+
+    private void OnCheckSignatures(object sender, RoutedEventArgs e) => Guard.Run(CheckSignaturesAsync, "Checking signatures");
+
+    private async Task CheckSignaturesAsync()
+    {
+        if (_document is not { } document || XamlRoot == null || !await ProDialogs.RequireProAsync(XamlRoot, Tool("protect")))
+        {
+            return;
+        }
+
+        IReadOnlyList<PdfSignatureCheck> checks = [];
+        var input = new PdfInputFile(FilePath, document.Password);
+        if (await BusyDialog.RunAsync(XamlRoot, "Checking signatures", async (_, cancel) => checks = await PdfEngine.Shared.CheckSignaturesAsync(input, cancel)))
+        {
+            await Protect.FileExtrasDialogs.ShowSignaturesAsync(XamlRoot, checks);
+        }
+    }
 
     // ================================================================= Word
 

@@ -55,7 +55,7 @@ foreach ($platform in $Platforms) {
     dotnet build $project -c Release "-p:Platform=$platform" -nologo -v q `
         -p:GenerateAppxPackageOnBuild=true -p:AppxBundle=Never -p:UapAppxPackageBuildMode=SideloadOnly `
         -p:AppxPackageSigningEnabled=true "-p:PackageCertificateKeyFile=$pfx" "-p:PackageCertificatePassword=$password" `
-        "-p:AppxPackageDir=$out" -p:GenerateTestArtifacts=false
+        "-p:AppxPackageDir=$out" -p:GenerateTestArtifacts=false -p:PaperyTestBuild=true
     if ($LASTEXITCODE -ne 0) { throw "Packaging for $platform failed." }
     $msix = Get-ChildItem $out -Recurse -Filter *.msix | Where-Object { $_.FullName -notmatch 'Dependencies' } | Select-Object -First 1
     if (-not $msix) { throw "No package came out for $platform." }

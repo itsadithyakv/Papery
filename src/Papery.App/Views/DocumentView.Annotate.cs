@@ -79,13 +79,7 @@ public sealed partial class DocumentView
             if (def.Kind == PdfAnnotationKind.Stamp)
             {
                 var menu = new MenuFlyout();
-                foreach (string word in StampWords)
-                {
-                    var item = new MenuFlyoutItem { Text = word };
-                    item.Click += (_, _) => _stampWord = word;
-                    menu.Items.Add(item);
-                }
-
+                menu.Opening += (_, _) => FillStampMenu(menu);
                 FlyoutBase.SetAttachedFlyout(button, menu);
             }
 
@@ -186,6 +180,63 @@ public sealed partial class DocumentView
     }
 
     private float? _lineWidth;
+
+    /// <summary>The ready-made stamps, then the user's own, which can be added to and cleared.</summary>
+    private void FillStampMenu(MenuFlyout menu)
+    {
+        menu.Items.Clear();
+        var own = AppServices.Settings.Current.CustomStamps;
+        foreach (string word in own.Concat(StampWords))
+        {
+            var item = new MenuFlyoutItem { Text = word };
+            item.Click += (_, _) => _stampWord = word;
+            menu.Items.Add(item);
+        }
+
+        menu.Items.Add(new MenuFlyoutSeparator());
+        var add = new MenuFlyoutItem { Text = "Your own words..." };
+        add.Click += (_, _) => Guard.Run(AddOwnStampAsync, "Making a stamp");
+        menu.Items.Add(add);
+        if (own.Count > 0)
+        {
+            var clear = new MenuFlyoutItem { Text = "Clear your stamps" };
+            clear.Click += (_, _) =>
+            {
+                if (own.Contains(_stampWord))
+                {
+                    _stampWord = StampWords[0];
+                }
+
+                AppServices.Settings.Update(s => s.CustomStamps = []);
+            };
+            menu.Items.Add(clear);
+        }
+    }
+
+    private async Task AddOwnStampAsync()
+    {
+        const int LongestStamp = 40, MostStamps = 10;
+        if (XamlRoot == null || !await ProDialogs.RequireProAsync(XamlRoot, Tool("draw")))
+        {
+            return;
+        }
+
+        var box = new TextBox { MaxLength = LongestStamp, Width = 320, PlaceholderText = "CHECKED BY ACCOUNTS" };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, "Stamp words");
+        var dialog = new ContentDialog { Title = "Your own stamp", Content = box, PrimaryButtonText = "Use it", CloseButtonText = "Cancel", DefaultButton = ContentDialogButton.Primary };
+        if (await Dialogs.ShowAsync(dialog, XamlRoot) != ContentDialogResult.Primary || string.IsNullOrWhiteSpace(box.Text))
+        {
+            return;
+        }
+
+        string word = box.Text.Trim();
+        AppServices.Settings.Update(s => s.CustomStamps = new[] { word }.Concat(s.CustomStamps.Where(w => !string.Equals(w, word, StringComparison.OrdinalIgnoreCase))).Take(MostStamps).ToList());
+        _stampWord = word;
+        if (_modeIndex == AnnotateModeIndex)
+        {
+            ApplyTool();
+        }
+    }
 
     /// <summary>Pro tools look a little quieter until unlocked; picking one shows the unlock screen.</summary>
     private void UpdateToolLocks()

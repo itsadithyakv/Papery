@@ -88,6 +88,14 @@ public sealed class PdfEngine
     public Task<CompressResult> CompressToFitAsync(PdfInputFile input, long limitBytes, string outputPath, CancellationToken cancellationToken = default) =>
         PdfCompressor.FitUnderAsync(Thread, input, limitBytes, outputPath, cancellationToken);
 
+    /// <summary>Saves the text as a spreadsheet, keeping tables in columns. Returns the rows written; with none, no file is made.</summary>
+    public Task<int> ExportExcelAsync(PdfDocument document, bool oneSheet, string outputPath, IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>
+        XlsxWriter.ExportAsync(document, oneSheet, outputPath, progress, cancellationToken);
+
+    /// <summary>Checks the file's digital signatures, offline.</summary>
+    public Task<IReadOnlyList<PdfSignatureCheck>> CheckSignaturesAsync(PdfInputFile input, CancellationToken cancellationToken = default) =>
+        PdfSignatureChecker.CheckAsync(Thread, input, cancellationToken);
+
     /// <summary>
     /// Tries to change a line of text inside the page's own content. False means it couldn't be done safely and nothing
     /// was written, usually because the font doesn't hold the letters wanted.
