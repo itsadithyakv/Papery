@@ -26,6 +26,7 @@ public static class PaperyWin {
   [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
   [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
   [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr dc, uint flags);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int command);
   [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr h, int x, int y, int w, int ht, bool repaint);
 }
 '@
@@ -66,6 +67,7 @@ foreach ($step in $Steps) {
         'wait' { Start-Sleep -Milliseconds ([int]([double]$arg * 1000)) }
         'size' {
             $wh = $arg -split 'x'
+            [void][PaperyWin]::ShowWindow($hwnd, 9) # out of maximised first, or the size wouldn't take
             [void][PaperyWin]::MoveWindow($hwnd, 0, 0, [int]$wh[0], [int]$wh[1], $true)
         }
         'click' {

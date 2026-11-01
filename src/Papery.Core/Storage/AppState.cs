@@ -51,7 +51,7 @@ public sealed class AppSettings
 
     public int WindowHeight { get; set; }
 
-    public bool WindowMaximized { get; set; }
+    public bool OpenMaximized { get; set; } = true;
 }
 
 /// <summary>How a file was last viewed, so it reopens at the same page and zoom.</summary>

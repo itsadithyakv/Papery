@@ -1,0 +1,50 @@
+<!--
+  The guided tour's stage: dims the window, leaves the control being explained lit, and draws a
+  hand-sketched ring and arrow to it. The shapes come from Services/Doodle.cs. Hidden from Narrator
+  except for the card, which holds the words.
+-->
+<UserControl
+    x:Class="Papery.Controls.TourOverlay"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Papery.Controls"
+    IsTabStop="False">
+
+    <Canvas x:Name="Stage" Background="Transparent">
+        <Path x:Name="Scrim" Fill="#99000000" AutomationProperties.AccessibilityView="Raw" IsHitTestVisible="False" />
+        <Path x:Name="Ring" Stroke="{ThemeResource PaperyCoralBrush}" StrokeThickness="3.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+              AutomationProperties.AccessibilityView="Raw" IsHitTestVisible="False" />
+        <Path x:Name="Arrow" Stroke="{ThemeResource PaperyCoralBrush}" StrokeThickness="3.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+              AutomationProperties.AccessibilityView="Raw" IsHitTestVisible="False" />
+
+        <Border x:Name="Card" Width="350" Padding="20,18" CornerRadius="16" BorderThickness="2"
+                Background="{ThemeResource PaperyCardBrush}" BorderBrush="{ThemeResource PaperyCoralBrush}"
+                TabFocusNavigation="Cycle">
+            <StackPanel Spacing="12">
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <controls:Mascot Width="40" Height="48" VerticalAlignment="Top" />
+                    <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                        <TextBlock x:Name="TitleText" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <Path x:Name="Squiggle" Stroke="{ThemeResource PaperyCoralBrush}" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                              HorizontalAlignment="Left" AutomationProperties.AccessibilityView="Raw" />
+                    </StackPanel>
+                </Grid>
+                <TextBlock x:Name="BodyText" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="CountText" VerticalAlignment="Center" Style="{StaticResource PaperySecondaryTextStyle}" />
+                    <Button x:Name="EndButton" Grid.Column="1" Content="End tour" Style="{StaticResource PaperySecondaryButtonStyle}" />
+                    <Button x:Name="NextButton" Grid.Column="2" Content="Next" Style="{StaticResource PaperyPrimaryButtonStyle}" />
+                </Grid>
+            </StackPanel>
+        </Border>
+    </Canvas>
+</UserControl>

@@ -1,4 +1,4 @@
-﻿using Microsoft.UI;
+using Microsoft.UI;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -737,7 +737,7 @@ public sealed partial class MainWindow : Window
         }
         else if (WindowManager.Count == 0)
         {
-            // First run: a comfortable 75% x 85% of the screen, centred.
+            // First run: this is the size it returns to from maximised: 75% x 85% of the screen, centred.
             var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
             int w = (int)(area.Width * 0.75), h = (int)(area.Height * 0.85);
             AppWindow.MoveAndResize(new RectInt32(area.X + ((area.Width - w) / 2), area.Y + ((area.Height - h) / 2), w, h));
@@ -747,7 +747,7 @@ public sealed partial class MainWindow : Window
         {
             presenter.PreferredMinimumWidth = 560;
             presenter.PreferredMinimumHeight = 420;
-            if (s.WindowMaximized && WindowManager.Count == 0)
+            if (s.OpenMaximized && WindowManager.Count == 0)
             {
                 presenter.Maximize();
             }
@@ -770,7 +770,7 @@ public sealed partial class MainWindow : Window
             var size = AppWindow.Size;
             AppServices.Settings.Update(s =>
             {
-                s.WindowMaximized = maximized;
+                s.OpenMaximized = maximized;
                 if (!maximized)
                 {
                     s.WindowWidth = size.Width;
