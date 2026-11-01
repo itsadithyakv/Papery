@@ -21,16 +21,15 @@ FREE, FOREVER
 • Highlight text and add sticky notes
 • Copy part of a page as a picture with Snapshot
 • See and save files attached to a PDF, and hear pages read aloud
-• Check digital signatures
 • No watermarks on anything you save, and no pop-ups asking you to upgrade
 
 PAPERY PRO: ONE PAYMENT, EVERY TOOL
 • Organise: reorder, rotate, delete, extract and insert pages
 • Merge and split, including split by size
 • Crop, resize and straighten pages
-• Mark up: underline, draw, shapes, stamps, comments and measuring
+• Mark up: underline, strike through, draw, shapes, stamps and measuring
 • Edit: add text and pictures, whiteout, links, page numbers, headers and footers, watermarks, Bates numbers and bookmarks, and change existing text
-• Sign: draw, type or import your signature, and create form fields. Certified digital signatures with your own certificate too
+• Sign: draw, type or import your signature, and create form fields. Certified digital signatures with your own certificate too, and check the signatures on a PDF you receive
 • Convert: images to PDF, PDF to images, text, Word and Excel, and scan from a scanner or camera
 • OCR: make scans searchable with the text recognition built into Windows, in any language you've installed
 • Compress: presets, or fit under a size you choose
@@ -60,11 +59,11 @@ Add text, pictures, page numbers, watermarks and Bates numbers
 Sign by drawing, typing or importing your signature
 Create and fill form fields, and flatten forms
 Convert images to PDF, and PDF to images, text or Word
-Scan to PDF from a scanner or camera
-Make scans searchable with offline text recognition
+Scan to PDF from a scanner or camera, and make scans searchable offline
 Compress PDFs, or fit them under a size you choose
 Save PDFs as Excel, with tables in columns
-Check digital signatures, and listen to pages read aloud
+Check digital signatures on PDFs you receive
+Listen to pages read aloud for free
 Clean up scans with filters: whiter paper, darker text, no shadows
 Password-protect with AES-256
 Permanently redact private details and check they're gone
@@ -119,4 +118,4 @@ Settings: Product ID `papery_pro`, type Durable, Product lifetime Forever, price
 
 Paste into Submission options › Notes for certification:
 
-Papery is free. The Papery Pro add-on (product ID papery_pro, Durable, $4.99, one time) unlocks tools marked with a small lock. To test: open any PDF, choose Organise (or any locked tool), and the unlock screen appears with the Store price. There's no account, and nothing is sent anywhere except the Store's own purchase check. The app declares the webcam capability only for Scan to PDF's camera option, which runs only if the person chooses it. runFullTrust is needed because it's a WinUI 3 desktop app that also runs a bundled PDF tool (QPDF) for compressing and protecting files.
+Papery is free. The Papery Pro add-on (product ID papery_pro, Durable, $4.99, one time) unlocks tools marked with a small lock. To test: open any PDF, choose Organise (or any locked tool), and the unlock screen appears with the Store price. There's no account, and nothing is sent anywhere except the Store's own purchase check. The Get help and Privacy policy links in Settings open the browser only when clicked. The app declares the webcam capability only for Scan to PDF's camera option, which runs only if the person chooses it. runFullTrust is needed because it's a WinUI 3 desktop app that also runs a bundled PDF tool (QPDF) for compressing and protecting files.
