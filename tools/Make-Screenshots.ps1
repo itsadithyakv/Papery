@@ -29,7 +29,8 @@ function Drive([string[]] $steps) {
 function Shot([string] $name) { return "shot:$(Join-Path $out "$name.png")" }
 
 # The app's theme comes from its settings file, so set it there and put it back afterwards.
-$settingsFile = Join-Path $env:LOCALAPPDATA 'Packages\Papery.Dev_vnfd10t67y7fa\LocalState\settings.json'
+$packageName = ([xml] (Get-Content (Join-Path $repo 'src\Papery.App\Package.appxmanifest'))).Package.Identity.Name
+$settingsFile = Join-Path $env:LOCALAPPDATA "Packages\$((Get-AppxPackage $packageName).PackageFamilyName)\LocalState\settings.json"
 Stop-App
 $settingsBefore = Get-Content $settingsFile -Raw
 

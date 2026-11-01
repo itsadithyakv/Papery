@@ -4,35 +4,18 @@ Plain-language steps, in the order to do them: **Part 4** (payout and tax) first
 
 ---
 
-## Part 1 – Associate the app with your reserved name "Papery: PDF Editor, Merge & Sign"
+## Part 1 – Associate the app with your reserved name (done)
 
-Licence checks and purchases only work when the app's package identity matches the name you
-reserved in Partner Center. Until then, Papery runs as the development package `Papery.Dev`
-and the Store can't answer for it.
+`src/Papery.App/Package.appxmanifest` already has Papery's values from **Product management › Product identity**:
 
-**Option A – Visual Studio (recommended)**
+| Field | Value |
+|---|---|
+| Package/Identity/Name | `AdithyaKV.PaperyPDFEditorMergeSign` |
+| Package/Identity/Publisher | `CN=30ED0224-8255-4781-8ACD-EE3EF146115F` |
+| Package/Properties/PublisherDisplayName | `PaperKite` |
+| The app's own Store ID (not the add-on's) | `9NK2Q07CQH90` |
 
-1. Install **Visual Studio Community** with the **WinUI application development** workload.
-2. Open `D:\Papery\Papery.slnx`.
-3. In **Solution Explorer**, right-click **Papery.App** › **Package and Publish** › **Associate App with the Store…**
-4. Sign in with the Microsoft account you use for Partner Center.
-5. Pick **Papery: PDF Editor, Merge & Sign** from the list of reserved names › **Next** › **Associate**.
-6. Visual Studio updates `src/Papery.App/Package.appxmanifest` (the `<Identity Name=… Publisher=…>`
-   and display names) and adds a `Package.StoreAssociation.xml` file. Commit both. If it also changes the tile name
-   (`DisplayName` on `uap:VisualElements`), put that one back to `Papery`, so Start and the taskbar stay short.
-
-**Option B – by hand (no Visual Studio)**
-
-1. Partner Center › **Apps and games** › **Papery** › **Product management** › **Product identity**.
-2. Copy **Package/Identity/Name**, **Package/Identity/Publisher** and **Package/Properties/PublisherDisplayName**.
-3. In `src/Papery.App/Package.appxmanifest`, replace:
-   - `Name="Papery.Dev"` with the Identity Name,
-   - `Publisher="CN=Papery Dev"` with the Identity Publisher,
-   - `<PublisherDisplayName>Papery</PublisherDisplayName>` with your publisher display name.
-4. In `tools/Run-Papery.ps1`, replace the two occurrences of `Papery.Dev` with the new Identity Name.
-
-> After associating, uninstall the old development copy once (Start › right-click Papery › Uninstall),
-> then run `tools/Run-Papery.ps1` again.
+There's nothing to do here unless Partner Center ever shows different values.
 
 ---
 
@@ -63,7 +46,7 @@ Ready-to-paste add-on listing:
 ## Part 3 – Paste the add-on's Store ID into the code
 
 1. Partner Center › **Papery** › **Add-ons** › **Papery Pro** › **Product identity**.
-2. Copy the **Store ID**: 12 characters, starting with 9, for example `9NBLGGH4R315`.
+2. Copy the **Store ID**: 12 characters, starting with 9, for example `9NBLGGH4R315`. It must be the add-on's, not the app's `9NK2Q07CQH90`.
 3. Open **`src/Papery.Core/Licensing/StoreIds.cs`** and replace
 
    ```csharp
@@ -125,13 +108,13 @@ Before building, Parts 1 to 3 must be done: the app associated with your reserve
 
 Also set the version: in `src/Papery.App/Package.appxmanifest`, set `Version="1.0.0.0"` (the last number must stay 0). Each later upload needs a higher version.
 
-**With Visual Studio (easiest)**
+Run this. It stops if the add-on's Store ID hasn't been pasted in:
 
-1. Open `Papery.slnx`, right-click **Papery.App** › **Package and Publish** › **Create App Packages**.
-2. Choose **Microsoft Store**, pick **Papery**, **Next**.
-3. Tick **x64** and **ARM64**, **Release**. Output: **Always** generate an app bundle. **Create**.
-4. When it finishes, choose **Launch Windows App Certification Kit** and run it. Fix anything it fails.
-5. You'll get an `.msixupload` file in `AppPackages`.
+```bash
+powershell -ExecutionPolicy Bypass -File tools/Build-StoreUpload.ps1
+```
+
+You'll get `dist/store/Papery_<version>.msixupload`, holding x64 and ARM64.
 
 **Upload**
 

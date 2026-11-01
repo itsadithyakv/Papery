@@ -10,8 +10,8 @@
       Papery-Test.cer          that certificate's public half
       Install-Papery.ps1       installs an MSIX by hand (use this on ARM64 PCs)
 
-    These are for testing on your own PCs. The Store doesn't use them: for the Store, associate the app
-    with your reserved name and build the upload package (see docs/STORE-SETUP.md). Microsoft signs Store packages itself.
+    These are for testing on your own PCs. The Store doesn't use them: tools/Build-StoreUpload.ps1 makes the
+    package to upload, and Microsoft signs that itself.
 
     Run:  powershell -ExecutionPolicy Bypass -File tools/Build-Release.ps1
 #>
@@ -32,7 +32,8 @@ $publisher = $manifest.Package.Identity.Publisher
 $pfx = Join-Path $dist 'Papery-Test.pfx'
 $cer = Join-Path $dist 'Papery-Test.cer'
 $password = 'papery-test-only'
-if (-not (Test-Path $pfx)) {
+$currentSubject = if (Test-Path $pfx) { ([Security.Cryptography.X509Certificates.X509Certificate2]::new($pfx, $password)).Subject } else { $null }
+if ($currentSubject -ne $publisher) {
     Write-Host "Making a test certificate for $publisher..." -ForegroundColor Cyan
     $cert = New-SelfSignedCertificate -Type Custom -Subject $publisher -KeyUsage DigitalSignature -FriendlyName 'Papery test signing' `
         -CertStoreLocation 'Cert:\CurrentUser\My' -NotAfter (Get-Date).AddYears(5) `

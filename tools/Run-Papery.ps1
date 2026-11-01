@@ -20,6 +20,10 @@ param(
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $project = Join-Path $repo 'src\Papery.App\Papery.App.csproj'
+$packageName = ([xml] (Get-Content (Join-Path $repo 'src\Papery.App\Package.appxmanifest'))).Package.Identity.Name
+
+# The development copy from before the Store identity would fight this one over the "papery" command and file types.
+Get-AppxPackage -Name 'Papery.Dev' | Where-Object IsDevelopmentMode | Remove-AppxPackage -PreserveApplicationData
 
 # Close a running copy first: it locks Papery.exe, and the new build must be registered.
 Get-Process Papery -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -41,12 +45,12 @@ try {
     # Windows refuses to re-register a dev package whose manifest changed (0x80073CFB).
     # Remove it, keeping settings and recent files, then register again (as Visual Studio does).
     Write-Host 'Manifest changed: re-registering the development package...' -ForegroundColor Yellow
-    Get-AppxPackage -Name 'Papery.Dev' | Remove-AppxPackage -PreserveApplicationData
+    Get-AppxPackage -Name $packageName | Remove-AppxPackage -PreserveApplicationData
     Add-AppxPackage -Register $manifest.FullName -ForceUpdateFromAnyVersion
 }
 
 if (-not $NoLaunch) {
-    $pkg = Get-AppxPackage -Name 'Papery.Dev' | Select-Object -First 1
+    $pkg = Get-AppxPackage -Name $packageName | Select-Object -First 1
     $aumid = "$($pkg.PackageFamilyName)!App"
     if ($File) {
         # The execution alias (see Package.appxmanifest) launches with package identity;

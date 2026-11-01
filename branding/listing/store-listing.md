@@ -102,7 +102,7 @@ Use your support email. The Store requires a way to contact you.
 Title: Papery Pro
 
 Description (limit 200):
-Unlock every tool in Papery with one payment: merge, edit, sign, convert, OCR, compress, protect and redact. No subscription, ever. Works offline and on all your Windows PCs.
+Unlock every tool in Papery with one payment: merge, edit, sign, filters, OCR, compress, protect and redact. No subscription, ever. Works on all your Windows PCs.
 
 Keywords: pdf, pro, unlock, editor
 

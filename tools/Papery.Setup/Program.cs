@@ -4,7 +4,8 @@ using System.Security.Cryptography.X509Certificates;
 
 // Installs Papery for testing on this PC: trusts the test certificate, then installs the app and what it needs.
 // Add --check to only confirm that everything is packed inside, changing nothing.
-const string PackageName = "Papery.Dev";
+const string PackageName = "AdithyaKV.PaperyPDFEditorMergeSign";
+const string OldTestPackageName = "Papery.Dev";
 
 Console.Title = "Papery Setup";
 Console.WriteLine("Papery Setup");
@@ -28,6 +29,9 @@ try
         store.Open(OpenFlags.ReadWrite);
         store.Add(X509CertificateLoader.LoadCertificateFromFile(cer));
     }
+
+    // Test copies made before the Store identity count as a different app, and would clash with this one.
+    _ = PowerShell($"Get-AppxPackage {OldTestPackageName} | Remove-AppxPackage");
 
     Console.WriteLine("Installing Papery. This can take a minute...");
     string install = $"Add-AppxPackage -Path '{msix}' -DependencyPath '{runtime}' -ForceApplicationShutdown -ForceUpdateFromAnyVersion";

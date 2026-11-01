@@ -13,6 +13,7 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 $platform = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'ARM64' } else { 'x64' }
 Import-Certificate -FilePath (Join-Path $here 'Papery-Test.cer') -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
 Get-AppxPackage Papery.Dev | Remove-AppxPackage
+Get-AppxPackage AdithyaKV.PaperyPDFEditorMergeSign | Remove-AppxPackage
 Add-AppxPackage -Path (Join-Path $here "Papery_$platform.msix") -DependencyPath (Join-Path $here "WindowsAppRuntime_$platform.msix") -ForceApplicationShutdown
 Write-Host 'Papery is installed. Find it in the Start menu.' -ForegroundColor Green
 Start-Sleep -Seconds 3
