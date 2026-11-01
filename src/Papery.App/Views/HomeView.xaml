@@ -33,7 +33,7 @@
                                 AutomationProperties.Name="Settings" ToolTipService.ToolTip="Settings (Ctrl+,)">
                             <FontIcon Glyph="&#xE713;" FontSize="16" FontFamily="{StaticResource PaperyIcons}" />
                         </Button>
-                        <Button x:Name="OpenButton" Style="{StaticResource PaperyPrimaryButtonStyle}" Click="OnOpenClick"
+                        <Button AutomationProperties.Name="Open a PDF" x:Name="OpenButton" Style="{StaticResource PaperyPrimaryButtonStyle}" Click="OnOpenClick"
                                 Margin="6,0,0,0" ToolTipService.ToolTip="Open a PDF (Ctrl+O)">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE8E5;" FontSize="16" FontFamily="{StaticResource PaperyIcons}" />

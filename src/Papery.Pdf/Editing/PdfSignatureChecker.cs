@@ -152,7 +152,7 @@ internal static class PdfSignatureChecker
         }
 
         var signedAt = SigningTime(signed) ?? claimedTime;
-        return new PdfSignatureCheck(signer, signedAt, found.Reason, true, intact, coversAll, certificate != null && Trusted(certificate, signed.Certificates, signedAt));
+        return new PdfSignatureCheck(signer, signedAt, found.Reason, true, intact, coversAll, certificate != null && Trusted(certificate, signed.Certificates));
     }
 
     /// <summary>The signature sits in the file as hex between angle brackets, and nothing else may hide in that gap.</summary>
@@ -230,18 +230,34 @@ internal static class PdfSignatureChecker
         return null;
     }
 
-    private static bool Trusted(X509Certificate2 certificate, X509Certificate2Collection others, DateTimeOffset? at)
+    /// <summary>
+    /// Checked as of today. The time inside a signature is only what the signer typed, so going by it would let a certificate
+    /// that ran out years ago pass with a backdated signature.
+    /// </summary>
+    private static bool Trusted(X509Certificate2 certificate, X509Certificate2Collection others)
     {
+        if (!MaySignDocuments(certificate))
+        {
+            return false;
+        }
+
         using var chain = new X509Chain();
         chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck; // that would need the internet
         chain.ChainPolicy.DisableCertificateDownloads = true;
         chain.ChainPolicy.ExtraStore.AddRange(others);
-        if (at is { } when)
-        {
-            chain.ChainPolicy.VerificationTime = when.LocalDateTime;
-        }
-
         return chain.Build(certificate);
+    }
+
+    /// <summary>A website's certificate is trusted by Windows too, but only to run a website. No stated use means any use.</summary>
+    private static bool MaySignDocuments(X509Certificate2 certificate)
+    {
+        var usages = certificate.Extensions.OfType<X509EnhancedKeyUsageExtension>().FirstOrDefault();
+        return usages == null || usages.EnhancedKeyUsages.Cast<System.Security.Cryptography.Oid>().Any(o => o.Value is
+            "2.5.29.37.0" // any use
+            or "1.3.6.1.5.5.7.3.36" // document signing
+            or "1.3.6.1.4.1.311.10.3.12" // Microsoft document signing
+            or "1.2.840.113583.1.1.5" // Adobe PDF signing
+            or "1.3.6.1.5.5.7.3.4"); // email, which many personal signing certificates use
     }
 
     /// <summary>PDF dates look like D:20240131143000+05'30'. Only the date and time matter here.</summary>

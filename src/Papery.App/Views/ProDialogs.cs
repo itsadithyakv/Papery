@@ -105,7 +105,7 @@ internal static class ProDialogs
             var deferral = args.GetDeferral();
             dialog.IsPrimaryButtonEnabled = false;
             Show(status, "Waiting for the Microsoft Store…", InfoBarSeverity.Informational);
-            var outcome = await AppServices.Store.PurchaseAsync();
+            var outcome = await AppServices.Store.PurchaseAsync(WindowManager.Active?.Hwnd ?? 0);
             dialog.IsPrimaryButtonEnabled = true;
             switch (outcome)
             {
@@ -141,12 +141,19 @@ internal static class ProDialogs
 
         restore.Click += async (_, _) =>
         {
+            restore.IsEnabled = false;
             Show(status, "Checking your purchases…", InfoBarSeverity.Informational);
-            AppServices.Pro.Apply(await AppServices.Store.CheckAsync());
+            var result = await AppServices.Store.CheckAsync();
+            AppServices.Pro.Apply(result);
+            restore.IsEnabled = true;
             if (AppServices.Pro.IsPro)
             {
                 purchased = true;
                 dialog.Hide();
+            }
+            else if (result == StoreCheckResult.Unknown)
+            {
+                Show(status, "Papery couldn't reach the Microsoft Store. Check your internet connection and try again.", InfoBarSeverity.Warning);
             }
             else
             {

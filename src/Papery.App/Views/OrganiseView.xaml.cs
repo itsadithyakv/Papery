@@ -743,6 +743,20 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
             return true;
         }
 
+        if (MayOverwrite != null && !await MayOverwrite())
+        {
+            await SaveCopyAsync();
+            return false;
+        }
+
+        return await SaveInPlaceAsync();
+    }
+
+    /// <summary>Asked before saving over the open file. False means the person wants a copy instead.</summary>
+    internal Func<Task<bool>>? MayOverwrite { get; init; }
+
+    private async Task<bool> SaveInPlaceAsync()
+    {
         var result = await RunAsync("Saving", ct => PdfEngine.Shared.ComposeAsync(Request(_pages, inPlace: true), _document.FilePath, Progress(), ct));
         if (result == null)
         {
@@ -765,7 +779,7 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
 
         if (string.Equals(Path.GetFullPath(path), Path.GetFullPath(_document.FilePath), StringComparison.OrdinalIgnoreCase))
         {
-            await SaveAsync(); // they picked the open file itself: that's a normal save
+            await SaveInPlaceAsync(); // they picked the open file itself, so they've chosen to replace it
             return;
         }
 

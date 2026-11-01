@@ -132,7 +132,9 @@ internal static class PdfSecurity
 
     public static Task<PdfHiddenData> InspectAsync(PdfInputFile input, CancellationToken cancellationToken) => Task.Run(() =>
     {
-        using var doc = Open(input);
+        using var doc = input.Password is null
+            ? PdfReader.Open(input.Path, PdfDocumentOpenMode.ReadOnly)
+            : PdfReader.Open(input.Path, input.Password, PdfDocumentOpenMode.ReadOnly);
         var catalog = doc.Internals.Catalog;
         bool metadata = catalog.Elements.ContainsKey("/Metadata") || DescriptionKeys.Any(k => !string.IsNullOrEmpty(doc.Info.Elements.GetString(k)));
         int comments = 0, attachments = EmbeddedFileCount(catalog), scripts = CatalogScripts(catalog);
@@ -161,39 +163,45 @@ internal static class PdfSecurity
 
     public static async Task RemoveHiddenDataAsync(PdfiumThread thread, PdfInputFile input, PdfHiddenDataChoice choice, string outputPath, CancellationToken cancellationToken)
     {
+        if (input.Password != null)
+        {
+            await PdfRedactor.KeepingPasswordAsync(thread, input, outputPath, (plain, output) => RemoveHiddenDataAsync(thread, plain, choice, output, cancellationToken), cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         string work = NewWork();
         try
         {
             string source = input.Path;
-            bool layers = false;
+            bool flatten = false;
             int pageCount = 0;
             await Task.Run(() =>
             {
                 using var doc = Open(input);
-                layers = HiddenLayerCount(doc.Internals.Catalog) > 0;
+                flatten = choice.HiddenLayers && HiddenLayerCount(doc.Internals.Catalog) > 0;
                 pageCount = doc.PageCount;
             }, cancellationToken).ConfigureAwait(false);
 
             // Turning off a layer only hides its content, and deleting the layer's listing would show it. The only sure
             // way to lose it is to keep what's visible and throw the rest away.
-            if (choice.HiddenLayers && layers && input.Password == null)
+            if (flatten)
             {
                 source = Path.Combine(work, "flattened.pdf");
-                await PdfRedactor.ApplyAsync(thread, input, [], Enumerable.Range(0, pageCount).ToArray(), source, cancellationToken).ConfigureAwait(false);
+                await PdfRedactor.ApplyAsync(thread, input, [], clearFileLevel: false, source, cancellationToken).ConfigureAwait(false);
             }
 
             string cleaned = Path.Combine(work, "cleaned.pdf");
             await Task.Run(() =>
             {
-                using var doc = Open(new PdfInputFile(source, input.Password));
-                Clean(doc, choice, layers && input.Password == null);
+                using var doc = Open(new PdfInputFile(source));
+                Clean(doc, choice, flatten);
                 Save(doc, cleaned);
             }, cancellationToken).ConfigureAwait(false);
 
             // Rewriting drops everything just cut loose, so it really leaves the file.
             string final = Path.Combine(work, "final.pdf");
-            await QpdfTool.RunAsync(QpdfTool.Tight(QpdfTool.Job(cleaned, final, input.Password)), input.Path, cancellationToken).ConfigureAwait(false);
-            await PdfCompressor.CommitAsync(thread, final, input.Password, pageCount, outputPath, cancellationToken).ConfigureAwait(false);
+            await QpdfTool.RunAsync(QpdfTool.Tight(QpdfTool.Job(cleaned, final, null)), input.Path, cancellationToken).ConfigureAwait(false);
+            await PdfCompressor.CommitAsync(thread, final, null, pageCount, outputPath, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -201,7 +209,7 @@ internal static class PdfSecurity
         }
     }
 
-    private static void Clean(PdfSharp.Pdf.PdfDocument doc, PdfHiddenDataChoice choice, bool layersFlattened)
+    internal static void Clean(PdfSharp.Pdf.PdfDocument doc, PdfHiddenDataChoice choice, bool layersFlattened)
     {
         var catalog = doc.Internals.Catalog;
         if (choice.Metadata)
@@ -222,6 +230,7 @@ internal static class PdfSecurity
         {
             RemoveName(catalog, "/EmbeddedFiles");
             catalog.Elements.Remove("/AF");
+            catalog.Elements.Remove("/Collection");
         }
 
         if (choice.Scripts)
@@ -288,8 +297,25 @@ internal static class PdfSecurity
         return count;
     }
 
-    private static int HiddenLayerCount(PdfDictionary catalog) =>
-        catalog.Elements.GetDictionary("/OCProperties")?.Elements.GetDictionary("/D")?.Elements.GetArray("/OFF")?.Elements.Count ?? 0;
+    internal static bool HasHiddenLayers(PdfInputFile input)
+    {
+        using var doc = Open(input);
+        return HiddenLayerCount(doc.Internals.Catalog) > 0;
+    }
+
+    /// <summary>Layers are off when listed as off, or when everything starts off and they aren't listed as on.</summary>
+    private static int HiddenLayerCount(PdfDictionary catalog)
+    {
+        var properties = catalog.Elements.GetDictionary("/OCProperties");
+        var defaults = properties?.Elements.GetDictionary("/D");
+        int off = defaults?.Elements.GetArray("/OFF")?.Elements.Count ?? 0;
+        if (defaults?.Elements.GetName("/BaseState") == "/OFF")
+        {
+            off = Math.Max(off, (properties!.Elements.GetArray("/OCGs")?.Elements.Count ?? 0) - (defaults.Elements.GetArray("/ON")?.Elements.Count ?? 0));
+        }
+
+        return off;
+    }
 
     private static void RemoveName(PdfDictionary catalog, string key)
     {

@@ -44,7 +44,17 @@ internal static class AppServices
     public static void StartLicenseChecks(nint ownerWindow)
     {
         Store.Initialize(ownerWindow);
-        Store.LicensesChanged += async (_, _) => Pro.Apply(await Store.CheckAsync());
+        Store.LicensesChanged += async (_, _) =>
+        {
+            try
+            {
+                Pro.Apply(await Store.CheckAsync());
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                Log.Error("Applying a licence change failed", ex); // runs on a Store thread, where nothing else would catch it
+            }
+        };
         _ = Task.Run(async () =>
         {
             await Task.Delay(TimeSpan.FromSeconds(3)); // don't compete with opening the first file

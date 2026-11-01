@@ -140,6 +140,11 @@
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="Papery: PDF Editor, Merge &amp; Sign" />
                         <TextBlock x:Name="VersionText" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <StackPanel Orientation="Horizontal" Spacing="14" Margin="0,4,0,0">
+                            <HyperlinkButton Content="Get help" Padding="0" NavigateUri="https://github.com/itsadithyakv/itsadithyakv.github.io/issues" />
+                            <HyperlinkButton Content="Rate Papery" Padding="0" NavigateUri="ms-windows-store://review/?ProductId=9NK2Q07CQH90" />
+                            <HyperlinkButton Content="Privacy policy" Padding="0" NavigateUri="https://itsadithyakv.github.io/papery/privacy-policy.html" />
+                        </StackPanel>
                     </StackPanel>
                     <Button Grid.Column="2" Content="Third-party notices" Click="OnNoticesClick" VerticalAlignment="Center" />
                 </Grid>

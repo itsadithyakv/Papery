@@ -218,7 +218,7 @@ public sealed partial class DocumentView
         var confirm = new ContentDialog
         {
             Title = "Remove this for good?",
-            Content = Dialogs.Wrap($"What's under the marks on {(pages == 1 ? "1 page" : $"{pages:N0} pages")} will be permanently removed, and those pages become pictures with their other words still searchable. If the file has a form, its answers become permanent too. Your original stays as it is: this makes a new copy{(document.Password != null ? " with the same password" : string.Empty)}."),
+            Content = Dialogs.Wrap($"What's under the marks on {(pages == 1 ? "1 page" : $"{pages:N0} pages")} will be permanently removed, and those pages become pictures with their other words still searchable. The copy also leaves out the file's details, bookmarks, comments, attached files and scripts, as they could repeat what you removed. A form's answers become permanent, and a file with hidden layers becomes pictures throughout, with no searchable words. Your original stays as it is: this makes a new copy{(document.Password != null ? " with the same password" : string.Empty)}."),
             PrimaryButtonText = "Choose where to save",
             CloseButtonText = "Cancel",
             DefaultButton = ContentDialogButton.Close,

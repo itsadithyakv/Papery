@@ -193,7 +193,7 @@ public sealed partial class PdfViewer
             _pressedLink = MarkTextOnSelect ? null : await LinkAtAsync(page, x, y);
             if (_pressedLink == null)
             {
-                _anchorChar = await _document.GetCharIndexAtAsync(page, x, y);
+                _anchorChar = _document is { } open ? await open.GetCharIndexAtAsync(page, x, y) : -1; // the tab may have closed during the wait
             }
         }
         catch (Exception ex) when (ex is ObjectDisposedException or InvalidDataException)
@@ -276,9 +276,9 @@ public sealed partial class PdfViewer
         try
         {
             int index = await _document.GetCharIndexAtAsync(visual.PageIndex, x, y);
-            if (index >= 0)
+            if (index >= 0 && _document is { } open)
             {
-                SetSelection(await _document.GetWordAtAsync(visual.PageIndex, index));
+                SetSelection(await open.GetWordAtAsync(visual.PageIndex, index));
             }
         }
         catch (Exception ex) when (ex is ObjectDisposedException or InvalidDataException)

@@ -28,6 +28,7 @@ public sealed partial class DocumentView
     private static readonly string UndoFolder = Path.Combine(Path.GetTempPath(), "Papery", "undo");
 
     private readonly List<string> _undoCopies = [];
+    private bool _stepDeclined;
     private readonly List<(Canvas Layer, Rectangle Mark)> _linkMarks = [];
     private (bool Set, string? Value) _nextPassword;
     private PdfColor _coverColour = CoverColours[0];
@@ -515,20 +516,44 @@ public sealed partial class DocumentView
         string? before = null;
         try
         {
+            string file = FilePath;
             before = NewUndoCopy();
-            File.Copy(FilePath, before, overwrite: true);
-            await change(new PdfInputFile(FilePath, document.Password));
-            string after = NewUndoCopy();
-            File.Copy(FilePath, after, overwrite: true);
+            await Task.Run(() => File.Copy(file, before, overwrite: true));
+            await change(new PdfInputFile(file, document.Password));
+
+            // The change has happened by now, so running out of room for this copy only costs the undo, not the result.
+            string? after = NewUndoCopy();
+            try
+            {
+                string copy = after;
+                await Task.Run(() => File.Copy(file, copy, overwrite: true));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Log.Info($"Couldn't keep an undo copy: {ex.GetType().Name}");
+                after = null;
+            }
+
             string? passwordBefore = document.Password;
             string? passwordNow = changesPassword ? passwordAfter : passwordBefore;
             string earlier = before;
             _nextPassword = (true, passwordNow);
             await ReloadAsync();
-            Remember(
-                () => RestoreFileAsync(earlier, passwordBefore),
-                () => RestoreFileAsync(after, passwordNow));
-            Toaster.Show(done, glyph, "Undo", () => Guard.Run(UndoAnnotationAsync, "Undo"));
+            if (after is { } later)
+            {
+                Remember(
+                    () => RestoreFileAsync(earlier, passwordBefore),
+                    () => RestoreFileAsync(later, passwordNow));
+                Toaster.Show(done, glyph, "Undo", () => Guard.Run(UndoAnnotationAsync, "Undo"));
+            }
+            else
+            {
+                _annotationUndo.Clear();
+                _annotationRedo.Clear();
+                UpdateAnnotateButtons();
+                Toaster.Show(done, glyph);
+            }
+
             return true;
         }
         catch (Exception ex) when (ex is PdfEditException or PdfOpenException or IOException or UnauthorizedAccessException)
@@ -540,6 +565,14 @@ public sealed partial class DocumentView
 
     private async Task RestoreFileAsync(string copy, string? password)
     {
+        await FlushFormAsync();
+        if (_document is { HasAnnotationChanges: true }
+            && !await Dialogs.ConfirmAsync(XamlRoot, "Lose your unsaved changes?", "Going back to this version of the file drops anything you haven't saved since.", "Continue", "Cancel"))
+        {
+            _stepDeclined = true;
+            return;
+        }
+
         try
         {
             await PdfEngine.Shared.RestoreCopyAsync(copy, password, FilePath);

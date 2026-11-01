@@ -35,7 +35,7 @@ public sealed class PdfEngine
 
     /// <summary>Adds new form fields to a saved PDF.</summary>
     public Task AddFormFieldsAsync(PdfInputFile input, IReadOnlyList<NewFormField> fields, string outputPath, CancellationToken cancellationToken = default) =>
-        PdfFieldWriter.AddAsync(Thread, input, fields, outputPath, cancellationToken);
+        Unlocked(input, outputPath, (file, output) => PdfFieldWriter.AddAsync(Thread, file, fields, output, cancellationToken), cancellationToken);
 
     /// <summary>Makes form answers and annotations a permanent part of the pages.</summary>
     public Task FlattenAsync(PdfInputFile input, string outputPath, CancellationToken cancellationToken = default) =>
@@ -54,7 +54,7 @@ public sealed class PdfEngine
 
     /// <summary>Permanently removes everything in the boxes, then checks that it's gone. PDFs with a password need it taken off first.</summary>
     public Task RedactAsync(PdfInputFile input, IReadOnlyList<RedactionArea> areas, string outputPath, CancellationToken cancellationToken = default) =>
-        PdfRedactor.ApplyAsync(Thread, input, areas, [], outputPath, cancellationToken);
+        PdfRedactor.ApplyAsync(Thread, input, areas, clearFileLevel: true, outputPath, cancellationToken);
 
     /// <summary>Locks a PDF with a password (AES-256) and optional limits.</summary>
     public Task ProtectAsync(PdfInputFile input, PdfProtection protection, string outputPath, CancellationToken cancellationToken = default) =>
@@ -70,7 +70,7 @@ public sealed class PdfEngine
 
     /// <summary>Changes the title, author, subject and keywords.</summary>
     public Task SetMetadataAsync(PdfInputFile input, PdfDescription metadata, string outputPath, CancellationToken cancellationToken = default) =>
-        PdfSecurity.SetMetadataAsync(Thread, input, metadata, outputPath, cancellationToken);
+        Unlocked(input, outputPath, (file, output) => PdfSecurity.SetMetadataAsync(Thread, file, metadata, output, cancellationToken), cancellationToken);
 
     /// <summary>Looks for metadata, comments, attachments, hidden layers and scripts.</summary>
     public Task<PdfHiddenData> InspectHiddenDataAsync(PdfInputFile input, CancellationToken cancellationToken = default) =>
@@ -126,11 +126,15 @@ public sealed class PdfEngine
 
     /// <summary>Removes and adds link annotations on a saved PDF.</summary>
     public Task EditLinksAsync(PdfInputFile input, IReadOnlyList<PdfLinkRemoval> remove, IReadOnlyList<NewPdfLink> add, string outputPath, CancellationToken cancellationToken = default) =>
-        PdfLinkWriter.ApplyAsync(Thread, input, remove, add, outputPath, cancellationToken);
+        Unlocked(input, outputPath, (file, output) => PdfLinkWriter.ApplyAsync(Thread, file, remove, add, output, cancellationToken), cancellationToken);
 
     /// <summary>Replaces a saved PDF's bookmarks. An empty list removes them all.</summary>
     public Task SetOutlineAsync(PdfInputFile input, IReadOnlyList<PdfOutlineItem> outline, string outputPath, CancellationToken cancellationToken = default) =>
-        PdfLinkWriter.SetOutlineAsync(Thread, input, outline, outputPath, cancellationToken);
+        Unlocked(input, outputPath, (file, output) => PdfLinkWriter.SetOutlineAsync(Thread, file, outline, output, cancellationToken), cancellationToken);
+
+    /// <summary>PDFsharp won't change a locked file without its owner password, which Papery's own locked files keep random.</summary>
+    private Task Unlocked(PdfInputFile input, string outputPath, Func<PdfInputFile, string, Task> change, CancellationToken cancellationToken) =>
+        input.Password == null ? change(input, outputPath) : PdfRedactor.KeepingPasswordAsync(Thread, input, outputPath, change, cancellationToken);
 
     /// <summary>Puts a copy of an earlier version back in place, through the checked save (undo for whole-file changes).</summary>
     public Task RestoreCopyAsync(string copyPath, string? password, string outputPath, CancellationToken cancellationToken = default) =>

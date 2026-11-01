@@ -24,10 +24,13 @@ public sealed record ToolInfo(string Key, string Name, string Description, strin
     public string AccessibleName => $"{Name}. {Description}";
 
     /// <summary>The family colour (icons are graphics, so 3:1 contrast is the target; these all pass on both themes).</summary>
-    public SolidColorBrush TintBrush => new(Tint);
+    public SolidColorBrush TintBrush => Contrast.HighContrast ? new(new Windows.UI.ViewManagement.UISettings().UIElementColor(Windows.UI.ViewManagement.UIElementType.WindowText)) : new(Tint);
 
     /// <summary>The same colour, faint, for the rounded tile behind the icon.</summary>
-    public SolidColorBrush TintSubtleBrush => new(Color.FromArgb(0x26, Tint.R, Tint.G, Tint.B));
+    public SolidColorBrush TintSubtleBrush => new(Contrast.HighContrast ? Color.FromArgb(0, 0, 0, 0) : Color.FromArgb(0x26, Tint.R, Tint.G, Tint.B));
+
+    // High Contrast means the person's own colours, so the family colours step aside.
+    private static readonly Windows.UI.ViewManagement.AccessibilitySettings Contrast = new();
 
     private Color Tint => Family switch
     {

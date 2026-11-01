@@ -4,6 +4,8 @@ namespace Papery.Pdf;
 
 public sealed partial class PdfDocument
 {
+    private const long MaxBitmapBytes = 1L << 30;
+
     /// <summary>Renders a whole page into a BGRA bitmap of exactly <paramref name="width"/> × <paramref name="height"/> pixels.</summary>
     public Task<PdfBitmap> RenderPageAsync(
         int pageIndex,
@@ -31,6 +33,12 @@ public sealed partial class PdfDocument
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(region.Width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(region.Height);
         CheckPageIndex(pageIndex);
+
+        // A file decides its own page size, so a strange one mustn't overflow this sum or use up all the memory.
+        if (region.Width * 4L * region.Height > MaxBitmapBytes)
+        {
+            throw new InvalidDataException($"A {region.Width}×{region.Height} picture is too big to draw.");
+        }
 
         return Run(() => WithPage(pageIndex, page =>
         {

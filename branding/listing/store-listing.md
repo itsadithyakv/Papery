@@ -8,10 +8,10 @@ Papery: PDF Editor, Merge & Sign
 (This is the exact name reserved in Partner Center.)
 
 ## Short description (limit 1,000; shown at the top on some devices)
-Free PDF reader. Unlock every tool once for $4.99. No subscription, ever. Read, search and fill forms for free. Unlock merging, signing, editing, compressing, OCR and redaction with one payment.
+Free PDF reader. Unlock every tool with one payment. No subscription, ever. Read, search and fill forms for free. Unlock merging, signing, editing, compressing, OCR and redaction with one payment.
 
 ## Description (limit 10,000)
-Free PDF reader. Unlock every tool once for $4.99. No subscription, ever.
+Free PDF reader. Unlock every tool with one payment. No subscription, ever.
 
 Papery is a fast, calm PDF app for Windows. It opens big files quickly, stays out of your way, and works entirely on your PC. There's no account, no cloud and no ads, and your files never leave your computer.
 
@@ -20,6 +20,8 @@ FREE, FOREVER
 • Fill in PDF forms
 • Highlight text and add sticky notes
 • Copy part of a page as a picture with Snapshot
+• See and save files attached to a PDF, and hear pages read aloud
+• Check digital signatures
 • No watermarks on anything you save, and no pop-ups asking you to upgrade
 
 PAPERY PRO: ONE PAYMENT, EVERY TOOL
@@ -29,12 +31,12 @@ PAPERY PRO: ONE PAYMENT, EVERY TOOL
 • Mark up: underline, draw, shapes, stamps, comments and measuring
 • Edit: add text and pictures, whiteout, links, page numbers, headers and footers, watermarks, Bates numbers and bookmarks, and change existing text
 • Sign: draw, type or import your signature, and create form fields. Certified digital signatures with your own certificate too
-• Convert: images to PDF, PDF to images, text and Word, and scan from a scanner or camera
+• Convert: images to PDF, PDF to images, text, Word and Excel, and scan from a scanner or camera
 • OCR: make scans searchable with the text recognition built into Windows, in any language you've installed
 • Compress: presets, or fit under a size you choose
 • Filters: clean up scans with whiter paper, darker text and no shadows, or use grey, black and white, brightness, contrast, sharpen and straighten
 • Protect: AES-256 passwords and permissions
-• Redact: permanently remove private details, not just cover them, then check they're gone
+• Redact: permanently remove private details, not just cover them, then check they're gone. The redacted copy also leaves out details, bookmarks, comments and attachments that could repeat them
 • Remove hidden data, such as comments, attachments and details about the author
 • Compare two versions, and run one action on many files with Batch
 
@@ -50,12 +52,10 @@ First release.
 
 ## Product features (up to 20, limit 200 each)
 Free PDF reader with tabs, thumbnails, search, bookmarks and dark mode
-Fill in PDF forms for free
-Highlight text and add sticky notes for free
+Fill in forms, highlight text and add sticky notes for free
 Opens very large PDFs quickly
 One payment unlocks every tool: no subscription, ever
-Merge PDFs and split by pages, bookmarks or size
-Reorder, rotate, delete and extract pages
+Merge, split, reorder, rotate, delete and extract pages
 Add text, pictures, page numbers, watermarks and Bates numbers
 Sign by drawing, typing or importing your signature
 Create and fill form fields, and flatten forms
@@ -68,8 +68,7 @@ Check digital signatures, and listen to pages read aloud
 Clean up scans with filters: whiter paper, darker text, no shadows
 Password-protect with AES-256
 Permanently redact private details and check they're gone
-Compare two versions side by side
-Run one action on many files
+Compare two versions, and run one action on many files
 Right-click PDFs in File Explorer to merge, compress or convert
 Everything stays on your PC: no account, no cloud, no ads
 
@@ -95,7 +94,9 @@ Leave empty, unless you have your own terms.
 https://itsadithyakv.github.io/papery/privacy-policy.html
 
 ## Website and support contact
-Use your support email. The Store requires a way to contact you.
+https://github.com/itsadithyakv/itsadithyakv.github.io/issues
+
+(The same contact page the privacy policy uses. Replace it with an email address if you make one for support.)
 
 ---
 

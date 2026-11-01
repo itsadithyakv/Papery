@@ -159,7 +159,7 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
-                        <Button x:Name="ViewSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="0,0,6,0" Click="OnAnnotateSave" Visibility="Collapsed" ToolTipService.ToolTip="Save your changes into this file (Ctrl+S)">
+                        <Button AutomationProperties.Name="Save" x:Name="ViewSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="0,0,6,0" Click="OnAnnotateSave" Visibility="Collapsed" ToolTipService.ToolTip="Save your changes into this file (Ctrl+S)">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE74E;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
                                 <TextBlock Text="Save" />
@@ -197,7 +197,7 @@
                         <Button x:Name="AnnotateRedo" Style="{StaticResource ToolButtonStyle}" Click="OnAnnotateRedo" IsEnabled="False" AutomationProperties.Name="Redo" ToolTipService.ToolTip="Redo (Ctrl+Y)">
                             <FontIcon Glyph="&#xE7A6;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
-                        <Button x:Name="AnnotateSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="6,0,0,0" Click="OnAnnotateSave" IsEnabled="False" ToolTipService.ToolTip="Save annotations into this file (Ctrl+S)">
+                        <Button AutomationProperties.Name="Save" x:Name="AnnotateSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="6,0,0,0" Click="OnAnnotateSave" IsEnabled="False" ToolTipService.ToolTip="Save annotations into this file (Ctrl+S)">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE74E;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
                                 <TextBlock Text="Save" />
@@ -268,7 +268,7 @@
                         <Button x:Name="FillRedo" Style="{StaticResource ToolButtonStyle}" Click="OnAnnotateRedo" IsEnabled="False" AutomationProperties.Name="Redo" ToolTipService.ToolTip="Redo (Ctrl+Y)">
                             <FontIcon Glyph="&#xE7A6;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
-                        <Button x:Name="FillSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="6,0,0,0" Click="OnAnnotateSave" IsEnabled="False" ToolTipService.ToolTip="Save into this file (Ctrl+S)">
+                        <Button AutomationProperties.Name="Save" x:Name="FillSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="6,0,0,0" Click="OnAnnotateSave" IsEnabled="False" ToolTipService.ToolTip="Save into this file (Ctrl+S)">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE74E;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
                                 <TextBlock Text="Save" />
@@ -339,7 +339,7 @@
                         <Button x:Name="EditRedo" Style="{StaticResource ToolButtonStyle}" Click="OnAnnotateRedo" IsEnabled="False" AutomationProperties.Name="Redo" ToolTipService.ToolTip="Redo (Ctrl+Y)">
                             <FontIcon Glyph="&#xE7A6;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
-                        <Button x:Name="EditSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="6,0,0,0" Click="OnAnnotateSave" IsEnabled="False" ToolTipService.ToolTip="Save into this file (Ctrl+S)">
+                        <Button AutomationProperties.Name="Save" x:Name="EditSave" Style="{StaticResource PaperyPrimaryButtonStyle}" Margin="6,0,0,0" Click="OnAnnotateSave" IsEnabled="False" ToolTipService.ToolTip="Save into this file (Ctrl+S)">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE74E;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
                                 <TextBlock Text="Save" />
@@ -435,7 +435,7 @@
                             </Button>
                         </StackPanel>
                     </ScrollViewer>
-                    <Button x:Name="ProtectApply" Grid.Column="1" IsEnabled="False" Style="{StaticResource PaperyPrimaryButtonStyle}" Click="OnRedactApply" ToolTipService.ToolTip="Permanently remove what's marked, in a new copy">
+                    <Button AutomationProperties.Name="Redact" x:Name="ProtectApply" Grid.Column="1" IsEnabled="False" Style="{StaticResource PaperyPrimaryButtonStyle}" Click="OnRedactApply" ToolTipService.ToolTip="Permanently remove what's marked, in a new copy">
                         <TextBlock Text="Redact" />
                     </Button>
                 </Grid>

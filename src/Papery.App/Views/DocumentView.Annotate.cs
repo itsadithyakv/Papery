@@ -23,6 +23,8 @@ public sealed partial class DocumentView
         new(255, 214, 0), new(255, 122, 99), new(229, 57, 53), new(76, 175, 80), new(30, 136, 229), new(33, 33, 33),
     ];
 
+    private static readonly string[] SwatchNames = ["Yellow", "Coral", "Red", "Green", "Blue", "Black"];
+
     // Name, what to show, Free (the rest are Pro), default width. Icons drawn as paths are the shapes themselves.
     private static readonly (PdfAnnotationKind? Kind, string Name, string? Glyph, string? Path, bool Free, float Width)[] AnnotationTools =
     [
@@ -55,6 +57,7 @@ public sealed partial class DocumentView
     private readonly ObservableCollection<CommentItem> _comments = [];
     private int _toolIndex = 1;
     private PdfColor _toolColor = Swatches[0];
+    private EventHandler? _proChanged;
     private AnnotationPen? _pen;
     private AnnotationPicker? _picker;
     private string _stampWord = StampWords[0];
@@ -108,7 +111,9 @@ public sealed partial class DocumentView
                     Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(255, swatch.R, swatch.G, swatch.B)),
                 },
             };
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(dot, $"Colour {swatch.R},{swatch.G},{swatch.B}");
+            string colourName = SwatchNames[Array.IndexOf(Swatches, swatch)];
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(dot, colourName);
+            ToolTipService.SetToolTip(dot, colourName);
             dot.Click += (_, _) =>
             {
                 AnnotateStyleDot.Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(255, swatch.R, swatch.G, swatch.B));
@@ -160,7 +165,8 @@ public sealed partial class DocumentView
                 Guard.Run(PreloadAnnotationsAsync, "Reading annotations");
             }
         };
-        AppServices.Pro.Changed += (_, _) => DispatcherQueue.TryEnqueue(UpdateToolLocks);
+        _proChanged = (_, _) => DispatcherQueue.TryEnqueue(UpdateToolLocks);
+        AppServices.Pro.Changed += _proChanged;
         UpdateToolLocks();
     }
 
@@ -278,7 +284,7 @@ public sealed partial class DocumentView
     private async Task PickToolAsync(int index)
     {
         var def = AnnotationTools[index];
-        if (!def.Free && XamlRoot != null && !await ProDialogs.RequireProAsync(XamlRoot, Tool(def.Kind is PdfAnnotationKind.Pen or PdfAnnotationKind.Marker ? "draw" : "annotate")))
+        if (!def.Free && XamlRoot != null && !await ProDialogs.RequireProAsync(XamlRoot, Tool("draw")))
         {
             ApplyTool(); // stay on the tool they had
             return;
@@ -466,8 +472,15 @@ public sealed partial class DocumentView
         if (_annotationUndo.TryPop(out var step))
         {
             _picker?.Clear();
-            await step.Undo();
-            _annotationRedo.Push(step);
+            if (await RunStepAsync(step.Undo))
+            {
+                _annotationRedo.Push(step);
+            }
+            else if (_stepDeclined)
+            {
+                _annotationUndo.Push(step);
+            }
+
             UpdateAnnotateButtons();
         }
     }
@@ -477,10 +490,36 @@ public sealed partial class DocumentView
         if (_annotationRedo.TryPop(out var step))
         {
             _picker?.Clear();
-            await step.Redo();
-            _annotationUndo.Push(step);
+            if (await RunStepAsync(step.Redo))
+            {
+                _annotationUndo.Push(step);
+            }
+            else if (_stepDeclined)
+            {
+                _annotationRedo.Push(step);
+            }
+
             UpdateAnnotateButtons();
         }
+    }
+
+    /// <summary>A step recorded on the version of the file from before a reload has nothing left to act on, so the history ends there.</summary>
+    private async Task<bool> RunStepAsync(Func<Task> step)
+    {
+        _stepDeclined = false;
+        try
+        {
+            await step();
+        }
+        catch (ObjectDisposedException)
+        {
+            _annotationUndo.Clear();
+            _annotationRedo.Clear();
+            Toaster.Show("That step can't be undone any more", "");
+            return false;
+        }
+
+        return !_stepDeclined;
     }
 
     private async Task AfterAnnotationChangeAsync(int page)
@@ -562,6 +601,15 @@ public sealed partial class DocumentView
         }
     }
 
+    /// <summary>Writes whatever is still being typed into a form field.</summary>
+    public async Task FlushFormAsync()
+    {
+        if (_formOverlay != null && XamlRoot != null)
+        {
+            await _formOverlay.FlushAsync(XamlRoot);
+        }
+    }
+
     /// <summary>Saves annotations into the file and reopens it. Returns false if it couldn't.</summary>
     private async Task<bool> SaveAnnotationsAsync(bool reload = true)
     {
@@ -570,19 +618,16 @@ public sealed partial class DocumentView
             return false;
         }
 
-        if (!_overwriteOk && reload)
+        string before = FilePath;
+        if (!await ConfirmChangingOriginalAsync())
         {
-            string before = FilePath;
-            if (!await ConfirmChangingOriginalAsync())
-            {
-                return false;
-            }
+            return false;
+        }
 
-            if (FilePath != before)
-            {
-                ForgetRecoveryCopy();
-                return true; // the work went into the new copy
-            }
+        if (FilePath != before)
+        {
+            ForgetRecoveryCopy();
+            return true; // the work went into the new copy
         }
 
         AnnotateSave.IsEnabled = false;
@@ -617,6 +662,11 @@ public sealed partial class DocumentView
             }
         }
 
+        else
+        {
+            _staleAfterClose = true;
+        }
+
         UpdateAnnotateButtons();
         return true;
     }
@@ -636,6 +686,7 @@ public sealed partial class DocumentView
     /// <summary>Asks about unsaved annotations when closing. Returns false to keep the tab open.</summary>
     private async Task<bool> ConfirmCloseAnnotationsAsync()
     {
+        await FlushFormAsync();
         if (_document is not { HasAnnotationChanges: true } || XamlRoot == null)
         {
             return true;

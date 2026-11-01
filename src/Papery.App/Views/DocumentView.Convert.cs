@@ -37,7 +37,7 @@ public sealed partial class DocumentView
         ConvertSnapshot.IsChecked = false;
     }
 
-    private async Task<bool> AllowConvertAsync(string key) => XamlRoot != null && await ProDialogs.RequireProAsync(XamlRoot, Tool(key));
+    private async Task<bool> AllowConvertAsync(string? key) => XamlRoot != null && await ProDialogs.RequireProAsync(XamlRoot, key == null ? null : Tool(key));
 
     // ================================================================= pages to pictures
 
@@ -221,7 +221,7 @@ public sealed partial class DocumentView
 
     private async Task SaveTextAsync()
     {
-        if (!await AllowConvertAsync("pdf-to-images") || await ImageFiles.PickSaveTextAsync(GetWindowHandle?.Invoke() ?? 0, Path.GetFileNameWithoutExtension(FilePath)) is not { } path)
+        if (!await AllowConvertAsync(null) || await ImageFiles.PickSaveTextAsync(GetWindowHandle?.Invoke() ?? 0, Path.GetFileNameWithoutExtension(FilePath)) is not { } path)
         {
             return;
         }
@@ -239,7 +239,7 @@ public sealed partial class DocumentView
 
     private async Task CopyAllTextAsync()
     {
-        if (!await AllowConvertAsync("pdf-to-images") || await AllTextAsync() is not { } text)
+        if (!await AllowConvertAsync(null) || await AllTextAsync() is not { } text)
         {
             return;
         }

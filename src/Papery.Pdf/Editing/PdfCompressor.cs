@@ -123,6 +123,7 @@ internal static class PdfCompressor
             {
                 to.SetLength(0);
                 await from.CopyToAsync(to, cancellationToken).ConfigureAwait(false);
+                to.Flush(flushToDisk: true);
             }
 
             await thread.InvokeAsync(() => PdfComposer.Verify(temp, password, pages, outputPath), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);

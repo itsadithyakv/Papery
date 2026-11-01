@@ -18,6 +18,9 @@ public sealed partial class DocumentView
     private bool _settingMode;
     private bool _closingTab;
 
+    // Saved during a window close that was then cancelled further on: what's on screen is out of date.
+    private bool _staleAfterClose;
+
     /// <summary>Asks the window to open a PDF in a new tab.</summary>
     public event EventHandler<string>? OpenFileRequested;
 
@@ -97,6 +100,18 @@ public sealed partial class DocumentView
         bool close = await _organise.ConfirmLeaveAsync();
         _closingTab = close;
         return close;
+    }
+
+    /// <summary>This tab agreed to close, then another tab in the window said Cancel, so it carries on after all.</summary>
+    public async Task CloseCancelledAsync()
+    {
+        _closingTab = false;
+        if (_staleAfterClose)
+        {
+            _staleAfterClose = false;
+            await ReloadAsync();
+            UpdateAnnotateButtons();
+        }
     }
 
     // ================================================================= modes
@@ -225,7 +240,7 @@ public sealed partial class DocumentView
             return false;
         }
 
-        var view = new OrganiseView { GetWindowHandle = () => GetWindowHandle?.Invoke() ?? 0 };
+        var view = new OrganiseView { GetWindowHandle = () => GetWindowHandle?.Invoke() ?? 0, MayOverwrite = OrganiseMayOverwriteAsync };
         Grid.SetRow(view, 2); // the toolbar row above collapses, so the board gets all the height
         view.Initialize(_document, Viewer.ReadingMode);
         view.Closed += OnOrganiseClosed;
@@ -263,6 +278,15 @@ public sealed partial class DocumentView
         Viewer.Redraw();
         SetViewShortcutsEnabled(true);
         await view.CloseAsync();
+        if (saved)
+        {
+            // The steps from before this save would put back a file without these page changes.
+            _annotationUndo.Clear();
+            _annotationRedo.Clear();
+            UpdateAnnotateButtons();
+            _staleAfterClose = _closingTab;
+        }
+
         if (saved && !_closingTab)
         {
             await ReloadAsync();

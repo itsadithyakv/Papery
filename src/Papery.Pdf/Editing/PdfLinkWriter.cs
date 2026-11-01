@@ -80,7 +80,7 @@ internal static class PdfLinkWriter
             await using var to = new FileStream(temp, FileMode.Open, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true);
             to.SetLength(0);
             await from.CopyToAsync(to, cancellationToken).ConfigureAwait(false);
-            await to.FlushAsync(cancellationToken).ConfigureAwait(false);
+            to.Flush(flushToDisk: true);
         }, cancellationToken).ConfigureAwait(false);
     }
 

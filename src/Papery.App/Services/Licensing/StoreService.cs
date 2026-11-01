@@ -24,6 +24,9 @@ public enum PurchaseOutcome
 internal sealed class StoreService
 {
     private static readonly string[] DurableKind = ["Durable"];
+
+    // Nobody is looking at these, so a Store that never answers mustn't leave a spinner running. Buying has no limit: it waits for a person.
+    private static readonly TimeSpan AnswerTime = TimeSpan.FromSeconds(30);
     private StoreContext? _context;
 
     /// <summary>Raised when Windows tells us licences changed (bought on another PC, refunded...).</summary>
@@ -67,14 +70,14 @@ internal sealed class StoreService
         try
         {
             // 1) The licence Windows keeps on this PC (works offline).
-            var license = await _context.GetAppLicenseAsync();
+            var license = await _context.GetAppLicenseAsync().AsTask().WaitAsync(AnswerTime);
             if (license?.AddOnLicenses.Any(a => a.Key.StartsWith(StoreIds.ProAddOnStoreId, StringComparison.OrdinalIgnoreCase) && a.Value.IsActive) == true)
             {
                 return StoreCheckResult.Owned;
             }
 
             // 2) Ask the Store for the user's collection (needs the internet).
-            var collection = await _context.GetUserCollectionAsync(DurableKind);
+            var collection = await _context.GetUserCollectionAsync(DurableKind).AsTask().WaitAsync(AnswerTime);
             if (collection.ExtendedError != null)
             {
                 return StoreCheckResult.Unknown;
@@ -101,7 +104,7 @@ internal sealed class StoreService
 
         try
         {
-            var result = await _context.GetStoreProductsAsync(DurableKind, [StoreIds.ProAddOnStoreId]);
+            var result = await _context.GetStoreProductsAsync(DurableKind, [StoreIds.ProAddOnStoreId]).AsTask().WaitAsync(AnswerTime);
             return result.ExtendedError == null && result.Products.TryGetValue(StoreIds.ProAddOnStoreId, out var product)
                 ? product.Price.FormattedPrice
                 : null;
@@ -114,7 +117,8 @@ internal sealed class StoreService
     }
 
     /// <summary>Opens the Store's own purchase window. Papery never sees payment details.</summary>
-    public async Task<PurchaseOutcome> PurchaseAsync()
+    /// <param name="ownerWindow">The window asking. The one <see cref="Initialize"/> was given may be closed by now.</param>
+    public async Task<PurchaseOutcome> PurchaseAsync(nint ownerWindow)
     {
         if (!StoreIds.IsConfigured)
         {
@@ -128,7 +132,7 @@ internal sealed class StoreService
 
         try
         {
-            var result = await _context.RequestPurchaseAsync(StoreIds.ProAddOnStoreId);
+            var result = await ContextFor(ownerWindow).RequestPurchaseAsync(StoreIds.ProAddOnStoreId);
             if (result.ExtendedError != null)
             {
                 Log.Info($"Purchase ended with {result.Status}: {result.ExtendedError.Message}");
@@ -148,5 +152,24 @@ internal sealed class StoreService
             Log.Error("Purchase failed", ex);
             return PurchaseOutcome.StoreProblem;
         }
+    }
+
+    private StoreContext ContextFor(nint ownerWindow)
+    {
+        try
+        {
+            if (ownerWindow != 0)
+            {
+                var context = StoreContext.GetDefault();
+                InitializeWithWindow.Initialize(context, ownerWindow);
+                return context;
+            }
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Log.Error("Couldn't attach the Store to this window", ex);
+        }
+
+        return _context!;
     }
 }

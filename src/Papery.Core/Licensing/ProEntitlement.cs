@@ -195,7 +195,7 @@ public sealed class ProEntitlement
             File.WriteAllBytes(temp, data);
             File.Move(temp, _cachePath, overwrite: true);
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
         {
             // The in-memory state is still right for this session; the next confirmed check saves again.
         }

@@ -56,17 +56,13 @@ internal static class RecoveryService
             Forget(copy);
         }
 
-        return found;
-    }
+        // A copy that was never described belongs to nothing that can be offered back.
+        foreach (string copy in Directory.GetFiles(Folder, "*.pdf").Where(c => !File.Exists(Path.ChangeExtension(c, ".json"))))
+        {
+            TryDelete(copy);
+        }
 
-    /// <summary>Gives a recovered copy a name people recognise, next to the app's other private files, ready to open.</summary>
-    public static string Restore(RecoveredFile file)
-    {
-        string name = $"{Path.GetFileNameWithoutExtension(file.OriginalPath)} (recovered).pdf";
-        string target = Path.Combine(Directory.CreateDirectory(Path.Combine(Folder, "restored", Guid.NewGuid().ToString("N")[..8])).FullName, name);
-        File.Move(file.CopyPath, target);
-        TryDelete(file.InfoPath);
-        return target;
+        return found;
     }
 
     private static void TryDelete(string path)

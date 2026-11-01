@@ -7,6 +7,10 @@ public sealed record PdfAttachment(int Index, string Name, long Size);
 
 public sealed partial class PdfDocument
 {
+    /// <summary>How many files are attached. Doesn't unpack them, so it's safe while a file is opening.</summary>
+    public Task<int> CountAttachmentsAsync(CancellationToken cancellationToken = default) =>
+        Run(() => PdfiumNative.FPDFDoc_GetAttachmentCount(_handle), cancellationToken, PdfWorkPriority.Nearby);
+
     /// <summary>The files attached to the document as a whole.</summary>
     public unsafe Task<IReadOnlyList<PdfAttachment>> GetAttachmentsAsync(CancellationToken cancellationToken = default)
     {

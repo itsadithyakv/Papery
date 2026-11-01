@@ -21,6 +21,7 @@ public partial class App : Application
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         AppServices.Initialize();
+        _ = Task.Run(TempFiles.SweepOld);
 
         // Files sent from a second launch (double-clicking another PDF) arrive here.
         AppInstance.GetCurrent().Activated += OnRedirectedActivation;

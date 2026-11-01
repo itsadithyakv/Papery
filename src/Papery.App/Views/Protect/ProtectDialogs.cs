@@ -105,7 +105,7 @@ internal static class ProtectDialogs
         {
             panel.Children.Add(new TextBlock
             {
-                Text = "Removing hidden layers turns every page into a picture, with its words kept searchable.",
+                Text = "Removing hidden layers turns every page into a picture, so its words can't be searched or copied until you use Make searchable.",
                 TextWrapping = TextWrapping.Wrap,
                 Style = (Style)Application.Current.Resources["PaperySecondaryTextStyle"],
             });

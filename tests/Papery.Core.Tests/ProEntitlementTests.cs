@@ -145,6 +145,22 @@ public sealed class ProEntitlementTests : IDisposable
     }
 
     /// <summary>Stand-in for DPAPI: a different key behaves like a different Windows account.</summary>
+    [Fact]
+    public void A_purchase_still_unlocks_when_the_record_cannot_be_written()
+    {
+        var entitlement = new ProEntitlement(CachePath, new BrokenProtector(), () => _now);
+
+        Assert.True(entitlement.Apply(StoreCheckResult.Owned));
+        Assert.True(entitlement.IsPro);
+    }
+
+    private sealed class BrokenProtector : ISecretProtector
+    {
+        public byte[] Protect(byte[] data) => throw new System.Security.Cryptography.CryptographicException("no key");
+
+        public byte[] Unprotect(byte[] data) => throw new System.Security.Cryptography.CryptographicException("no key");
+    }
+
     private sealed class XorProtector(byte key = 0xA7) : ISecretProtector
     {
         private const byte Marker = 0x50;

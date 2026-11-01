@@ -140,7 +140,7 @@
 <Button x:Name="SaveCopyButton" Style="{StaticResource ToolButtonStyle}" Click="OnSaveCopyClick" AutomationProperties.Name="Save as a copy" ToolTipService.ToolTip="Save as a copy (leaves this file as it is)">
                         <FontIcon Glyph="&#xE792;" Style="{StaticResource ToolIconStyle}" />
                     </Button>
-                    <Button x:Name="SaveButton" Style="{StaticResource PaperyPrimaryButtonStyle}" Click="OnSaveClick" ToolTipService.ToolTip="Save changes to this file (Ctrl+S)">
+                    <Button AutomationProperties.Name="Save" x:Name="SaveButton" Style="{StaticResource PaperyPrimaryButtonStyle}" Click="OnSaveClick" ToolTipService.ToolTip="Save changes to this file (Ctrl+S)">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <FontIcon Glyph="&#xE74E;" FontSize="14" FontFamily="{StaticResource PaperyIcons}" />
                             <TextBlock Text="Save" />

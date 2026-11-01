@@ -117,6 +117,7 @@ public sealed partial class DocumentView : UserControl
     {
         _document = document;
         FilePath = document.FilePath;
+        _fileStamp = StampOf(FilePath);
         Guard.Run(() => MentionAttachmentsAsync(document), "Looking for attached files");
         var settings = AppServices.Settings.Current;
         var state = settings.RememberPosition ? AppServices.ViewState.Get(FilePath) : null;
@@ -204,6 +205,7 @@ public sealed partial class DocumentView : UserControl
     public async Task CloseAsync()
     {
         _closingTab = true;
+        AppServices.Pro.Changed -= _proChanged;
         await ExitOrganiseAsync(saved: false);
         _saveTimer.Stop();
         SaveState();

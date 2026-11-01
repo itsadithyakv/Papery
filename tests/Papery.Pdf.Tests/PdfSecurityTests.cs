@@ -226,7 +226,7 @@ public sealed class PdfSecurityTests : IDisposable
     }
 
     [Fact]
-    public async Task Bookmarks_still_lead_to_a_redacted_page()
+    public async Task Bookmarks_are_left_out_of_a_redacted_copy_as_they_can_repeat_the_words()
     {
         string path = CreateSecretPdf();
         await Engine.SetOutlineAsync(new PdfInputFile(path), [new PdfOutlineItem("Start", 0, [])], path);
@@ -235,7 +235,7 @@ public sealed class PdfSecurityTests : IDisposable
         await Engine.RedactAsync(new PdfInputFile(path), [new RedactionArea(0, SecretBox)], output);
 
         await using var doc = await Engine.OpenAsync(output);
-        Assert.Equal(0, Assert.Single(await doc.GetOutlineAsync()).PageIndex);
+        Assert.Empty(await doc.GetOutlineAsync());
     }
 
     [Fact]
@@ -416,5 +416,156 @@ public sealed class PdfSecurityTests : IDisposable
         Assert.Equal(0, after.Comments);
         Assert.True(after.Attachments >= 1);
         Assert.True(after.Scripts >= 1);
+    }
+
+    // ================================================================= copies of the words elsewhere in the file
+
+    private const string LayerWord = "LAYERWORD";
+
+    /// <summary>Page one has a line on a layer that's switched off. Page two is ordinary.</summary>
+    private string CreateWithHiddenLayer() => Handmade(
+    [
+        "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /OFF [6 0 R] >> >> >>",
+        "<< /Type /Pages /Kids [3 0 R 7 0 R] /Count 2 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Resources << /Font << /F1 5 0 R >> /Properties << /oc1 6 0 R >> >> /Contents 4 0 R >>",
+        Stream($"/OC /oc1 BDC BT /F1 24 Tf 72 500 Td ({LayerWord}) Tj ET EMC BT /F1 24 Tf 72 200 Td ({Open}) Tj ET"),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        "<< /Type /OCG /Name (Hidden) >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Resources << /Font << /F1 5 0 R >> >> /Contents 8 0 R >>",
+        Stream($"BT /F1 24 Tf 72 700 Td ({Secret}) Tj ET"),
+    ]);
+
+    [Fact]
+    public async Task Words_on_a_hidden_layer_do_not_come_back_as_search_text()
+    {
+        string output = NewPath;
+
+        await Engine.RemoveHiddenDataAsync(new PdfInputFile(CreateWithHiddenLayer()), new PdfHiddenDataChoice(), output);
+
+        await using var doc = await Engine.OpenAsync(output);
+        Assert.DoesNotContain(LayerWord, await doc.GetPageTextAsync(0), StringComparison.Ordinal);
+        Assert.DoesNotContain(LayerWord, await RawTextOf(output), StringComparison.Ordinal);
+        Assert.Equal(0, (await Engine.InspectHiddenDataAsync(new PdfInputFile(output))).HiddenLayers);
+    }
+
+    [Fact]
+    public async Task Hidden_layers_also_leave_a_password_protected_file()
+    {
+        string locked = NewPath, output = NewPath;
+        await Engine.ProtectAsync(new PdfInputFile(CreateWithHiddenLayer()), new PdfProtection("pw", true, true), locked);
+
+        await Engine.RemoveHiddenDataAsync(new PdfInputFile(locked, "pw"), new PdfHiddenDataChoice(), output);
+
+        await using var doc = await Engine.OpenAsync(output, "pw");
+        Assert.DoesNotContain(LayerWord, await doc.GetPageTextAsync(0), StringComparison.Ordinal);
+        Assert.Equal(0, (await Engine.InspectHiddenDataAsync(new PdfInputFile(output, "pw"))).HiddenLayers);
+    }
+
+    [Fact]
+    public async Task Redacting_one_page_also_clears_hidden_layers_on_the_others()
+    {
+        string output = NewPath;
+
+        await Engine.RedactAsync(new PdfInputFile(CreateWithHiddenLayer()), [new RedactionArea(1, SecretBox)], output);
+
+        await using var doc = await Engine.OpenAsync(output);
+        Assert.DoesNotContain(LayerWord, await doc.GetPageTextAsync(0), StringComparison.Ordinal);
+        Assert.DoesNotContain(LayerWord, await RawTextOf(output), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_redacted_copy_keeps_no_copies_in_the_details_bookmarks_comments_or_attachments()
+    {
+        string path = CreateSecretPdf(
+            pageExtra: "/Annots [8 0 R 9 0 R] ",
+            catalogExtra: "/OpenAction 10 0 R /Outlines 14 0 R /Names << /EmbeddedFiles << /Names [(a.txt) 11 0 R] >> /JavaScript << /Names [(x) 10 0 R] >> >> /Metadata 13 0 R ",
+            "<< /Type /Annot /Subtype /Text /Rect [80 690 100 710] /Contents (A private comment) >>",
+            "<< /Type /Annot /Subtype /FileAttachment /Rect [80 590 100 610] /FS 11 0 R >>",
+            "<< /S /JavaScript /JS (app.alert\\('hello'\\)) >>",
+            "<< /Type /Filespec /F (a.txt) /EF << /F 12 0 R >> >>",
+            Stream("HIDDENATTACHMENT"),
+            "<< /Type /Metadata /Subtype /XML /Length 9 >>\nstream\nHIDDENXML\nendstream",
+            "<< /Type /Outlines /First 15 0 R /Last 15 0 R /Count 1 >>",
+            "<< /Title (OUTLINEWORD) /Parent 14 0 R /Dest [3 0 R /Fit] >>");
+        await Engine.SetMetadataAsync(new PdfInputFile(path), new PdfDescription("TITLEWORD", "AUTHORWORD", string.Empty, string.Empty), path);
+        string output = NewPath;
+
+        // Only page two is marked, so page one's comment and everything at file level would otherwise survive.
+        await Engine.RedactAsync(new PdfInputFile(path), [new RedactionArea(1, SecretBox)], output);
+
+        string raw = await RawTextOf(output);
+        foreach (string left in new[] { "TITLEWORD", "AUTHORWORD", "OUTLINEWORD", "HIDDENXML", "HIDDENATTACHMENT", "A private comment", "app.alert" })
+        {
+            Assert.DoesNotContain(left, raw, StringComparison.Ordinal);
+        }
+
+        await using var doc = await Engine.OpenAsync(output);
+        Assert.Contains(Open, await doc.GetPageTextAsync(0), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Tools_that_rewrite_the_file_also_work_on_one_with_a_password()
+    {
+        string locked = NewPath;
+        await Engine.ProtectAsync(new PdfInputFile(_files.Create(2)), new PdfProtection("pw"), locked);
+        var input = new PdfInputFile(locked, "pw");
+
+        await Engine.SetMetadataAsync(input, new PdfDescription("My title", "Me", string.Empty, string.Empty), locked);
+        await Engine.SetOutlineAsync(input, [new PdfOutlineItem("Start", 0, [])], locked);
+        await Engine.EditLinksAsync(input, [], [new NewPdfLink(0, new NormalizedRect(0.1, 0.1, 0.2, 0.05), TargetPage: 1, Uri: null)], locked);
+        _ = await Engine.InspectHiddenDataAsync(input);
+
+        await Assert.ThrowsAsync<PdfOpenException>(() => Engine.OpenAsync(locked));
+        await using var doc = await Engine.OpenAsync(locked, "pw");
+        Assert.Equal("My title", (await doc.GetMetadataAsync()).Title);
+        Assert.Single(await doc.GetOutlineAsync());
+    }
+
+    // ================================================================= sizes a broken file can ask for
+
+    [Fact]
+    public async Task A_page_too_big_to_draw_is_refused_instead_of_overflowing()
+    {
+        await using var doc = await Engine.OpenAsync(_files.Create(1));
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => doc.RenderPageAsync(0, 100_000, 100_000));
+    }
+
+    // ================================================================= saving and attachments
+
+    [Fact]
+    public void An_original_left_under_the_backup_name_gets_its_name_back()
+    {
+        string target = NewPath, backup = target + ".bak";
+        File.WriteAllText(backup, "the original");
+
+        SafeFile.PutBackIfMoved(backup, target);
+
+        Assert.Equal("the original", File.ReadAllText(target));
+        Assert.False(File.Exists(backup));
+    }
+
+    [Fact]
+    public void A_stray_backup_never_replaces_a_file_that_is_still_there()
+    {
+        string target = NewPath, backup = target + ".bak";
+        File.WriteAllText(target, "current");
+        File.WriteAllText(backup, "older");
+
+        SafeFile.PutBackIfMoved(backup, target);
+
+        Assert.Equal("current", File.ReadAllText(target));
+        Assert.False(File.Exists(backup));
+    }
+
+    [Fact]
+    public async Task A_saved_attachment_is_marked_as_coming_from_outside()
+    {
+        string path = NewPath;
+
+        await AttachedFileWriter.WriteAsync(path, [1, 2, 3]);
+
+        Assert.Equal(new byte[] { 1, 2, 3 }, await File.ReadAllBytesAsync(path));
+        Assert.Contains("ZoneId=3", await File.ReadAllTextAsync(path + ":Zone.Identifier"), StringComparison.Ordinal);
     }
 }

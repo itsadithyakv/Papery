@@ -52,7 +52,16 @@ internal static class FileExtrasDialogs
                 string extension = Path.GetExtension(name);
                 if (await Pickers.PickSaveAsync(hwnd, Path.GetFileNameWithoutExtension(name), "Attached file", string.IsNullOrEmpty(extension) ? ".bin" : extension) is { } output)
                 {
-                    await File.WriteAllBytesAsync(output, await document.ReadAttachmentAsync(attachment.Index));
+                    try
+                    {
+                        await AttachedFileWriter.WriteAsync(output, await document.ReadAttachmentAsync(attachment.Index));
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+                    {
+                        Pickers.RemoveIfEmpty(output);
+                        throw;
+                    }
+
                     saved(output);
                 }
             }, "Saving an attached file");
@@ -65,7 +74,7 @@ internal static class FileExtrasDialogs
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(open, $"Open {name}");
                 open.Click += (_, _) => Guard.Run(async () =>
                 {
-                    string folder = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "Papery", "attachments", Guid.NewGuid().ToString("N"))).FullName;
+                    string folder = Directory.CreateDirectory(Path.Combine(TempFiles.AttachmentsFolder, Guid.NewGuid().ToString("N"))).FullName;
                     string path = Path.Combine(folder, name);
                     await File.WriteAllBytesAsync(path, await document.ReadAttachmentAsync(attachment.Index));
                     dialog.Hide();
@@ -111,7 +120,7 @@ internal static class FileExtrasDialogs
             {
                 item.Children.Add(Line(check.TrustedSigner
                     ? "Windows trusts this signer's certificate."
-                    : "Windows doesn't recognise this certificate, so the name above is only what the signer claims.", Secondary));
+                    : "Windows can't vouch for this certificate today, so the name above is only what the signer claims.", Secondary));
             }
 
             list.Children.Add(item);
@@ -140,6 +149,11 @@ internal static class FileExtrasDialogs
         if (!check.Intact)
         {
             return ("", "Broken: this was changed after it was signed");
+        }
+
+        if (check.CoversWholeFile && !check.TrustedSigner)
+        {
+            return ("\uE7BA", "Unchanged since signing, but the signer isn't verified");
         }
 
         return check.CoversWholeFile

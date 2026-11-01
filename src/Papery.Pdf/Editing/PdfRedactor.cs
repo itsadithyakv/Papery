@@ -12,6 +12,8 @@ public sealed record RedactionArea(int PageIndex, NormalizedRect Area);
 /// exposes someone's private data. Each affected page is drawn to a picture with solid black boxes burned in, every original object
 /// on it is deleted, and the words outside the boxes go back as an invisible layer so the rest stays searchable.
 /// Everything the page's old content could be reached through is then dropped, and the result is checked.
+/// A file with hidden layers has every page flattened and keeps no words, because the words can't be told apart from
+/// the ones on a hidden layer, and that layer may hold what was marked.
 /// </summary>
 internal static class PdfRedactor
 {
@@ -19,12 +21,15 @@ internal static class PdfRedactor
     private const int PictureQuality = 85;
     private const int LongestSide = 7000;
 
-    /// <param name="alsoFlatten">Pages to turn into pictures with no boxes at all (for removing hidden layers).</param>
-    public static async Task ApplyAsync(PdfiumThread thread, PdfInputFile input, IReadOnlyList<RedactionArea> areas, IReadOnlyList<int> alsoFlatten, string outputPath, CancellationToken cancellationToken)
+    /// <param name="clearFileLevel">
+    /// Also drop what could repeat the marked words outside the pages: details, bookmarks, comments, attachments and scripts.
+    /// Off when this is only removing hidden layers, where the person chooses those separately.
+    /// </param>
+    public static async Task ApplyAsync(PdfiumThread thread, PdfInputFile input, IReadOnlyList<RedactionArea> areas, bool clearFileLevel, string outputPath, CancellationToken cancellationToken)
     {
         if (input.Password != null)
         {
-            await ApplyKeepingPasswordAsync(thread, input, areas, alsoFlatten, outputPath, cancellationToken).ConfigureAwait(false);
+            await KeepingPasswordAsync(thread, input, outputPath, (plain, output) => ApplyAsync(thread, plain, areas, clearFileLevel, output, cancellationToken), cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -32,6 +37,7 @@ internal static class PdfRedactor
         try
         {
             string source = input.Path;
+            bool layers = await Task.Run(() => PdfSecurity.HasHiddenLayers(input), cancellationToken).ConfigureAwait(false);
             bool hasForm = await thread.InvokeAsync(() =>
             {
                 using var doc = RawPdf.Load(input.Path, null);
@@ -50,12 +56,11 @@ internal static class PdfRedactor
             }
 
             var byPage = areas.GroupBy(a => a.PageIndex).ToDictionary(g => g.Key, g => g.Select(a => a.Area).ToArray());
-            var pages = byPage.Keys.Concat(alsoFlatten).Distinct().Order().ToArray();
-
             string redacted = Path.Combine(work, "redacted.pdf");
             await File.WriteAllBytesAsync(redacted, [], cancellationToken).ConfigureAwait(false);
             RawPdf? doc = null;
             int pageCount;
+            int[] pages;
             try
             {
                 pageCount = await thread.InvokeAsync(() =>
@@ -64,11 +69,12 @@ internal static class PdfRedactor
                     return doc.PageCount;
                 }, PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
 
+                pages = layers ? Enumerable.Range(0, pageCount).ToArray() : byPage.Keys.Order().ToArray();
                 foreach (int index in pages)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     NormalizedRect[] boxes = byPage.GetValueOrDefault(index) ?? [];
-                    var (bitmap, keep) = await thread.InvokeAsync(() => Read(doc!, index, boxes, input.Path), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
+                    var (bitmap, keep) = await thread.InvokeAsync(() => Read(doc!, index, boxes, keepWords: !layers, input.Path), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
                     byte[] jpeg = await Task.Run(() => JpegEncoder.Encode(bitmap, PictureQuality, grey: false), cancellationToken).ConfigureAwait(false);
                     await thread.InvokeAsync(() => Rebuild(doc!, index, jpeg, keep, input.Path), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
                 }
@@ -81,7 +87,7 @@ internal static class PdfRedactor
             }
 
             string scrubbed = Path.Combine(work, "scrubbed.pdf");
-            await Task.Run(() => Scrub(redacted, scrubbed, pages), cancellationToken).ConfigureAwait(false);
+            await Task.Run(() => Scrub(redacted, scrubbed, pages, clearFileLevel, layers), cancellationToken).ConfigureAwait(false);
 
             // QPDF only writes what's still reachable, so everything cut loose above is gone from the file.
             string final = Path.Combine(work, "final.pdf");
@@ -97,10 +103,10 @@ internal static class PdfRedactor
     }
 
     /// <summary>
-    /// The steps below need an unlocked file, so a locked one is unlocked into a private folder, redacted, and locked again
+    /// Removal needs an unlocked file, so a locked one is unlocked into a private folder, worked on, and locked again
     /// with the same password and permissions. Nothing unlocked reaches the output.
     /// </summary>
-    private static async Task ApplyKeepingPasswordAsync(PdfiumThread thread, PdfInputFile input, IReadOnlyList<RedactionArea> areas, IReadOnlyList<int> alsoFlatten, string outputPath, CancellationToken cancellationToken)
+    internal static async Task KeepingPasswordAsync(PdfiumThread thread, PdfInputFile input, string outputPath, Func<PdfInputFile, string, Task> change, CancellationToken cancellationToken)
     {
         string work = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "Papery", "redact", Guid.NewGuid().ToString("N"))).FullName;
         try
@@ -120,7 +126,7 @@ internal static class PdfRedactor
 
             string plain = Path.Combine(work, "plain.pdf"), redacted = Path.Combine(work, "redacted.pdf");
             await PdfSecurity.RemovePasswordAsync(thread, input, plain, cancellationToken).ConfigureAwait(false);
-            await ApplyAsync(thread, new PdfInputFile(plain), areas, alsoFlatten, redacted, cancellationToken).ConfigureAwait(false);
+            await change(new PdfInputFile(plain), redacted).ConfigureAwait(false);
             var protection = new PdfProtection(input.Password!, (allowed & Print) != 0, (allowed & Copy) != 0);
             await PdfSecurity.ProtectAsync(thread, new PdfInputFile(redacted), protection, outputPath, cancellationToken).ConfigureAwait(false);
         }
@@ -133,7 +139,7 @@ internal static class PdfRedactor
     private static bool Touches(NormalizedRect a, NormalizedRect b) =>
         a.X < b.Right && b.X < a.Right && a.Y < b.Bottom && b.Y < a.Bottom;
 
-    private static unsafe (PdfBitmap Picture, List<OcrWord> Keep) Read(RawPdf doc, int index, NormalizedRect[] boxes, string path)
+    private static unsafe (PdfBitmap Picture, List<OcrWord> Keep) Read(RawPdf doc, int index, NormalizedRect[] boxes, bool keepWords, string path)
     {
         nint page = PdfiumNative.FPDF_LoadPage(doc.Handle, index);
         if (page == 0)
@@ -147,7 +153,11 @@ internal static class PdfRedactor
             var keep = new List<OcrWord>();
             if (textPage != 0)
             {
-                keep.AddRange(PdfDocument.ReadWords(page, textPage).Where(w => !boxes.Any(b => Touches(w.Area, b))).Select(w => new OcrWord(w.Text, w.Area)));
+                if (keepWords)
+                {
+                    keep.AddRange(PdfDocument.ReadWords(page, textPage).Where(w => !boxes.Any(b => Touches(w.Area, b))).Select(w => new OcrWord(w.Text, w.Area)));
+                }
+
                 PdfiumNative.FPDFText_ClosePage(textPage);
             }
 
@@ -238,7 +248,7 @@ internal static class PdfRedactor
     }
 
     /// <summary>Other routes to a page's old words: tagged-text trees, thumbnails, and private app data.</summary>
-    private static void Scrub(string input, string output, IReadOnlyList<int> pages)
+    private static void Scrub(string input, string output, IReadOnlyList<int> pages, bool clearFileLevel, bool layers)
     {
         using var doc = PdfReader.Open(input, PdfDocumentOpenMode.Modify);
         foreach (string key in new[] { "/StructTreeRoot", "/MarkInfo" })
@@ -253,6 +263,12 @@ internal static class PdfRedactor
             {
                 page.Elements.Remove(key);
             }
+        }
+
+        if (clearFileLevel)
+        {
+            PdfSecurity.Clean(doc, new PdfHiddenDataChoice(), layers);
+            doc.Internals.Catalog.Elements.Remove("/Outlines");
         }
 
         using var stream = new FileStream(output, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16);

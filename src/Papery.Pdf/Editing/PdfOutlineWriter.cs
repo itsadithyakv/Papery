@@ -71,7 +71,7 @@ internal static class PdfOutlineWriter
             {
                 var action = new PdfDictionary(doc);
                 action.Elements["/S"] = new PdfName("/URI");
-                action.Elements["/URI"] = new PdfString(item.Uri);
+                action.Elements["/URI"] = new PdfString(item.Uri!);
                 added.Elements["/A"] = action;
                 added.DestinationPage = null!;
             }

@@ -61,7 +61,7 @@ public sealed partial class DocumentView
             {
                 if (await Pickers.PickSavePdfAsync(GetWindowHandle?.Invoke() ?? 0, Path.GetFileNameWithoutExtension(FilePath) + "-small", FilePath) is { } output)
                 {
-                    await PdfEngine.Shared.RestoreCopyAsync(outcome.SmallerCopy, document.Password, output);
+                    await SaveCopyElsewhereAsync(outcome.SmallerCopy, document.Password, output);
                     Toaster.Show(done, "", "Open", () => NewPdfMade?.Invoke(this, output));
                 }
             }
@@ -80,12 +80,26 @@ public sealed partial class DocumentView
         }
     }
 
+    /// <summary>If this fails, the empty file the save picker made doesn't stay behind.</summary>
+    private static async Task SaveCopyElsewhereAsync(string copy, string? password, string output)
+    {
+        try
+        {
+            await PdfEngine.Shared.RestoreCopyAsync(copy, password, output);
+        }
+        catch (Exception ex) when (ex is PdfEditException or PdfOpenException or IOException or UnauthorizedAccessException)
+        {
+            Pickers.RemoveIfEmpty(output);
+            throw;
+        }
+    }
+
     // ================================================================= locks on the toolbars
 
     // These work without Pro, or only show up once something has been picked.
     private static readonly HashSet<string> OpenToEveryone =
     [
-        "Select, move or resize", "Change the words", "Turn", "Delete", "Snapshot", "Save as text", "Copy all the text",
+        "Select, move or resize", "Change the words", "Turn", "Delete", "Snapshot",
         "Make a PDF from any app", "Clear the marks", "Document details", "Save a copy", "Attached files",
     ];
 
@@ -181,7 +195,7 @@ public sealed partial class DocumentView
             }
             else if (await Pickers.PickSavePdfAsync(GetWindowHandle?.Invoke() ?? 0, Path.GetFileNameWithoutExtension(FilePath) + "-filtered", FilePath) is { } output)
             {
-                await PdfEngine.Shared.RestoreCopyAsync(made, document.Password, output);
+                await SaveCopyElsewhereAsync(made, document.Password, output);
                 Toaster.Show(done, "\uE790", "Open", () => NewPdfMade?.Invoke(this, output));
             }
         }
@@ -268,7 +282,7 @@ public sealed partial class DocumentView
     /// <summary>Attached files are easy to miss, so a file that has them says so once when it opens.</summary>
     private async Task MentionAttachmentsAsync(PdfDocument document)
     {
-        int count = (await document.GetAttachmentsAsync()).Count;
+        int count = await document.CountAttachmentsAsync();
         if (count > 0 && _document == document)
         {
             Toaster.Show(count == 1 ? "This PDF has 1 attached file" : $"This PDF has {count:N0} attached files", "\uE723", "Show", () => Guard.Run(ShowAttachmentsAsync, "Showing attached files"));
@@ -298,7 +312,7 @@ public sealed partial class DocumentView
 
     private async Task ExportWordAsync()
     {
-        if (_document is not { } document || !await AllowConvertAsync("pdf-to-images")
+        if (_document is not { } document || !await AllowConvertAsync(null)
             || await Pickers.PickSaveAsync(GetWindowHandle?.Invoke() ?? 0, Path.GetFileNameWithoutExtension(FilePath), "Word document", ".docx") is not { } output)
         {
             return;
@@ -440,7 +454,8 @@ public sealed partial class DocumentView
     private static async Task<PdfColor> PaperColourAsync(PdfDocument document, int page, NormalizedRect near)
     {
         var size = document.PageSizes[page];
-        int w = Math.Max(1, (int)size.Width), h = Math.Max(1, (int)size.Height);
+        double shrink = Math.Min(1, 2000 / Math.Max(size.Width, size.Height)); // a page can claim any size, and this is only a colour
+        int w = Math.Max(1, (int)(size.Width * shrink)), h = Math.Max(1, (int)(size.Height * shrink));
         var bitmap = await document.RenderPageAsync(page, w, h, PdfRenderOptions.None);
         int x = Math.Clamp((int)(near.X * w) - 3, 0, w - 1), y = Math.Clamp((int)((near.Y + (near.Height / 2)) * h), 0, h - 1);
         int at = (y * bitmap.Stride) + (x * 4);
@@ -455,6 +470,11 @@ public sealed partial class DocumentView
     /// </summary>
     private async Task<bool> ConfirmChangingOriginalAsync()
     {
+        if (!await CheckNotChangedElsewhereAsync())
+        {
+            return false;
+        }
+
         if (_overwriteOk || XamlRoot == null)
         {
             return true;
@@ -467,7 +487,7 @@ public sealed partial class DocumentView
 
         var always = new CheckBox { Content = "Always save a copy" };
         var panel = new StackPanel { Spacing = 10 };
-        panel.Children.Add(Dialogs.Wrap($"This changes \"{FileName}\" itself. You can undo changes until you close this tab."));
+        panel.Children.Add(Dialogs.Wrap($"This changes \"{FileName}\" itself. Saved markup can't be undone."));
         panel.Children.Add(always);
         var dialog = new ContentDialog
         {
@@ -496,6 +516,64 @@ public sealed partial class DocumentView
 
         _overwriteOk = true;
         return true;
+    }
+
+    private (DateTime Written, long Length)? _fileStamp;
+
+    private static (DateTime Written, long Length)? StampOf(string path)
+    {
+        try
+        {
+            var info = new FileInfo(path);
+            return info.Exists ? (info.LastWriteTimeUtc, info.Length) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>A sync folder or another program may have updated the file since it opened here.</summary>
+    private bool FileChangedElsewhere() => _fileStamp != null && StampOf(FilePath) is { } now && now != _fileStamp;
+
+    private async Task<bool> CheckNotChangedElsewhereAsync()
+    {
+        if (XamlRoot == null || !FileChangedElsewhere())
+        {
+            return true;
+        }
+
+        var dialog = new ContentDialog
+        {
+            Title = "This file has changed",
+            Content = Dialogs.Wrap($"Another program changed \"{FileName}\" after Papery opened it. Saving here would replace those changes."),
+            PrimaryButtonText = "Replace it",
+            SecondaryButtonText = "Save a copy",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+        };
+        switch (await Dialogs.ShowAsync(dialog, XamlRoot))
+        {
+            case ContentDialogResult.Primary:
+                _fileStamp = StampOf(FilePath);
+                return true;
+            case ContentDialogResult.Secondary:
+                return await MoveToCopyAsync();
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>Organise saves through its own copy route, because moving this tab onto a copy would pull the board's file away.</summary>
+    private async Task<bool> OrganiseMayOverwriteAsync()
+    {
+        if (!_overwriteOk && AppServices.Settings.Current.AlwaysSaveCopy)
+        {
+            return false;
+        }
+
+        return !FileChangedElsewhere()
+            || await Dialogs.ConfirmAsync(XamlRoot, "This file has changed", $"Another program changed \"{FileName}\" after Papery opened it. Saving here would replace those changes.", "Replace it", "Save a copy");
     }
 
     private void OnSaveAs(object sender, RoutedEventArgs e) => Guard.Run(MoveToCopyAsync, "Saving a copy");
@@ -560,11 +638,19 @@ public sealed partial class DocumentView
             return;
         }
 
-        _recoveryCopy ??= RecoveryService.NewCopyPath();
+        string copy = _recoveryCopy ??= RecoveryService.NewCopyPath();
         try
         {
-            await document.SaveRecoveryCopyAsync(_recoveryCopy);
-            RecoveryService.Describe(_recoveryCopy, FilePath);
+            await document.SaveRecoveryCopyAsync(copy);
+
+            // Saved or closed meanwhile: this copy would look like lost work at the next start.
+            if (_recoveryCopy != copy || _closingTab)
+            {
+                RecoveryService.Forget(copy);
+                return;
+            }
+
+            RecoveryService.Describe(copy, FilePath);
         }
         catch (Exception ex) when (ex is PdfEditException or IOException or UnauthorizedAccessException or ObjectDisposedException)
         {

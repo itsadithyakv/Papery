@@ -155,14 +155,17 @@ internal sealed class FormOverlay(
         };
         Solid(box, "TextControlBackground", "TextControlBackgroundPointerOver", "TextControlBackgroundFocused");
         string saved = field.Value;
-        box.LostFocus += (_, _) =>
+        void WriteNow()
         {
             if (box.Password != saved)
             {
                 saved = box.Password;
                 Commit(() => doc.SetFieldTextAsync(field.PageIndex, field.Index, saved), field.PageIndex);
             }
-        };
+        }
+
+        box.LostFocus += (_, _) => WriteNow();
+        box.Tag = (Action)WriteNow;
         return box;
     }
 

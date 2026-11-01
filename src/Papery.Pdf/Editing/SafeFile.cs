@@ -43,8 +43,16 @@ internal static class SafeFile
                 // ReplaceFile keeps the original's ACLs and creation time. The backup lets
                 // Windows roll back if the swap fails half way; it is removed afterwards.
                 string backup = tempPath + ".bak";
-                File.Replace(tempPath, targetPath, backup, ignoreMetadataErrors: true);
-                TryDelete(backup);
+                try
+                {
+                    File.Replace(tempPath, targetPath, backup, ignoreMetadataErrors: true);
+                    TryDelete(backup);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    PutBackIfMoved(backup, targetPath);
+                    throw;
+                }
             }
             else
             {
@@ -60,6 +68,27 @@ internal static class SafeFile
         {
             TryDelete(tempPath);
             throw new PdfEditException(PdfEditError.CannotWrite, targetPath, ex);
+        }
+    }
+
+    /// <summary>
+    /// ReplaceFile can fail after renaming the original to the backup name (ERROR_UNABLE_TO_MOVE_REPLACEMENT_2, often an
+    /// antivirus holding the new file). The original then has to get its own name back, or it would look gone.
+    /// </summary>
+    internal static void PutBackIfMoved(string backup, string targetPath)
+    {
+        if (!File.Exists(backup))
+        {
+            return;
+        }
+
+        if (File.Exists(targetPath))
+        {
+            TryDelete(backup);
+        }
+        else
+        {
+            File.Move(backup, targetPath);
         }
     }
 

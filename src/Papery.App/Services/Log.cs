@@ -5,7 +5,8 @@ namespace Papery.Services;
 /// <summary>
 /// A tiny local diagnostics log (logs\papery.log in Papery's data folder). It never leaves the
 /// PC: no telemetry. Kept under 1 MB; the previous log is kept as papery.old.log.
-/// File names of documents are not logged, only what went wrong.
+/// File names of documents are not logged, only what went wrong. That's why exception messages are
+/// left out: many of them quote the path of the file.
 /// </summary>
 internal static class Log
 {
@@ -24,7 +25,7 @@ internal static class Log
                 File.Move(_path, Path.Combine(folder, "papery.old.log"), overwrite: true);
             }
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             _path = null;
         }
@@ -33,7 +34,7 @@ internal static class Log
     public static void Info(string message) => Write("INFO", message);
 
     public static void Error(string message, Exception? ex = null) =>
-        Write("ERROR", ex == null ? message : $"{message}: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+        Write("ERROR", ex == null ? message : $"{message}: {ex.GetType().Name} (0x{ex.HResult:X8})\n{ex.StackTrace}");
 
     private static void Write(string level, string message)
     {
@@ -48,7 +49,7 @@ internal static class Log
             {
                 File.AppendAllText(_path, $"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)} {level} {message}{Environment.NewLine}");
             }
-            catch (IOException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 // Logging must never break the app.
             }

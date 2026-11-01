@@ -24,6 +24,7 @@ namespace Papery;
 public sealed partial class MainWindow : Window
 {
     private bool _closing;
+    private bool _closeApproved;
 
     public MainWindow(bool withHomeTab = true)
     {
@@ -112,11 +113,15 @@ public sealed partial class MainWindow : Window
         var notPdf = list.Where(p => !DropFiles.IsPdf(p)).ToList();
         foreach (string path in list.Where(DropFiles.IsPdf))
         {
-            var existing = Tabs.TabItems.OfType<TabViewItem>()
-                .FirstOrDefault(t => t.Content is DocumentView d && string.Equals(d.FilePath, Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase));
-            if (existing != null)
+            // Two tabs on one file would each save over the other, so a file only ever opens once, in any window.
+            string full = Path.GetFullPath(path);
+            if (WindowManager.All.FirstOrDefault(w => w.ShowIfOpen(full)) is { } holder)
             {
-                Tabs.SelectedItem = existing;
+                if (holder != this)
+                {
+                    holder.BringToFront();
+                }
+
                 continue;
             }
 
@@ -166,6 +171,18 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private bool ShowIfOpen(string fullPath)
+    {
+        var existing = Tabs.TabItems.OfType<TabViewItem>()
+            .FirstOrDefault(t => t.Content is DocumentView d && string.Equals(d.FilePath, fullPath, StringComparison.OrdinalIgnoreCase));
+        if (existing != null)
+        {
+            Tabs.SelectedItem = existing;
+        }
+
+        return existing != null;
+    }
+
     public async Task PickAndOpenAsync(ToolInfo? tool = null)
     {
         var picker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, ViewMode = PickerViewMode.List };
@@ -207,7 +224,7 @@ public sealed partial class MainWindow : Window
     private void AddHomeTab()
     {
         var home = new HomeView();
-        home.OpenRequested += async (_, tool) =>
+        home.OpenRequested += (_, tool) => Guard.Run(async () =>
         {
             if (!await AllowToolAsync(tool))
             {
@@ -226,8 +243,8 @@ public sealed partial class MainWindow : Window
             {
                 await PickAndOpenAsync(tool);
             }
-        };
-        home.FilesChosen += async (_, e) =>
+        }, "Opening a tool");
+        home.FilesChosen += (_, e) => Guard.Run(async () =>
         {
             if (!await AllowToolAsync(e.Tool))
             {
@@ -246,7 +263,7 @@ public sealed partial class MainWindow : Window
             {
                 await OpenFilesAsync(e.Files, e.Tool);
             }
-        };
+        }, "Opening files");
         home.SettingsRequested += (_, _) => ShowSettings();
         home.HelpRequested += (_, _) => ShowHelp();
         var tab = CreateTab(home, "Home", "");
@@ -262,6 +279,13 @@ public sealed partial class MainWindow : Window
     public async Task MakeNewPdfAsync(string key, IReadOnlyList<string> pictures)
     {
         await WhenLoadedAsync();
+
+        // Explorer's right-click menu comes straight here, without passing the home screen's check.
+        if (!await AllowToolAsync(ToolCatalog.All.FirstOrDefault(t => t.Key == key)))
+        {
+            return;
+        }
+
         if (key == "batch")
         {
             await Views.Tools.BatchDialog.ShowAsync(Root.XamlRoot, Hwnd, pictures);
@@ -339,18 +363,52 @@ public sealed partial class MainWindow : Window
 
         await WhenLoadedAsync();
         string names = string.Join(", ", leftovers.Select(l => Path.GetFileName(l.OriginalPath)));
-        bool restore = await Dialogs.ConfirmAsync(Root.XamlRoot, "Bring back your unsaved work?", $"Papery closed before saving your changes to: {names}.", "Restore", "Discard");
+        var dialog = new ContentDialog
+        {
+            Title = "Bring back your unsaved work?",
+            Content = Dialogs.Wrap($"Papery closed before saving your changes to: {names}."),
+            PrimaryButtonText = "Restore",
+            SecondaryButtonText = "Discard",
+            CloseButtonText = "Later",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+        var answer = await Dialogs.ShowAsync(dialog, Root.XamlRoot);
         foreach (var leftover in leftovers)
         {
-            if (restore)
+            if (answer == ContentDialogResult.Primary)
             {
-                await OpenFilesAsync([RecoveryService.Restore(leftover)]);
+                await RestoreLeftoverAsync(leftover);
             }
-            else
+            else if (answer == ContentDialogResult.Secondary)
             {
                 RecoveryService.Forget(leftover.CopyPath);
             }
         }
+    }
+
+    /// <summary>The work goes into a real file the person chose, and only then stops being kept for later.</summary>
+    private async Task RestoreLeftoverAsync(RecoveredFile leftover)
+    {
+        string name = $"{Path.GetFileNameWithoutExtension(leftover.OriginalPath)} (recovered)";
+        if (await Pickers.PickSavePdfAsync(Hwnd, name, leftover.OriginalPath) is not { } output)
+        {
+            return; // still kept, and offered again next time
+        }
+
+        try
+        {
+            File.Copy(leftover.CopyPath, output, overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Error("Restoring unsaved work failed", ex);
+            Pickers.RemoveIfEmpty(output);
+            await Dialogs.ShowMessageAsync(Root.XamlRoot, "Couldn't save there", "Your work is still safe, and Papery will offer it again next time.");
+            return;
+        }
+
+        RecoveryService.Forget(leftover.CopyPath);
+        await OpenFilesAsync([output]);
     }
 
     /// <summary>Opens a Merge tab, starting with <paramref name="paths"/>.</summary>
@@ -757,13 +815,49 @@ public sealed partial class MainWindow : Window
     /// <summary>Closing: save every document's position first (needs async, so cancel once and close again).</summary>
     private async void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
+        if (_closeApproved)
+        {
+            return;
+        }
+
+        // Stays cancelled until everything has been asked, so a second click on X can't skip "Save your changes?".
+        args.Cancel = true;
         if (_closing)
         {
             return;
         }
 
-        args.Cancel = true;
         _closing = true;
+        try
+        {
+            if (!await ConfirmClosingAsync())
+            {
+                _closing = false;
+                return;
+            }
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Log.Error("Asking about unsaved work failed", ex);
+            _closing = false;
+            return;
+        }
+
+        try
+        {
+            await FinishClosingAsync();
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Log.Error("Tidying up while closing failed", ex);
+        }
+
+        _closeApproved = true;
+        Close();
+    }
+
+    private async Task<bool> ConfirmClosingAsync()
+    {
         if (AppWindow.Presenter is OverlappedPresenter presenter)
         {
             bool maximized = presenter.State == OverlappedPresenterState.Maximized;
@@ -779,29 +873,58 @@ public sealed partial class MainWindow : Window
             });
         }
 
+        foreach (var view in Documents.ToList())
+        {
+            await view.FlushFormAsync(); // the last words typed may be the only change
+        }
+
         // Unsaved page changes: show each tab and ask; Cancel keeps the window open.
+        var asked = new List<DocumentView>();
         foreach (var view in Documents.Where(d => d.HasUnsavedChanges).ToList())
         {
             Tabs.SelectedItem = Tabs.TabItems.OfType<TabViewItem>().First(t => ReferenceEquals(t.Content, view));
             if (!await view.ConfirmCloseAsync())
             {
-                _closing = false;
-                return;
+                foreach (var earlier in asked)
+                {
+                    await earlier.CloseCancelledAsync();
+                }
+
+                return false;
+            }
+
+            asked.Add(view);
+        }
+
+        var merges = Tabs.TabItems.OfType<TabViewItem>().Select(t => t.Content).OfType<MergeView>().ToList();
+        return !merges.Any(m => m.IsBusy)
+            || await Dialogs.ConfirmAsync(Root.XamlRoot, "Stop merging?", "The merge isn't finished. Nothing will be saved if you stop now.", "Stop", "Keep going");
+    }
+
+    private async Task FinishClosingAsync()
+    {
+        var contents = Tabs.TabItems.OfType<TabViewItem>().Select(t => t.Content).ToList();
+        foreach (var content in contents)
+        {
+            switch (content)
+            {
+                case DocumentView view:
+                    await view.CloseAsync();
+                    break;
+                case MergeView merge:
+                    await merge.CloseAsync();
+                    break;
+                case Views.Tools.CompareView compare:
+                    await compare.CloseAsync();
+                    break;
             }
         }
 
-        foreach (var view in Documents.ToList())
-        {
-            await view.CloseAsync();
-        }
-
-        foreach (var merge in Tabs.TabItems.OfType<TabViewItem>().Select(t => t.Content).OfType<MergeView>().ToList())
-        {
-            await merge.CloseAsync();
-        }
-
         await AppServices.ViewState.SaveAsync();
-        Close();
+        if (WindowManager.Count <= 1)
+        {
+            TempFiles.ClearAttachments();
+        }
     }
 }
 

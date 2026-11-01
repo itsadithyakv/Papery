@@ -46,9 +46,11 @@ public sealed partial class SettingsView : UserControl
         BuyButton.Visibility = pro ? Visibility.Collapsed : Visibility.Visible;
     }
 
-    private async void OnBuyClick(object sender, RoutedEventArgs e) => await ProDialogs.RequireProAsync(XamlRoot, null);
+    private void OnBuyClick(object sender, RoutedEventArgs e) => Guard.Run(() => ProDialogs.RequireProAsync(XamlRoot, null), "Buying Papery Pro");
 
-    private async void OnRestoreClick(object sender, RoutedEventArgs e)
+    private void OnRestoreClick(object sender, RoutedEventArgs e) => Guard.Run(RestoreAsync, "Restoring the purchase");
+
+    private async Task RestoreAsync()
     {
         RestoreButton.IsEnabled = false;
         RestoreButton.Content = "Checking…";
@@ -109,7 +111,9 @@ public sealed partial class SettingsView : UserControl
         }
     }
 
-    private async void OnDefaultAppsClick(object sender, RoutedEventArgs e)
+    private void OnDefaultAppsClick(object sender, RoutedEventArgs e) => Guard.Run(OpenDefaultAppsAsync, "Opening default apps");
+
+    private static async Task OpenDefaultAppsAsync()
     {
         // Opens Papery's own page in Windows' Default apps settings where supported, otherwise the main page.
         try
@@ -134,7 +138,9 @@ public sealed partial class SettingsView : UserControl
         _ = AppServices.ViewState.SaveAsync();
     }
 
-    private async void OnNoticesClick(object sender, RoutedEventArgs e)
+    private void OnNoticesClick(object sender, RoutedEventArgs e) => Guard.Run(ShowNoticesAsync, "Showing notices");
+
+    private async Task ShowNoticesAsync()
     {
         string path = Path.Combine(AppContext.BaseDirectory, "THIRD-PARTY-NOTICES.txt");
         string text = File.Exists(path) ? await File.ReadAllTextAsync(path) : "Third-party notices are missing from this build.";
