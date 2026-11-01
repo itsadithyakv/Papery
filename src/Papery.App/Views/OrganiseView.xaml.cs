@@ -520,7 +520,7 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
             }
         };
         Root.Children.Add(editor);
-        Motion.Entrance(editor, 0, 8);
+        Motion.FadeIn(editor);
         editor.Focus(FocusState.Programmatic);
         await editor.ShowAsync(page, selected.Count);
     }
@@ -821,7 +821,7 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         BusyProgress.Value = 0;
         BusyMascot.Mood = MascotMood.Happy;
         BusyOverlay.Visibility = Visibility.Visible;
-        Motion.Entrance(BusyOverlay, 0, 0);
+        Motion.FadeIn(BusyOverlay);
         UpdateCommands();
         try
         {

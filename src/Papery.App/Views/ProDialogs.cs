@@ -190,7 +190,6 @@ internal static class ProDialogs
     private static VariableSizedWrapGrid ToolTiles(IEnumerable<ToolInfo> tools, bool animate = false)
     {
         var grid = new VariableSizedWrapGrid { Orientation = Orientation.Horizontal, ItemWidth = 158, ItemHeight = 44 };
-        int index = 0;
         foreach (var tool in tools)
         {
             var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
@@ -207,7 +206,7 @@ internal static class ProDialogs
             grid.Children.Add(row);
             if (animate)
             {
-                Motion.Entrance(row, 120 + (index++ * 35));
+                Motion.FadeIn(row);
             }
         }
 

@@ -11,7 +11,7 @@ namespace Papery.Services;
 /// </summary>
 /// <remarks>
 /// Every animation checks Windows' "Animation effects" setting first and does nothing when it's off.
-/// Interaction feedback stays within 150-250 ms; only the character's gentle idle float loops.
+/// Everything is brief feedback within 120-260 ms, and nothing loops, so the app stays still while you read.
 /// </remarks>
 internal static class Motion
 {
@@ -19,8 +19,8 @@ internal static class Motion
 
     public static bool Enabled => Settings.AnimationsEnabled;
 
-    /// <summary>Fades and slides an element up into place, optionally after a delay (for staggered lists).</summary>
-    public static void Entrance(UIElement element, int delayMs = 0, float offsetY = 14)
+    /// <summary>A quick fade in, so a new screen arrives softly. Nothing moves, because movement across the whole window is what feels jarring.</summary>
+    public static void FadeIn(UIElement element)
     {
         if (!Enabled)
         {
@@ -29,46 +29,11 @@ internal static class Motion
 
         var visual = Prepare(element);
         var c = visual.Compositor;
-        var ease = c.CreateCubicBezierEasingFunction(new Vector2(0.1f, 0.9f), new Vector2(0.2f, 1f));
-        var duration = TimeSpan.FromMilliseconds(240);
-        var delay = TimeSpan.FromMilliseconds(delayMs);
-
         var fade = c.CreateScalarKeyFrameAnimation();
         fade.InsertKeyFrame(0, 0);
-        fade.InsertKeyFrame(1, 1, ease);
-        fade.Duration = duration;
-        fade.DelayTime = delay;
-        fade.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
-
-        var slide = c.CreateVector3KeyFrameAnimation();
-        slide.InsertKeyFrame(0, new Vector3(0, offsetY, 0));
-        slide.InsertKeyFrame(1, Vector3.Zero, ease);
-        slide.Duration = duration;
-        slide.DelayTime = delay;
-        slide.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
-
+        fade.InsertKeyFrame(1, 1, c.CreateCubicBezierEasingFunction(new Vector2(0.1f, 0.9f), new Vector2(0.2f, 1f)));
+        fade.Duration = TimeSpan.FromMilliseconds(120);
         visual.StartAnimation("Opacity", fade);
-        visual.StartAnimation("Translation", slide);
-    }
-
-    /// <summary>A slow, endless up-and-down float (the character's idle "breathing").</summary>
-    public static void Float(UIElement element, float amplitude = 4, double seconds = 3.2)
-    {
-        if (!Enabled)
-        {
-            return;
-        }
-
-        var visual = Prepare(element);
-        var c = visual.Compositor;
-        var ease = c.CreateCubicBezierEasingFunction(new Vector2(0.45f, 0), new Vector2(0.55f, 1));
-        var bob = c.CreateScalarKeyFrameAnimation();
-        bob.InsertKeyFrame(0, 0);
-        bob.InsertKeyFrame(0.5f, -amplitude, ease);
-        bob.InsertKeyFrame(1, 0, ease);
-        bob.Duration = TimeSpan.FromSeconds(seconds);
-        bob.IterationBehavior = AnimationIterationBehavior.Forever;
-        visual.StartAnimation("Translation.Y", bob);
     }
 
     /// <summary>A quick happy bounce (scale up and settle), e.g. when a file is dragged over.</summary>

@@ -52,12 +52,15 @@
                             <FontIcon Glyph="&#xE896;" FontSize="22" Foreground="{ThemeResource PaperyCoralBrush}" FontFamily="{StaticResource PaperyIcons}" />
                         </Border>
                         <StackPanel VerticalAlignment="Center" Spacing="6">
-                            <TextBlock x:Name="DropTitle" Text="Drop PDFs here" FontSize="19" FontWeight="SemiBold" />
+                            <TextBlock x:Name="DropTitle" Text="Drop PDFs here, or click to choose" FontSize="19" FontWeight="SemiBold" />
                             <StackPanel x:Name="DropKeys" Orientation="Horizontal" Spacing="4" AutomationProperties.Name="or press Control O">
                                 <TextBlock Text="or" Style="{StaticResource PaperySecondaryTextStyle}" VerticalAlignment="Center" Margin="0,0,4,0" />
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
+                    <!-- Covers the whole zone, so it works by mouse, keyboard and Narrator. Dropping still reaches the page behind it. -->
+                    <Button Style="{StaticResource PaperyQuietButtonStyle}" Click="OnOpenClick" CornerRadius="18" Background="Transparent" BorderThickness="0"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Stretch" AutomationProperties.Name="Choose PDFs to open" ToolTipService.ToolTip="Choose PDFs to open" />
                 </Grid>
 
                 <!-- Shortcut chips: show, don't tell. Hidden for good with the X. -->

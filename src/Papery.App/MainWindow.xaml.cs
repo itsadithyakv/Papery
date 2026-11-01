@@ -497,6 +497,11 @@ public sealed partial class MainWindow : Window
 
     private void OnTabSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (Tabs.SelectedItem is TabViewItem { Content: UIElement arriving })
+        {
+            Motion.FadeIn(arriving);
+        }
+
         Title = Tabs.SelectedItem is TabViewItem { Content: DocumentView view } ? $"{view.FileName} – Papery" : "Papery";
     }
 

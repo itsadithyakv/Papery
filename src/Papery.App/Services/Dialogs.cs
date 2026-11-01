@@ -44,7 +44,7 @@ internal static class Dialogs
         if (mood is { } m)
         {
             var panel = new StackPanel { Spacing = 14 };
-            panel.Children.Add(new Controls.Mascot { Mood = m, Width = 56, Height = 66, IsFloating = false, HorizontalAlignment = HorizontalAlignment.Left });
+            panel.Children.Add(new Controls.Mascot { Mood = m, Width = 56, Height = 66, HorizontalAlignment = HorizontalAlignment.Left });
             panel.Children.Add(Wrap(message));
             content = panel;
         }

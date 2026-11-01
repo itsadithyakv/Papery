@@ -47,7 +47,8 @@ if ($currentSubject -ne $publisher) {
 $signtool = Get-ChildItem (Join-Path $env:USERPROFILE '.nuget\packages\microsoft.windows.sdk.buildtools') -Recurse -Filter signtool.exe | Where-Object { $_.FullName -match '\\x64\\' } | Sort-Object FullName | Select-Object -Last 1 -ExpandProperty FullName
 
 # ---- the packages ----
-Get-Process Papery -ErrorAction SilentlyContinue | Stop-Process -Force
+# Only a copy running from this repo: an installed Papery may have someone's unsaved work in it.
+Get-Process Papery -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$repo\*" } | Stop-Process -Force
 foreach ($platform in $Platforms) {
     Write-Host "Packaging Papery for $platform..." -ForegroundColor Cyan
     $out = Join-Path $dist "package-$platform\"

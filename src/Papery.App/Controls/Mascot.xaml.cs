@@ -13,14 +13,11 @@ public enum MascotMood
     Sleepy,
 }
 
-/// <summary>The Papery character. Floats gently and blinks now and then; change <see cref="Mood"/> to react.</summary>
+/// <summary>The Papery character. Blinks now and then; change <see cref="Mood"/> to react.</summary>
 public sealed partial class Mascot : UserControl
 {
     public static readonly DependencyProperty MoodProperty = DependencyProperty.Register(
         nameof(Mood), typeof(MascotMood), typeof(Mascot), new PropertyMetadata(MascotMood.Happy, (d, _) => ((Mascot)d).ApplyMood()));
-
-    public static readonly DependencyProperty IsFloatingProperty = DependencyProperty.Register(
-        nameof(IsFloating), typeof(bool), typeof(Mascot), new PropertyMetadata(true));
 
     private readonly Microsoft.UI.Dispatching.DispatcherQueueTimer _blinkTimer;
 
@@ -41,11 +38,6 @@ public sealed partial class Mascot : UserControl
 
         Loaded += (_, _) =>
         {
-            if (IsFloating)
-            {
-                Motion.Float(Body);
-            }
-
             ScheduleBlink();
         };
         Unloaded += (_, _) => _blinkTimer.Stop();
@@ -56,12 +48,6 @@ public sealed partial class Mascot : UserControl
     {
         get => (MascotMood)GetValue(MoodProperty);
         set => SetValue(MoodProperty, value);
-    }
-
-    public bool IsFloating
-    {
-        get => (bool)GetValue(IsFloatingProperty);
-        set => SetValue(IsFloatingProperty, value);
     }
 
     /// <summary>A happy little bounce.</summary>

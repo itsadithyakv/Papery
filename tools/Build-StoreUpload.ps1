@@ -23,7 +23,8 @@ if (-not $SkipStoreIdCheck) {
     if ($id -eq '9NK2Q07CQH90') { throw "StoreIds.cs has the app's Store ID. It needs the add-on's: Add-ons > Papery Pro." }
 }
 
-Get-Process Papery -ErrorAction SilentlyContinue | Stop-Process -Force
+# Only a copy running from this repo: an installed Papery may have someone's unsaved work in it.
+Get-Process Papery -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$repo\*" } | Stop-Process -Force
 if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 
 dotnet build $project -c Release -p:Platform=x64 -nologo -v q `

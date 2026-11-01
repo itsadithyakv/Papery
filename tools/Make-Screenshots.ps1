@@ -13,11 +13,11 @@ $files = Join-Path $repo 'PaperyTestFiles'
 $drive = Join-Path $PSScriptRoot 'Drive-Papery.ps1'
 $size = 'size:1800x1125'
 
-function Stop-App { Get-Process Papery -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Seconds 2 }
+function Stop-App { Get-Process Papery -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$repo\*" } | Stop-Process -Force; Start-Sleep -Seconds 2 }
 
 function Start-App([string[]] $arguments) {
     Stop-App
-    if ($arguments) { Start-Process papery.exe -ArgumentList $arguments } else { Start-Process papery.exe }
+    if ($arguments) { Start-Process papery-dev.exe -ArgumentList $arguments } else { Start-Process papery-dev.exe }
     Start-Sleep -Seconds 6
 }
 
@@ -29,7 +29,7 @@ function Drive([string[]] $steps) {
 function Shot([string] $name) { return "shot:$(Join-Path $out "$name.png")" }
 
 # The app's theme comes from its settings file, so set it there and put it back afterwards.
-$packageName = ([xml] (Get-Content (Join-Path $repo 'src\Papery.App\Package.appxmanifest'))).Package.Identity.Name
+$packageName = 'Papery.Dev'
 $settingsFile = Join-Path $env:LOCALAPPDATA "Packages\$((Get-AppxPackage $packageName).PackageFamilyName)\LocalState\settings.json"
 Stop-App
 $settingsBefore = Get-Content $settingsFile -Raw

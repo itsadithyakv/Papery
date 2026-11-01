@@ -78,10 +78,10 @@ public sealed partial class HomeView : UserControl
             if (!_entranceDone)
             {
                 _entranceDone = true;
-                Motion.Entrance(Hero);
-                Motion.Entrance(DropZone, 60);
-                Motion.Entrance(GettingStarted, 110);
-                Motion.Entrance(RecentSection, 160);
+                Motion.FadeIn(Hero);
+                Motion.FadeIn(DropZone);
+                Motion.FadeIn(GettingStarted);
+                Motion.FadeIn(RecentSection);
             }
         };
         Unloaded += (_, _) =>
@@ -174,7 +174,7 @@ public sealed partial class HomeView : UserControl
         if (_animated.Add(args.Element) && args.Element is Control card)
         {
             HighlightOnHover(card, () => null);
-            Motion.Entrance(card, 180 + (Math.Min(args.Index, 8) * 30));
+            Motion.FadeIn(card);
         }
     }
 
@@ -200,7 +200,7 @@ public sealed partial class HomeView : UserControl
         if (_animated.Add(args.Element) && args.Element is Control card)
         {
             HighlightOnHover(card, () => (card.Tag as ToolInfo)?.TintBrush);
-            Motion.Entrance(card, 220 + (Math.Min(args.Index, 16) * 22));
+            Motion.FadeIn(card);
         }
     }
 
@@ -253,7 +253,7 @@ public sealed partial class HomeView : UserControl
     private void ResetDropZone()
     {
         Character.Mood = MascotMood.Happy;
-        DropTitle.Text = "Drop PDFs here";
+        DropTitle.Text = "Drop PDFs here, or click to choose";
         DropOutline.StrokeThickness = 1.5;
     }
 

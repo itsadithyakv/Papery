@@ -236,7 +236,7 @@ public sealed partial class DocumentView
         SetViewShortcutsEnabled(false);
         Notice.IsOpen = false;
         _organise = view;
-        Motion.Entrance(view, 0, 10);
+        Motion.FadeIn(view);
         return true;
     }
 

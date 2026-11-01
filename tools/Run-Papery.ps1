@@ -20,13 +20,13 @@ param(
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $project = Join-Path $repo 'src\Papery.App\Papery.App.csproj'
-$packageName = ([xml] (Get-Content (Join-Path $repo 'src\Papery.App\Package.appxmanifest'))).Package.Identity.Name
 
-# The development copy from before the Store identity would fight this one over the "papery" command and file types.
-Get-AppxPackage -Name 'Papery.Dev' | Where-Object IsDevelopmentMode | Remove-AppxPackage -PreserveApplicationData
+# A separate identity, so this runs beside an installed Papery (from the Store or a test installer) without touching it.
+$packageName = 'Papery.Dev'
 
-# Close a running copy first: it locks Papery.exe, and the new build must be registered.
-Get-Process Papery -ErrorAction SilentlyContinue | Stop-Process -Force
+# Close a copy running from this repo first: it locks Papery.exe, and the new build must be registered.
+# Never an installed Papery, which may have someone's unsaved work in it.
+Get-Process Papery -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$repo\*" } | Stop-Process -Force
 
 Write-Host "Building Papery ($Configuration|$Platform)..." -ForegroundColor Cyan
 dotnet build $project -c $Configuration -p:Platform=$Platform -nologo -v q
@@ -37,6 +37,15 @@ $manifest = Get-ChildItem (Join-Path $repo "src\Papery.App\bin\$Platform\$Config
     Where-Object { $_.FullName -match [regex]::Escape($rid) -and $_.FullName -notmatch '\\publish\\' } |
     Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if (-not $manifest) { throw 'AppxManifest.xml not found in the build output.' }
+
+# The development copy gets its own name, command and no file types, so nothing of an installed copy changes.
+$text = [IO.File]::ReadAllText($manifest.FullName)
+$text = [regex]::Replace($text, '(<Identity\b[^>]*?\bName=")[^"]*', '${1}Papery.Dev')
+$text = [regex]::Replace($text, '(<Identity\b[^>]*?\bPublisher=")[^"]*', '${1}CN=Papery Dev')
+$text = $text.Replace('Alias="papery.exe"', 'Alias="papery-dev.exe"')
+$text = [regex]::Replace($text, '(?s)<uap:Extension Category="windows\.fileTypeAssociation">.*?</uap:Extension>', '')
+$text = [regex]::Replace($text, '(<uap:VisualElements\b[^>]*?\bDisplayName=")[^"]*', '${1}Papery Dev')
+[IO.File]::WriteAllText($manifest.FullName, $text)
 
 Write-Host "Registering $($manifest.Directory.FullName)" -ForegroundColor Cyan
 try {
@@ -55,7 +64,7 @@ if (-not $NoLaunch) {
     if ($File) {
         # The execution alias (see Package.appxmanifest) launches with package identity;
         # running Papery.exe from the bin folder directly would not.
-        Start-Process (Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\papery.exe') -ArgumentList "`"$File`""
+        Start-Process (Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\papery-dev.exe') -ArgumentList "`"$File`""
     } else {
         Start-Process "shell:AppsFolder\$aumid"
     }

@@ -30,8 +30,10 @@ public static class PaperyWin {
 }
 '@
 
-$process = Get-Process Papery | Where-Object MainWindowHandle -ne 0 | Select-Object -First 1
-if (-not $process) { throw 'Papery is not running.' }
+# Only a copy running from this repo, never an installed Papery someone may be using.
+$repoRoot = Split-Path $PSScriptRoot -Parent
+$process = Get-Process Papery -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 -and $_.Path -like "$repoRoot\*" } | Select-Object -First 1
+if (-not $process) { throw 'The development copy of Papery is not running.' }
 $hwnd = $process.MainWindowHandle
 $root = [Windows.Automation.AutomationElement]::FromHandle($hwnd)
 $tree = [Windows.Automation.TreeScope]::Descendants
