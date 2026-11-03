@@ -16,9 +16,9 @@ Which art goes where in Partner Center (Store listings › Store logos and Scree
 - **1:1 Box art**: `store/StoreLogo-1x1-2160x2160.png` (also 1080)
 - **1:1 Store logos**: `store/StoreLogo-1x1-300x300.png`, `store/StoreLogo-1x1-150x150.png` and `store/StoreLogo-1x1-71x71.png`
 - **9:16 Poster art**: `store/PosterArt-9x16-1440x2160.png` (also 720x1080)
-- **16:9 Super hero art**: `store/HeroArt-16x9-3840x2160.png` (also 1920x1080)
+- **16:9 Super hero art**: `store/HeroArt-16x9-3840x2160.png` (also 1920x1080). No words on purpose: the Store forbids text in this image and may fade its bottom third
 - **Screenshots**: upload `store-screenshots/` in file-name order (01 to 09).
 
 Colours: coral `#E5533D` (light), `#FF7A63` (dark). Font: Segoe UI Variable.
 
-To remake them: `tools/Make-Icons.ps1` (app icons), `tools/Make-Branding.ps1` (this folder's art), `tools/Make-Screenshots.ps1` (screenshots), then `python tools/make_store_art.py` (the framed Store images, needs Pillow).
+To remake them: `tools/Make-Icons.ps1` (app icons), `tools/Make-Branding.ps1` (this folder's art), `tools/Make-Screenshots.ps1` (screenshots), then `python tools/make_store_art.py` (the framed Store images, needs Pillow) and `python tools/make_hero_art.py` (the hero art).

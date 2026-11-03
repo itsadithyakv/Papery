@@ -128,6 +128,5 @@ Save-Art 'StoreLogo-1x1-1080x1080' 1080 1080
 Save-Art 'StoreLogo-1x1-2160x2160' 2160 2160
 Save-Art 'PosterArt-9x16-720x1080' 720 1080
 Save-Art 'PosterArt-9x16-1440x2160' 1440 2160
-Save-Art 'HeroArt-16x9-1920x1080' 1920 1080
-Save-Art 'HeroArt-16x9-3840x2160' 3840 2160
+# The 16:9 Super hero art is drawn by tools/make_hero_art.py: the Store wants it without any text.
 Write-Host "Done: $branding" -ForegroundColor Green
