@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Shapes;
 using Papery.Controls;
+using Papery.Core.Measuring;
 using Papery.Pdf;
 using Papery.Pdf.Editing;
 using Windows.Foundation;
@@ -15,8 +16,8 @@ namespace Papery.Views.Annotate;
 /// </summary>
 internal sealed class AnnotationPen : IPageTool
 {
-    private const double PointsPerCentimetre = 72 / 2.54;
     private const double CloseEnough = 0.015; // clicking this near a polygon's start closes it
+    private const double SameSpot = 5; // pixels: a second click this near the last corner (a double-click) finishes
 
     private readonly Func<int, PdfPageSize> _pageSize;
     private readonly List<PagePoint> _points = [];
@@ -44,11 +45,17 @@ internal sealed class AnnotationPen : IPageTool
     /// <summary>The words on a stamp.</summary>
     public string? StampText { get; set; }
 
+    /// <summary>True while a shape is half drawn (Esc forgets it).</summary>
+    public bool IsDrawing => _preview != null;
+
+    /// <summary>Shapes drawn a click per corner rather than in one drag.</summary>
+    private bool ByCorners => Kind is PdfAnnotationKind.Polygon or PdfAnnotationKind.Area or PdfAnnotationKind.Perimeter;
+
     public void Press(PageToolInput input)
     {
-        if (Kind == PdfAnnotationKind.Polygon && _page == input.Page && _points.Count > 0)
+        if (ByCorners && _page == input.Page && _points.Count > 0)
         {
-            AddPolygonPoint(input);
+            AddCorner(input);
             return;
         }
 
@@ -77,7 +84,7 @@ internal sealed class AnnotationPen : IPageTool
                 _points.Add(input.Point);
             }
         }
-        else if (Kind != PdfAnnotationKind.Polygon)
+        else if (!ByCorners)
         {
             if (_points.Count > 1)
             {
@@ -94,9 +101,9 @@ internal sealed class AnnotationPen : IPageTool
 
     public void Release(PageToolInput input)
     {
-        if (_page != input.Page || Kind == PdfAnnotationKind.Polygon)
+        if (_page != input.Page || ByCorners)
         {
-            return; // a polygon goes on until it's closed
+            return; // a shape by corners goes on until it's finished
         }
 
         var start = _points[0];
@@ -142,20 +149,39 @@ internal sealed class AnnotationPen : IPageTool
         _points.Clear();
     }
 
-    private void AddPolygonPoint(PageToolInput input)
+    private void AddCorner(PageToolInput input)
     {
         var first = _points[0];
-        if (_points.Count >= 3 && Math.Abs(input.Point.X - first.X) < CloseEnough && Math.Abs(input.Point.Y - first.Y) < CloseEnough)
+        var last = _points[^1];
+        bool onFirst = _points.Count >= 3 && Math.Abs(input.Point.X - first.X) < CloseEnough && Math.Abs(input.Point.Y - first.Y) < CloseEnough;
+        bool onLast = Math.Abs(input.Point.X - last.X) * input.Width <= SameSpot && Math.Abs(input.Point.Y - last.Y) * input.Height <= SameSpot;
+        bool finished = Kind switch
         {
-            int page = _page;
-            var points = _points.ToArray();
-            Cancel();
-            Drawn?.Invoke(page, new PdfAnnotationDraft(Kind, Color, Strokes: [points], Width: Width));
+            PdfAnnotationKind.Polygon => onFirst,
+            PdfAnnotationKind.Area => onFirst || (onLast && _points.Count >= 3),
+            _ => onLast && _points.Count >= 2,
+        };
+        if (!finished)
+        {
+            if (!onLast)
+            {
+                _points.Add(input.Point);
+            }
+
+            UpdatePreview(input);
             return;
         }
 
-        _points.Add(input.Point);
-        UpdatePreview(input);
+        int page = _page;
+        var points = _points.ToArray();
+        var size = _pageSize(page);
+        Cancel();
+        Drawn?.Invoke(page, Kind switch
+        {
+            PdfAnnotationKind.Area => Measured(points, Measurement.AreaLabel(Measurement.Area(InPoints(points, size)))),
+            PdfAnnotationKind.Perimeter => Measured(points, Measurement.LengthLabel(Measurement.Length(InPoints(points, size)))),
+            _ => new PdfAnnotationDraft(Kind, Color, Strokes: [points], Width: Width),
+        });
     }
 
     private PdfAnnotationDraft Stroke(IReadOnlyList<PagePoint> points) => new(Kind, Color, Strokes: [points], Width: Width);
@@ -168,12 +194,16 @@ internal sealed class AnnotationPen : IPageTool
         return new PdfAnnotationDraft(Kind, Color, [box], [new[] { edge, target }], Width, FontSize: 12);
     }
 
-    private PdfAnnotationDraft Measure(PagePoint a, PagePoint b, PdfPageSize size)
-    {
-        double dx = (b.X - a.X) * size.Width, dy = (b.Y - a.Y) * size.Height;
-        double centimetres = Math.Sqrt((dx * dx) + (dy * dy)) / PointsPerCentimetre;
-        return new PdfAnnotationDraft(Kind, Color, Strokes: [new[] { a, b }], Width: Width, Text: $"{centimetres:0.0} cm", FontSize: 11);
-    }
+    private PdfAnnotationDraft Measure(PagePoint a, PagePoint b, PdfPageSize size) =>
+        Measured([a, b], Measurement.LengthLabel(Measurement.Length(InPoints([a, b], size))));
+
+    /// <summary>A measurement: the line or shape, with its total as the words on it.</summary>
+    private PdfAnnotationDraft Measured(PagePoint[] points, string total) =>
+        new(Kind, Color, Strokes: [points], Width: Width, Text: total, FontSize: 11);
+
+    /// <summary>Page fractions to points on the page as displayed, which is what the measuring is done in.</summary>
+    private static (double X, double Y)[] InPoints(PagePoint[] points, PdfPageSize size) =>
+        points.Select(p => (p.X * size.Width, p.Y * size.Height)).ToArray();
 
     /// <summary>A click drops a stamp in a sensible shape (about 6 × 1.5 cm); a drag sets its size.</summary>
     private static NormalizedRect StampBox(PagePoint start, PagePoint end, bool isClick, PdfPageSize size)
@@ -221,9 +251,14 @@ internal sealed class AnnotationPen : IPageTool
                 points.Add(new Point(p.X * zoomX, p.Y * zoomY));
             }
 
-            if (Kind == PdfAnnotationKind.Polygon)
+            if (ByCorners)
             {
                 points.Add(new Point(input.Point.X * zoomX, input.Point.Y * zoomY));
+            }
+
+            if (Kind == PdfAnnotationKind.Area && _points.Count > 1)
+            {
+                points.Add(new Point(_points[0].X * zoomX, _points[0].Y * zoomY)); // shows the area it will take in
             }
 
             line.Points = points;

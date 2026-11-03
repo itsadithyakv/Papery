@@ -53,8 +53,10 @@ internal sealed class AnnotationPicker(
         }
     }
 
+    // Stretching a measurement would leave its number wrong, so those only move.
     private static bool CanResize(PdfAnnotationInfo info) =>
-        info.Kind is not (PdfAnnotationKind.Highlight or PdfAnnotationKind.Underline or PdfAnnotationKind.Squiggly or PdfAnnotationKind.StrikeOut or PdfAnnotationKind.Note);
+        info.Kind is not (PdfAnnotationKind.Highlight or PdfAnnotationKind.Underline or PdfAnnotationKind.Squiggly or PdfAnnotationKind.StrikeOut or PdfAnnotationKind.Note
+            or PdfAnnotationKind.Measure or PdfAnnotationKind.Area or PdfAnnotationKind.Perimeter);
 
     private bool OnHandle(PageToolInput input) =>
         Selected is { } selected && selected.PageIndex == input.Page && CanResize(selected) &&

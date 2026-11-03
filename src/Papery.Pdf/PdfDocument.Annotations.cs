@@ -25,6 +25,9 @@ public sealed partial class PdfDocument
     // Deleted but still undoable: hidden now, really removed when saving.
     private readonly HashSet<(int Page, string Name)> _hidden = [];
 
+    // Areas and perimeters still drawn as ink in this open document, to become real shapes in the saved file.
+    private readonly HashSet<string> _shapesAsInk = [];
+
     /// <summary>True when annotations have changed since the file was opened or last saved.</summary>
     public bool HasAnnotationChanges { get; private set; }
 
@@ -126,7 +129,7 @@ public sealed partial class PdfDocument
         CheckPageIndex(pageIndex);
         return Run(() => WithPage(pageIndex, page =>
         {
-            if (_drafts.TryGetValue(name, out var draft) && draft.Kind is PdfAnnotationKind.TextBox or PdfAnnotationKind.Callout or PdfAnnotationKind.Stamp or PdfAnnotationKind.Measure)
+            if (_drafts.TryGetValue(name, out var draft) && draft.Kind is PdfAnnotationKind.TextBox or PdfAnnotationKind.Callout or PdfAnnotationKind.Stamp or PdfAnnotationKind.Measure or PdfAnnotationKind.Area or PdfAnnotationKind.Perimeter)
             {
                 return Replace(page, name, draft with { Text = text }); // the words are part of how it looks
             }
@@ -253,31 +256,65 @@ public sealed partial class PdfDocument
     {
         outputPath = Path.GetFullPath(outputPath);
         string temp = SafeFile.CreateTemp(outputPath);
+        string? shaped = null;
         try
         {
-            await Run(() =>
+            var shapes = await Run(() =>
             {
                 foreach (var (pageIndex, name) in _hidden)
                 {
                     WithPage(pageIndex, page => RemoveByName(page, name));
+                    _shapesAsInk.Remove(name);
                 }
 
                 _hidden.Clear();
                 PdfComposer.Save(_raw, temp, outputPath);
-                return true;
+                return _shapesAsInk.ToHashSet();
             }, cancellationToken, PdfWorkPriority.Background).ConfigureAwait(false);
             await Run(() =>
             {
                 PdfComposer.Verify(temp, Password, PageCount, outputPath);
                 return true;
             }, cancellationToken, PdfWorkPriority.Background).ConfigureAwait(false);
+
+            // PDFsharp can't change a locked file without its owner password, so those keep the ink, which every app still draws.
+            string keep = temp;
+            if (shapes.Count > 0 && Password == null)
+            {
+                shaped = SafeFile.CreateTemp(outputPath);
+                string to = shaped;
+                if (await Task.Run(() => MeasuredShapes.TryWrite(temp, to, shapes), cancellationToken).ConfigureAwait(false)
+                    && await Run(() => Verified(to, outputPath), cancellationToken, PdfWorkPriority.Background).ConfigureAwait(false))
+                {
+                    keep = shaped;
+                }
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
-            SafeFile.Commit(temp, outputPath);
+            SafeFile.Commit(keep, outputPath);
             HasAnnotationChanges = false;
         }
         finally
         {
             SafeFile.TryDelete(temp);
+            if (shaped != null)
+            {
+                SafeFile.TryDelete(shaped);
+            }
+        }
+    }
+
+    /// <summary>True when a rewritten copy opens and reads as well as the one it came from.</summary>
+    private bool Verified(string path, string outputPath)
+    {
+        try
+        {
+            PdfComposer.Verify(path, Password, PageCount, outputPath);
+            return true;
+        }
+        catch (PdfEditException)
+        {
+            return false; // the PDFium copy is still good, so that one is kept
         }
     }
 
@@ -359,8 +396,10 @@ public sealed partial class PdfDocument
 
     private static PdfAnnotationKind KindOf(int subtype, string? subject)
     {
-        // Lines, arrows and the like are stored as ink, stamps as stamps; the subject says which they are.
-        if (subtype is PdfiumNative.FPDF_ANNOT_INK or PdfiumNative.FPDF_ANNOT_STAMP && Enum.TryParse<PdfAnnotationKind>(subject, out var named))
+        // Lines, arrows and the like are stored as ink, stamps as stamps, measured shapes as polygons and
+        // polylines once saved; the subject says which they are.
+        if (subtype is PdfiumNative.FPDF_ANNOT_INK or PdfiumNative.FPDF_ANNOT_STAMP or PdfiumNative.FPDF_ANNOT_POLYGON or PdfiumNative.FPDF_ANNOT_POLYLINE
+            && Enum.TryParse<PdfAnnotationKind>(subject, out var named))
         {
             return named;
         }
@@ -499,7 +538,12 @@ public sealed partial class PdfDocument
             }
 
             _ = PdfiumNative.FPDFAnnot_SetFlags(annotation, PdfiumNative.FPDF_ANNOT_FLAG_PRINT); // annotations print too
-            if (subtype == PdfiumNative.FPDF_ANNOT_STAMP)
+            if (draft.Kind is PdfAnnotationKind.Area or PdfAnnotationKind.Perimeter)
+            {
+                WriteMeasuredShape(page, annotation, draft);
+                _shapesAsInk.Add(name);
+            }
+            else if (subtype == PdfiumNative.FPDF_ANNOT_STAMP)
             {
                 WriteObjects(page, annotation, draft);
             }
@@ -715,6 +759,49 @@ public sealed partial class PdfDocument
                 builder.Line(from, to, draft.Width);
             }
         }
+    }
+
+    /// <summary>
+    /// An area or perimeter: ink with its corners in the ink list, which saving turns into a real polygon or
+    /// polyline (see <see cref="MeasuredShapes"/>). Drawn from page objects, as the label needs a font.
+    /// </summary>
+    private void WriteMeasuredShape(nint page, nint annotation, PdfAnnotationDraft draft)
+    {
+        var corners = (draft.Strokes is { Count: > 0 } ? draft.Strokes[0] : []).Select(p => ToUser(page, p)).ToArray();
+        if (corners.Length < 2)
+        {
+            return;
+        }
+
+        bool closed = draft.Kind == PdfAnnotationKind.Area;
+        string text = draft.Text ?? string.Empty;
+        var builder = new AnnotationObjects(_handle, page, annotation, draft.Color);
+
+        // An area's total sits inside it; a perimeter's sits on its longest line, as a distance's does.
+        var labelAt = closed ? new UserPoint(corners.Average(p => p.X), corners.Average(p => p.Y)) : MiddleOfLongest(corners);
+        var (a, b) = builder.LabelExtent(text, labelAt, draft.FontSize);
+        SetRect(annotation, [.. corners, a, b], draft.Width + 2); // first, as PDFium clips what's added to the box
+        AddInk(annotation, closed ? [.. corners, corners[0]] : corners);
+        _ = PdfiumNative.FPDFAnnot_SetBorder(annotation, 0, 0, draft.Width);
+        builder.Lines(corners, closed, draft.Width);
+        builder.Label(text, labelAt, draft.FontSize);
+    }
+
+    private static UserPoint MiddleOfLongest(UserPoint[] points)
+    {
+        int longest = 1;
+        double best = -1;
+        for (int i = 1; i < points.Length; i++)
+        {
+            double dx = points[i].X - points[i - 1].X, dy = points[i].Y - points[i - 1].Y;
+            if ((dx * dx) + (dy * dy) > best)
+            {
+                best = (dx * dx) + (dy * dy);
+                longest = i;
+            }
+        }
+
+        return new UserPoint((points[longest].X + points[longest - 1].X) / 2, (points[longest].Y + points[longest - 1].Y) / 2);
     }
 
     private static PdfAnnotationDraft? Parse(string json)

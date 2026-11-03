@@ -24,6 +24,7 @@ public sealed class PdfAnnotationTests : IDisposable
         PdfAnnotationKind.Note, PdfAnnotationKind.Pen, PdfAnnotationKind.Marker, PdfAnnotationKind.Rectangle, PdfAnnotationKind.Ellipse,
         PdfAnnotationKind.Line, PdfAnnotationKind.Arrow, PdfAnnotationKind.Polygon, PdfAnnotationKind.Cloud,
         PdfAnnotationKind.TextBox, PdfAnnotationKind.Callout, PdfAnnotationKind.Stamp, PdfAnnotationKind.Measure,
+        PdfAnnotationKind.Area, PdfAnnotationKind.Perimeter,
     ];
 
     private static PdfAnnotationDraft Draft(PdfAnnotationKind kind) => kind switch
@@ -32,6 +33,8 @@ public sealed class PdfAnnotationTests : IDisposable
             new(kind, Red, Strokes: Stroke((0.3, 0.4), (0.5, 0.5), (0.7, 0.6)), Width: 3),
         PdfAnnotationKind.Polygon => new(kind, Red, Strokes: Stroke((0.3, 0.4), (0.7, 0.4), (0.5, 0.6)), Width: 3),
         PdfAnnotationKind.Measure => new(kind, Red, Strokes: Stroke((0.3, 0.5), (0.7, 0.5)), Width: 2, Text: "12.3 cm"),
+        PdfAnnotationKind.Area => new(kind, Red, Strokes: Stroke((0.3, 0.4), (0.7, 0.4), (0.7, 0.6), (0.3, 0.6)), Width: 2, Text: "49.9 cm²", FontSize: 11),
+        PdfAnnotationKind.Perimeter => new(kind, Red, Strokes: Stroke((0.3, 0.4), (0.7, 0.4), (0.5, 0.6)), Width: 2, Text: "15.7 cm", FontSize: 11),
         PdfAnnotationKind.TextBox => new(kind, Red, [Area], Text: "Please check these numbers", FontSize: 16),
         PdfAnnotationKind.Callout => new(kind, Red, [Area], Stroke((0.3, 0.5), (0.1, 0.8)), Text: "Look here", FontSize: 16),
         PdfAnnotationKind.Stamp => new(kind, Red, [Area], Text: "APPROVED"),
@@ -174,6 +177,8 @@ public sealed class PdfAnnotationTests : IDisposable
     [InlineData(PdfAnnotationKind.Pen)]
     [InlineData(PdfAnnotationKind.Stamp)]
     [InlineData(PdfAnnotationKind.Highlight)]
+    [InlineData(PdfAnnotationKind.Area)]
+    [InlineData(PdfAnnotationKind.Perimeter)]
     public async Task Papery_annotations_can_still_be_recoloured_after_reopening(PdfAnnotationKind kind)
     {
         string path = _files.Create(1, "Hello");
@@ -255,5 +260,86 @@ public sealed class PdfAnnotationTests : IDisposable
         await doc.AddAnnotationAsync(0, new PdfAnnotationDraft(PdfAnnotationKind.TextBox, Red, [Area], Text: "Привет мир", FontSize: 24));
 
         Assert.True(await RedPixels(doc) > 0);
+    }
+
+    [Theory]
+    [InlineData(PdfAnnotationKind.Area, "/Polygon", 4)]
+    [InlineData(PdfAnnotationKind.Perimeter, "/PolyLine", 3)]
+    public async Task Measured_shapes_save_as_real_shapes_with_their_corners_and_total(PdfAnnotationKind kind, string subtype, int corners)
+    {
+        string path = _files.Create(1, "Hello");
+        string output = Path.Combine(_files.Folder, "out.pdf");
+        var draft = Draft(kind);
+        PdfPageSize size;
+        await using (var doc = await Engine.OpenAsync(path))
+        {
+            size = doc.PageSizes[0];
+            await doc.AddAnnotationAsync(0, draft);
+            await doc.SaveAsync(output);
+        }
+
+        // What other apps read: the shape, its corners in page space, its total and its scale.
+        using (var sharp = PdfReader.Open(output, PdfDocumentOpenMode.Import))
+        {
+            var annotation = sharp.Pages[0].Annotations[0];
+            Assert.Equal(subtype, annotation.Elements.GetName("/Subtype"));
+            Assert.Equal(draft.Text, annotation.Elements.GetString("/Contents"));
+            Assert.False(annotation.Elements.ContainsKey("/InkList"));
+            Assert.True(annotation.Elements.ContainsKey("/Measure"));
+            var vertices = annotation.Elements.GetArray("/Vertices")!;
+            Assert.Equal(corners * 2, vertices.Elements.Count);
+            Assert.Equal(0.3 * size.Width, vertices.Elements.GetReal(0), 1);
+            Assert.Equal((1 - 0.4) * size.Height, vertices.Elements.GetReal(1), 1);
+        }
+
+        // What Papery reads: the same kind and total, and the corners to draw it again from.
+        await using var saved = await Engine.OpenAsync(output);
+        var info = Assert.Single(await saved.GetAnnotationsAsync(0));
+        Assert.Equal(kind, info.Kind);
+        Assert.Equal(draft.Text, info.Text);
+        Assert.True(await RedPixels(saved) > 0);
+        var back = await saved.GetAnnotationDraftAsync(0, info.Name);
+        Assert.Equal(draft.Strokes![0], back!.Strokes![0]);
+    }
+
+    [Fact]
+    public async Task A_measured_shape_moved_after_reopening_is_still_a_real_shape()
+    {
+        string path = _files.Create(1, "Hello");
+        await using (var doc = await Engine.OpenAsync(path))
+        {
+            await doc.AddAnnotationAsync(0, Draft(PdfAnnotationKind.Area));
+            await doc.SaveAsync(path);
+        }
+
+        await using (var reopened = await Engine.OpenAsync(path))
+        {
+            var info = Assert.Single(await reopened.GetAnnotationsAsync(0));
+            Assert.True(await reopened.MoveAnnotationAsync(0, info.Name, info.Bounds with { X = info.Bounds.X - 0.2 }));
+            await reopened.SaveAsync(path);
+        }
+
+        using var sharp = PdfReader.Open(path, PdfDocumentOpenMode.Import);
+        Assert.Equal(1, sharp.Pages[0].Annotations.Count);
+        var annotation = sharp.Pages[0].Annotations[0];
+        Assert.Equal("/Polygon", annotation.Elements.GetName("/Subtype"));
+        Assert.True(annotation.Elements.GetArray("/Vertices")!.Elements.GetReal(0) < 0.2 * 595, "it moved left");
+    }
+
+    [Fact]
+    public async Task A_locked_file_keeps_measured_shapes_that_read_back()
+    {
+        string path = _files.Create(1, "Secret", password: "pw");
+        await using (var doc = await Engine.OpenAsync(path, "pw"))
+        {
+            await doc.AddAnnotationAsync(0, Draft(PdfAnnotationKind.Perimeter));
+            await doc.SaveAsync(path);
+        }
+
+        await using var reopened = await Engine.OpenAsync(path, "pw");
+        var info = Assert.Single(await reopened.GetAnnotationsAsync(0));
+        Assert.Equal(PdfAnnotationKind.Perimeter, info.Kind);
+        Assert.Equal("15.7 cm", info.Text);
+        Assert.True(await RedPixels(reopened) > 0);
     }
 }
