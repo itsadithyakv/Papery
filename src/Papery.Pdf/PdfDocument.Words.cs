@@ -20,6 +20,50 @@ public sealed partial class PdfDocument
         }, cancellationToken, priority);
     }
 
+    /// <summary>
+    /// The words a reader can see, and whether any are turned: sideways or upside down on the page as shown. Text drawn
+    /// invisibly, like the layer OCR lays over a scan, is left out.
+    /// </summary>
+    internal Task<(IReadOnlyList<PdfWord> Words, bool Turned)> GetVisiblePageWordsAsync(int pageIndex, CancellationToken cancellationToken = default)
+    {
+        CheckPageIndex(pageIndex);
+        return Run<(IReadOnlyList<PdfWord>, bool)>(() =>
+        {
+            nint textPage = GetTextPage(pageIndex);
+            if (textPage == 0)
+            {
+                return ([], false);
+            }
+
+            nint page = GetPage(pageIndex);
+            var words = ReadWords(page, textPage).Where(w => !IsHidden(textPage, w.Start)).ToArray();
+
+            // One turned character is usually a symbol; a turned word means the text doesn't run left to right.
+            int quarterTurns = PdfiumNative.FPDFPage_GetRotation(page);
+            return (words, words.Any(w => w.Length > 1 && !IsUpright(textPage, w.Start, quarterTurns)));
+        }, cancellationToken, PdfWorkPriority.Background);
+    }
+
+    private static bool IsUpright(nint textPage, int charIndex, int quarterTurns)
+    {
+        const double Tolerance = 10 * Math.PI / 180, Turn = 2 * Math.PI;
+        float angle = PdfiumNative.FPDFText_GetCharAngle(textPage, charIndex);
+        if (angle < 0)
+        {
+            return true; // PDFium can't tell, so trust the layout
+        }
+
+        // PDFium's angle and the page's rotation turn the same way, so they add up (checked against each quarter turn of both).
+        double shown = ((angle + (quarterTurns * Math.PI / 2)) % Turn + Turn) % Turn;
+        return shown < Tolerance || shown > Turn - Tolerance;
+    }
+
+    private static bool IsHidden(nint textPage, int charIndex)
+    {
+        nint textObject = PdfiumNative.FPDFText_GetTextObject(textPage, charIndex);
+        return textObject != 0 && PdfiumNative.FPDFTextObj_GetTextRenderMode(textObject) is PdfiumNative.FPDF_TEXTRENDERMODE_INVISIBLE or PdfiumNative.FPDF_TEXTRENDERMODE_CLIP;
+    }
+
     /// <summary>The characters of the whole line under a character (for changing existing text).</summary>
     public async Task<IReadOnlyList<PdfWord>> GetLineAtAsync(int pageIndex, int charIndex, CancellationToken cancellationToken = default)
     {

@@ -746,6 +746,19 @@ internal static unsafe partial class PdfiumNative
     [LibraryImport(Dll)]
     internal static partial int FPDFText_GetFillColor(nint textPage, int index, uint* r, uint* g, uint* b, uint* a);
 
+    /// <summary>The page object a character was drawn by (owned by the page, not to be freed).</summary>
+    [LibraryImport(Dll)]
+    internal static partial nint FPDFText_GetTextObject(nint textPage, int index);
+
+    internal const int FPDF_TEXTRENDERMODE_CLIP = 7;
+
+    /// <summary>A character's turn in radians, anticlockwise on the page before its own rotation; -1 when unknown.</summary>
+    [LibraryImport(Dll)]
+    internal static partial float FPDFText_GetCharAngle(nint textPage, int index);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFTextObj_GetTextRenderMode(nint textObject);
+
     [LibraryImport(Dll)]
     internal static partial int FPDFPage_RemoveObject(nint page, nint pageObject);
 

@@ -6,12 +6,18 @@ using System.Text;
 namespace Papery.Pdf.Editing;
 
 /// <summary>A run of words that look alike.</summary>
-public sealed record DocxRun(string Text, float FontSize, bool Bold, bool Italic, PdfColor Color);
+/// <param name="FontName">The PDF's name for the font of the run's first word, as PDFium gives it.</param>
+public sealed record DocxRun(string Text, float FontSize, bool Bold, bool Italic, PdfColor Color, string FontName = "");
 
 /// <summary>A paragraph of text or a picture, in reading order.</summary>
 /// <param name="Table">Rows of cells, each cell its runs. When set, this block is a table.</param>
 /// <param name="ColumnShares">Each column's share of the table's width.</param>
-public sealed record DocxBlock(IReadOnlyList<DocxRun> Runs, byte[]? Jpeg = null, double WidthPoints = 0, double HeightPoints = 0, IReadOnlyList<IReadOnlyList<IReadOnlyList<DocxRun>>>? Table = null, IReadOnlyList<double>? ColumnShares = null);
+/// <param name="ColumnLefts">Where each column starts, as a fraction of the page's width.</param>
+public sealed record DocxBlock(IReadOnlyList<DocxRun> Runs, byte[]? Jpeg = null, double WidthPoints = 0, double HeightPoints = 0, IReadOnlyList<IReadOnlyList<IReadOnlyList<DocxRun>>>? Table = null, IReadOnlyList<double>? ColumnShares = null, IReadOnlyList<double>? ColumnLefts = null);
+
+/// <summary>A block with where it sits on the page, how many lines it came from, and how far apart their tops are.</summary>
+/// <param name="TabStops">Where text after each wide gap starts, measured from the block's left edge, in fractions of the page's width.</param>
+internal readonly record struct PlacedBlock(NormalizedRect Area, DocxBlock Block, int Lines, double LinePitch, IReadOnlyList<double>? TabStops = null);
 
 /// <summary>
 /// Turns a page's positioned words into paragraphs. A PDF stores where letters sit, not what they mean, so
@@ -47,9 +53,13 @@ public static class DocxLayout
     /// A page's text in reading order, as paragraphs and tables, each with how far down the page it starts. Text
     /// columns are read one at a time, and lines whose gaps line up from row to row become tables.
     /// </summary>
-    public static IReadOnlyList<(double Y, DocxBlock Block)> Blocks(IReadOnlyList<PdfWord> words)
+    public static IReadOnlyList<(double Y, DocxBlock Block)> Blocks(IReadOnlyList<PdfWord> words) =>
+        PlacedBlocks(words).Select(b => (b.Area.Y, b.Block)).ToArray();
+
+    /// <summary>The same blocks as <see cref="Blocks"/>, with their whole area, for exports that place text where it was.</summary>
+    internal static IReadOnlyList<PlacedBlock> PlacedBlocks(IReadOnlyList<PdfWord> words)
     {
-        var blocks = new List<(double, DocxBlock)>();
+        var blocks = new List<PlacedBlock>();
         foreach (var section in ReadingOrder(words))
         {
             var lines = Lines(section);
@@ -59,7 +69,8 @@ public static class DocxLayout
                 int end = TableEnd(lines, start, out var columns);
                 if (end > start)
                 {
-                    blocks.Add((lines[start].Min(w => w.Area.Y), Table(lines, start, end, columns)));
+                    var rows = lines.Skip(start).Take(end - start).ToArray();
+                    blocks.Add(new PlacedBlock(Bounds(rows), Table(lines, start, end, columns), rows.Length, Pitch(rows)));
                     start = end;
                     continue;
                 }
@@ -72,9 +83,10 @@ public static class DocxLayout
                 }
 
                 var text = lines.Skip(start).Take(stop - start).ToArray();
-                foreach (var (paragraph, top) in ParagraphsWithTops(text))
+                foreach (var (paragraph, own) in ParagraphsWithLines(text))
                 {
-                    blocks.Add((top, new DocxBlock(paragraph)));
+                    var area = Bounds(own);
+                    blocks.Add(new PlacedBlock(area, new DocxBlock(paragraph), own.Count, Pitch(own), TabStops(own, area.X)));
                 }
 
                 start = stop;
@@ -84,27 +96,46 @@ public static class DocxLayout
         return blocks;
     }
 
-    private static IEnumerable<(IReadOnlyList<DocxRun> Runs, double Top)> ParagraphsWithTops(IReadOnlyList<IReadOnlyList<PdfWord>> lines)
+    private static NormalizedRect Bounds(IReadOnlyList<IReadOnlyList<PdfWord>> lines)
+    {
+        double left = lines.Min(l => l.Min(w => w.Area.X)), top = lines.Min(l => l.Min(w => w.Area.Y));
+        double right = lines.Max(l => l.Max(w => w.Area.Right)), bottom = lines.Max(l => l.Max(w => w.Area.Bottom));
+        return new NormalizedRect(left, top, right - left, bottom - top);
+    }
+
+    private static double[] TabStops(IReadOnlyList<IReadOnlyList<PdfWord>> lines, double left) =>
+        lines.SelectMany(line => line.Skip(1).Where((word, i) => IsColumnGap(line[i], word)).Select(word => word.Area.X - left)).Order().ToArray();
+
+    /// <summary>A gap too wide to be a space: usually a table's column, or a tab.</summary>
+    private static bool IsColumnGap(PdfWord before, PdfWord word) =>
+        word.Area.X - before.Area.Right > word.Area.Width / Math.Max(1, word.Text.Length) * ColumnGap;
+
+    /// <summary>The average distance from one line's top to the next, or 0 for a single line.</summary>
+    private static double Pitch(IReadOnlyList<IReadOnlyList<PdfWord>> lines) =>
+        lines.Count < 2 ? 0 : (lines[^1].Min(w => w.Area.Y) - lines[0].Min(w => w.Area.Y)) / (lines.Count - 1);
+
+    private static IEnumerable<(IReadOnlyList<DocxRun> Runs, IReadOnlyList<IReadOnlyList<PdfWord>> Lines)> ParagraphsWithLines(IReadOnlyList<IReadOnlyList<PdfWord>> lines)
     {
         var current = new List<DocxRun>();
-        double top = lines[0].Min(w => w.Area.Y);
+        var own = new List<IReadOnlyList<PdfWord>>();
         IReadOnlyList<PdfWord>? previous = null;
         foreach (var line in lines)
         {
             if (previous != null && StartsNewParagraph(previous, line))
             {
-                yield return (current, top);
+                yield return (current, own);
                 current = [];
-                top = line.Min(w => w.Area.Y);
+                own = [];
             }
 
             AddLine(current, line);
+            own.Add(line);
             previous = line;
         }
 
         if (current.Count > 0)
         {
-            yield return (current, top);
+            yield return (current, own);
         }
     }
 
@@ -210,8 +241,7 @@ public static class DocxLayout
         var cells = new List<List<PdfWord>> { new() { line[0] } };
         for (int i = 1; i < line.Count; i++)
         {
-            double perChar = line[i].Area.Width / Math.Max(1, line[i].Text.Length);
-            if (line[i].Area.X - line[i - 1].Area.Right > perChar * ColumnGap)
+            if (IsColumnGap(line[i - 1], line[i]))
             {
                 cells.Add([]);
             }
@@ -307,7 +337,7 @@ public static class DocxLayout
         var ordered = columns.Select((c, i) => (c.Left, c.Right, i)).OrderBy(c => c.Left).ToArray();
         double total = Math.Max(1e-6, ordered.Sum(c => c.Right - c.Left));
         var reordered = rows.Select(r => (IReadOnlyList<IReadOnlyList<DocxRun>>)ordered.Select(c => r[c.i]).ToArray()).ToArray();
-        return new DocxBlock([], Table: reordered, ColumnShares: ordered.Select(c => (c.Right - c.Left) / total).ToArray());
+        return new DocxBlock([], Table: reordered, ColumnShares: ordered.Select(c => (c.Right - c.Left) / total).ToArray(), ColumnLefts: ordered.Select(c => c.Left).ToArray());
     }
 
     public static IReadOnlyList<IReadOnlyList<DocxRun>> Paragraphs(IReadOnlyList<PdfWord> words)
@@ -352,8 +382,7 @@ public static class DocxLayout
             if (i > 0)
             {
                 // A wide gap on a line is usually a table's column.
-                double perChar = word.Area.Width / Math.Max(1, word.Text.Length);
-                text = (word.Area.X - line[i - 1].Area.Right > perChar * ColumnGap ? "\t" : " ") + text;
+                text = (IsColumnGap(line[i - 1], word) ? "\t" : " ") + text;
             }
             else if (runs.Count > 0)
             {
@@ -366,7 +395,7 @@ public static class DocxLayout
             }
             else
             {
-                runs.Add(new DocxRun(text, word.FontSize, word.Bold, word.Italic, word.Color));
+                runs.Add(new DocxRun(text, word.FontSize, word.Bold, word.Italic, word.Color, word.FontName));
             }
         }
     }
@@ -542,15 +571,20 @@ internal static class DocxWriter
         }
     }
 
-    /// <summary>XML can't hold most control characters, and PDFs sometimes contain them.</summary>
+    /// <summary>XML can't hold most control characters, and PDFs sometimes contain them. Letters outside the basic plane come as a pair and stay.</summary>
     internal static string Escape(string text)
     {
         var clean = new StringBuilder(text.Length);
-        foreach (char c in text)
+        for (int i = 0; i < text.Length; i++)
         {
-            if (System.Xml.XmlConvert.IsXmlChar(c))
+            if (System.Xml.XmlConvert.IsXmlChar(text[i]))
             {
-                clean.Append(c);
+                clean.Append(text[i]);
+            }
+            else if (i + 1 < text.Length && System.Xml.XmlConvert.IsXmlSurrogatePair(text[i + 1], text[i]))
+            {
+                clean.Append(text, i, 2);
+                i++;
             }
         }
 
