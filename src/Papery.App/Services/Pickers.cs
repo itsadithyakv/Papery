@@ -90,6 +90,32 @@ internal static class Pickers
         }
     }
 
+    /// <summary>One file of the given kinds, such as ".xfdf". Returns null if cancelled.</summary>
+    public static async Task<string?> PickFileAsync(nint hwnd, params string[] extensions)
+    {
+        var picker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, ViewMode = PickerViewMode.List };
+        foreach (string extension in extensions)
+        {
+            picker.FileTypeFilter.Add(extension);
+        }
+
+        InitializeWithWindow.Initialize(picker, hwnd);
+        return (await picker.PickSingleFileAsync())?.Path;
+    }
+
+    /// <summary>Asks where to save, offering several kinds of file; the one chosen decides the extension.</summary>
+    public static async Task<string?> PickSaveAsync(nint hwnd, string suggestedName, IReadOnlyList<(string Kind, string Extension)> kinds)
+    {
+        var picker = new FileSavePicker { SuggestedFileName = suggestedName, SuggestedStartLocation = PickerLocationId.DocumentsLibrary };
+        foreach (var (kind, extension) in kinds)
+        {
+            picker.FileTypeChoices.Add(kind, [extension]);
+        }
+
+        InitializeWithWindow.Initialize(picker, hwnd);
+        return (await picker.PickSaveFileAsync())?.Path;
+    }
+
     /// <summary>Any kind of file, several at once (for attaching to a PDF).</summary>
     public static async Task<IReadOnlyList<string>> PickAnyFilesAsync(nint hwnd)
     {

@@ -77,6 +77,10 @@ public sealed partial class DocumentView
                 Modes.SelectedIndex = ConvertModeIndex;
                 Guard.Run(ExportWordAsync, "Saving as Word");
                 break;
+            case "pdf-to-powerpoint":
+                Modes.SelectedIndex = ConvertModeIndex;
+                Guard.Run(ExportPowerPointAsync, "Saving as PowerPoint");
+                break;
             case "filters":
                 Modes.SelectedIndex = ToolsModeIndex;
                 Guard.Run(FilterAsync, "Applying filters");

@@ -99,7 +99,7 @@ public sealed partial class DocumentView
     // These work without Pro, or only show up once something has been picked.
     private static readonly HashSet<string> OpenToEveryone =
     [
-        "Select, move or resize", "Change the words", "Turn", "Delete", "Snapshot",
+        "Select, move or resize", "Change the words", "Turn", "Delete", "Snapshot", "Share comments with other apps", "Answers to and from a file",
         "Make a PDF from any app", "Clear the marks", "Document details", "Save a copy", "Attached files",
     ];
 

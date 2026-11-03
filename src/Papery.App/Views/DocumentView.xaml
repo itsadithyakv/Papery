@@ -37,7 +37,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" Loaded="OnToolbarLoaded" VerticalScrollMode="Disabled">
                 <!-- Modes: items are added in DocumentView.xaml.cs; the coral blob slides between them. -->
                 <controls:PillBar x:Name="Modes" AutomationProperties.Name="Modes" />
             </ScrollViewer>
@@ -180,7 +180,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" Loaded="OnToolbarLoaded" VerticalScrollMode="Disabled">
                         <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
                             <StackPanel x:Name="AnnotateTools" Orientation="Horizontal" Spacing="2" />
                         </StackPanel>
@@ -192,6 +192,15 @@
                                 <Flyout>
                                     <StackPanel x:Name="AnnotateColours" Orientation="Horizontal" Spacing="6" />
                                 </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" AutomationProperties.Name="Share comments with other apps" ToolTipService.ToolTip="Share comments with other apps">
+                            <FontIcon Glyph="&#xE8AB;" Style="{StaticResource ToolIconStyle}" />
+                            <Button.Flyout>
+                                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                    <MenuFlyoutItem Text="Save comments for Acrobat and other apps" Click="OnExportComments" />
+                                    <MenuFlyoutItem Text="Bring in comments from a file" Click="OnImportComments" />
+                                </MenuFlyout>
                             </Button.Flyout>
                         </Button>
                         <Button x:Name="AnnotateUndo" Style="{StaticResource ToolButtonStyle}" Click="OnAnnotateUndo" IsEnabled="False" AutomationProperties.Name="Undo" ToolTipService.ToolTip="Undo (Ctrl+Z)">
@@ -215,7 +224,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" Loaded="OnToolbarLoaded" VerticalScrollMode="Disabled">
                         <StackPanel x:Name="FillTools" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
                             <ToggleButton Style="{StaticResource ToolToggleButtonStyle}" Click="OnTypeHere" AutomationProperties.Name="Type on the page" ToolTipService.ToolTip="Type on the page">
                                 <FontIcon Glyph="&#xE8D2;" Style="{StaticResource ToolIconStyle}" />
@@ -262,6 +271,15 @@
                             <Button Style="{StaticResource ToolButtonStyle}" Click="OnFlatten" AutomationProperties.Name="Make answers permanent" ToolTipService.ToolTip="Make answers permanent (flatten)">
                                 <FontIcon Glyph="&#xE72E;" Style="{StaticResource ToolIconStyle}" />
                             </Button>
+                            <Button Style="{StaticResource ToolButtonStyle}" AutomationProperties.Name="Answers to and from a file" ToolTipService.ToolTip="Save the answers, or fill the form from a file">
+                                <FontIcon Glyph="&#xE8AB;" Style="{StaticResource ToolIconStyle}" />
+                                <Button.Flyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Text="Save the answers to a file" Click="OnExportAnswers" />
+                                        <MenuFlyoutItem Text="Fill in from a file" Click="OnImportAnswers" />
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
                         </StackPanel>
                     </ScrollViewer>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
@@ -286,7 +304,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" Loaded="OnToolbarLoaded" VerticalScrollMode="Disabled">
                         <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
                             <ToggleButton x:Name="EditSelect" Style="{StaticResource ToolToggleButtonStyle}" Click="OnEditSelect" AutomationProperties.Name="Select, move or resize" ToolTipService.ToolTip="Select, move or resize">
                                 <FontIcon Glyph="&#xE8B0;" Style="{StaticResource ToolIconStyle}" />
@@ -352,7 +370,7 @@
                 </Grid>
 
                 <!-- Convert: pages and pictures out, new PDFs in -->
-                <ScrollViewer x:Name="ConvertToolbar" Visibility="Collapsed" HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                <ScrollViewer x:Name="ConvertToolbar" Visibility="Collapsed" HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" Loaded="OnToolbarLoaded" VerticalScrollMode="Disabled">
                     <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
                         <Button Style="{StaticResource ToolButtonStyle}" Click="OnSavePagesAsImages" AutomationProperties.Name="Save pages as pictures" ToolTipService.ToolTip="Save pages as pictures">
                             <FontIcon Glyph="&#xEB9F;" Style="{StaticResource ToolIconStyle}" />
@@ -369,6 +387,9 @@
                         </Button>
                         <Button Style="{StaticResource ToolButtonStyle}" Click="OnExportExcel" AutomationProperties.Name="Save as Excel" ToolTipService.ToolTip="Save as Excel (tables keep their columns)">
                             <FontIcon Glyph="&#xE80A;" Style="{StaticResource ToolIconStyle}" />
+                        </Button>
+                        <Button Style="{StaticResource ToolButtonStyle}" Click="OnExportPowerPoint" AutomationProperties.Name="Save as PowerPoint" ToolTipService.ToolTip="Save as PowerPoint (one slide per page, text you can edit)">
+                            <FontIcon Glyph="&#xE7F4;" Style="{StaticResource ToolIconStyle}" />
                         </Button>
                         <Button Style="{StaticResource ToolButtonStyle}" Click="OnAttachments" AutomationProperties.Name="Attached files" ToolTipService.ToolTip="Files attached to this PDF">
                             <FontIcon Glyph="&#xE723;" Style="{StaticResource ToolIconStyle}" />
@@ -405,7 +426,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <ScrollViewer HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" Loaded="OnToolbarLoaded" VerticalScrollMode="Disabled">
                         <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
                             <ToggleButton x:Name="ProtectMark" Style="{StaticResource ToolToggleButtonStyle}" Click="OnRedactMark" AutomationProperties.Name="Mark an area to remove" ToolTipService.ToolTip="Mark an area to remove for good">
                                 <FontIcon Glyph="&#xE75C;" Style="{StaticResource ToolIconStyle}" />
@@ -444,7 +465,7 @@
                 </Grid>
 
                 <!-- Tools: compress, compare and batch -->
-                <ScrollViewer x:Name="ToolsToolbar" Visibility="Collapsed" HorizontalScrollBarVisibility="Hidden" HorizontalScrollMode="Auto" VerticalScrollMode="Disabled">
+                <ScrollViewer x:Name="ToolsToolbar" Visibility="Collapsed" HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Auto" Loaded="OnToolbarLoaded" VerticalScrollMode="Disabled">
                     <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
                         <Button Style="{StaticResource ToolButtonStyle}" Click="OnCompress" AutomationProperties.Name="Compress" ToolTipService.ToolTip="Compress: make this file smaller">
                             <FontIcon Glyph="&#xE7B8;" Style="{StaticResource ToolIconStyle}" />

@@ -21,23 +21,26 @@ FREE, FOREVER
 • Highlight text and add sticky notes
 • Copy part of a page as a picture with Snapshot
 • See and save files attached to a PDF, and hear pages read aloud
+• Share a PDF straight to Mail, Teams, WhatsApp and other apps
+• Save form answers to a file, fill a form from one, and save comments for Acrobat and other apps
 • No watermarks on anything you save, and no pop-ups asking you to upgrade
 
 PAPERY PRO: ONE PAYMENT, EVERY TOOL
 • Organise: reorder, rotate, delete, extract and insert pages
 • Merge and split, including split by size
 • Crop, resize and straighten pages
-• Mark up: underline, strike through, draw, shapes, stamps and measuring
+• Mark up: underline, strike through, draw, shapes, stamps, and measure distances, areas and perimeters. Bring in comments from other apps
 • Edit: add text and pictures, whiteout, links, page numbers, headers and footers, watermarks, Bates numbers and bookmarks, and change existing text
 • Sign: draw, type or import your signature, and create form fields. Certified digital signatures with your own certificate too, and check the signatures on a PDF you receive
-• Convert: images to PDF, PDF to images, text, Word and Excel, and scan from a scanner or camera
+• Convert: images and saved web pages to PDF; PDF to Word, Excel, PowerPoint, images and text; scan from a scanner or camera
 • OCR: make scans searchable with the text recognition built into Windows, in any language you've installed
 • Compress: presets, or fit under a size you choose
 • Filters: clean up scans with whiter paper, darker text and no shadows, or use grey, black and white, brightness, contrast, sharpen and straighten
 • Protect: AES-256 passwords and permissions
-• Redact: permanently remove private details, not just cover them, then check they're gone. The redacted copy also leaves out details, bookmarks, comments and attachments that could repeat them
+• Redact: permanently remove private details, not just cover them, then check they're gone. Find emails, phone, card, bank and ID numbers in one go. The redacted copy also leaves out details, bookmarks, comments and attachments that could repeat them
+• Attach files to a PDF, or take them out
 • Remove hidden data, such as comments, attachments and details about the author
-• Compare two versions, and run one action on many files with Batch
+• Compare two versions, run one action on many files with Batch, and search every PDF in a folder
 
 Good to know
 • Signatures you draw, type or import are ordinary e-signatures: a picture on the page. Certified digital signatures need a certificate from your organisation or a certificate authority.
@@ -58,16 +61,16 @@ Merge, split, reorder, rotate, delete and extract pages
 Add text, pictures, page numbers, watermarks and Bates numbers
 Sign by drawing, typing or importing your signature
 Create and fill form fields, and flatten forms
-Convert images to PDF, and PDF to images, text or Word
+PDF to Word, Excel, PowerPoint, images or text
 Scan to PDF from a scanner or camera, and make scans searchable offline
 Compress PDFs, or fit them under a size you choose
-Save PDFs as Excel, with tables in columns
+Turn saved web pages and HTML into PDFs
 Check digital signatures on PDFs you receive
-Listen to pages read aloud for free
+Share PDFs, and swap comments and form answers with other apps
 Clean up scans with filters: whiter paper, darker text, no shadows
 Password-protect with AES-256
-Permanently redact private details and check they're gone
-Compare two versions, and run one action on many files
+Redact private details, including card, bank and ID numbers
+Search every PDF in a folder, compare versions, batch actions
 Right-click PDFs in File Explorer to merge, compress or convert
 Everything stays on your PC: no account, no cloud, no ads
 

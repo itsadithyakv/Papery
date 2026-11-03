@@ -595,6 +595,24 @@ public sealed partial class DocumentView : UserControl
 
     private void OnSearchClick(object sender, RoutedEventArgs e) => ShowSearch();
 
+    /// <summary>
+    /// A toolbar wider than the window scrolls sideways. A mouse wheel only turns up and down, so it's turned sideways here;
+    /// the scroll viewer marks wheel events as handled, hence listening for handled ones too.
+    /// </summary>
+    private void OnToolbarLoaded(object sender, RoutedEventArgs e)
+    {
+        var bar = (ScrollViewer)sender;
+        bar.Loaded -= OnToolbarLoaded;
+        bar.AddHandler(PointerWheelChangedEvent, new PointerEventHandler((_, args) =>
+        {
+            if (bar.ScrollableWidth > 0)
+            {
+                bar.ChangeView(bar.HorizontalOffset - args.GetCurrentPoint(bar).Properties.MouseWheelDelta, null, null);
+                args.Handled = true;
+            }
+        }), handledEventsToo: true);
+    }
+
     /// <summary>Opens on a page with a search already run, for a result picked from a folder search.</summary>
     public void FindOnPage(int page, string query)
     {
