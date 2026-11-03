@@ -32,6 +32,14 @@ public enum PdfAnnotationKind
 
     /// <summary>A picture added to the page. Its first area is where.</summary>
     Image,
+
+    // New kinds go last: saved drafts store the kind as its number.
+
+    /// <summary>A measured area: its corners are the first stroke, and its words are the total.</summary>
+    Area,
+
+    /// <summary>A measured length along several lines: its corners are the first stroke, and its words are the total.</summary>
+    Perimeter,
 }
 
 /// <summary>The three families every PDF viewer has, so added text looks the same everywhere.</summary>
@@ -57,7 +65,7 @@ public readonly record struct PagePoint(double X, double Y, float Pressure = 1);
 /// <summary>
 /// A new annotation, described the way the user sees the page. Which fields matter depends on the kind:
 /// text marks use <see cref="Areas"/> (one per line of text); shapes, notes, stamps and text boxes use the
-/// first area; pens, lines, arrows, polygons and measures use <see cref="Strokes"/>; a callout uses both
+/// first area; pens, lines, arrows, polygons and measurements use <see cref="Strokes"/>; a callout uses both
 /// (its box, then the line to what it points at).
 /// </summary>
 public sealed record PdfAnnotationDraft(

@@ -46,6 +46,8 @@ public sealed partial class DocumentView
         (PdfAnnotationKind.Callout, "Callout (drag from the thing to where the words go)", "", null, false, 1.5f),
         (PdfAnnotationKind.Stamp, "Stamp", null, "M6,2 H10 L9,8 H13 V11 H3 V8 H7 Z M2,12.5 H14 V14 H2 Z", false, 2),
         (PdfAnnotationKind.Measure, "Measure a distance", "", null, false, 1.5f),
+        (PdfAnnotationKind.Area, "Measure an area (click each corner, then the first again or double-click)", null, "M2,4 L12,2 L14,13 L3,14 Z M3.7,5.4 L10.9,3.9 L12.4,11.9 L4.4,12.5 Z M5.6,7 L9.8,6.1 L10.7,10.4 L6.1,10.8 Z", false, 1.5f),
+        (PdfAnnotationKind.Perimeter, "Measure a perimeter (click each corner, double-click to finish)", null, "F1 M1.9,12.3 L4.9,3.3 L6.1,3.7 L3.1,12.7 Z M5.8,2.9 L11.3,5.9 L10.7,7.1 L5.2,4.1 Z M11.6,6.2 L14.1,12.2 L12.9,12.8 L10.4,6.8 Z M0.9,10.9 L4.1,10.9 L4.1,14.1 L0.9,14.1 Z M3.9,1.9 L7.1,1.9 L7.1,5.1 L3.9,5.1 Z M9.4,4.9 L12.6,4.9 L12.6,8.1 L9.4,8.1 Z M11.9,10.9 L15.1,10.9 L15.1,14.1 L11.9,14.1 Z", false, 1.5f),
     ];
 
     private static readonly string[] StampWords = ["APPROVED", "DRAFT", "CONFIDENTIAL", "RECEIVED", "PAID"];

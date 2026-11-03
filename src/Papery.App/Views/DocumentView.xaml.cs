@@ -1000,6 +1000,11 @@ public sealed partial class DocumentView : UserControl
             ExitPresentation();
             a.Handled = true;
         }
+        else if (_pen is { IsDrawing: true })
+        {
+            _pen.Cancel(); // a shape half drawn, corner by corner
+            a.Handled = true;
+        }
         else if (Viewer.Selection != null)
         {
             Viewer.ClearSelection();

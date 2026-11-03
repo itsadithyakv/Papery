@@ -4,7 +4,7 @@ using Papery.Pdf.Native;
 namespace Papery.Pdf.Editing;
 
 /// <summary>
-/// Builds a stamp annotation's look from page objects (lines, boxes and text). PDFium embeds the fonts
+/// Builds a stamp's (or a measured shape's) look from page objects (lines, boxes and text). PDFium embeds the fonts
 /// and writes the appearance itself. Everything is laid out as the user sees the page, then mapped
 /// through the page's display axes, so text reads upright on rotated pages too. With no annotation
 /// (0) the objects go straight onto the page instead. PDFium thread only.
@@ -21,6 +21,23 @@ internal sealed unsafe class AnnotationObjects(nint document, nint page, nint an
     {
         nint path = PdfiumNative.FPDFPageObj_CreateNewPath((float)from.X, (float)from.Y);
         _ = PdfiumNative.FPDFPath_LineTo(path, (float)to.X, (float)to.Y);
+        Finish(path, width);
+    }
+
+    /// <summary>Straight lines through each point in turn, and back to the first when closed (measured shapes).</summary>
+    public void Lines(IReadOnlyList<UserPoint> points, bool closed, float width)
+    {
+        nint path = PdfiumNative.FPDFPageObj_CreateNewPath((float)points[0].X, (float)points[0].Y);
+        for (int i = 1; i < points.Count; i++)
+        {
+            _ = PdfiumNative.FPDFPath_LineTo(path, (float)points[i].X, (float)points[i].Y);
+        }
+
+        if (closed)
+        {
+            _ = PdfiumNative.FPDFPath_Close(path);
+        }
+
         Finish(path, width);
     }
 
