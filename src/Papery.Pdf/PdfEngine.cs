@@ -37,6 +37,27 @@ public sealed class PdfEngine
     public Task AddFormFieldsAsync(PdfInputFile input, IReadOnlyList<NewFormField> fields, string outputPath, CancellationToken cancellationToken = default) =>
         Unlocked(input, outputPath, (file, output) => PdfFieldWriter.AddAsync(Thread, file, fields, output, cancellationToken), cancellationToken);
 
+    /// <summary>
+    /// Writes a form's answers to a CSV or XFDF file, one per field, by field name. Returns how many; with none
+    /// (no form), no file is made.
+    /// </summary>
+    public async Task<int> ExportFormDataAsync(PdfInputFile input, string path, FormDataFormat format, CancellationToken cancellationToken = default)
+    {
+        await using var document = await OpenAsync(input.Path, input.Password, cancellationToken).ConfigureAwait(false);
+        return await FormDataExchange.ExportAsync(document, path, format, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The same from an open document, including answers not saved yet.</summary>
+    public Task<int> ExportFormDataAsync(PdfDocument document, string path, FormDataFormat format, CancellationToken cancellationToken = default) =>
+        FormDataExchange.ExportAsync(document, path, format, cancellationToken);
+
+    /// <summary>
+    /// Fills a form from a CSV or XFDF file (Papery's or Acrobat's) by field name, then saves through the checked save.
+    /// When nothing could be filled, the output isn't written. Throws InvalidDataException for a file that is neither.
+    /// </summary>
+    public Task<FormImportResult> ImportFormDataAsync(PdfInputFile input, string path, string outputPath, CancellationToken cancellationToken = default) =>
+        FormDataExchange.ImportAsync(this, input, path, outputPath, cancellationToken);
+
     /// <summary>Makes form answers and annotations a permanent part of the pages.</summary>
     public Task FlattenAsync(PdfInputFile input, string outputPath, CancellationToken cancellationToken = default) =>
         PdfComposer.FlattenAsync(Thread, input, outputPath, Native.PdfiumNative.FLAT_NORMALDISPLAY, cancellationToken);
@@ -127,6 +148,28 @@ public sealed class PdfEngine
     /// <summary>Removes and adds link annotations on a saved PDF.</summary>
     public Task EditLinksAsync(PdfInputFile input, IReadOnlyList<PdfLinkRemoval> remove, IReadOnlyList<NewPdfLink> add, string outputPath, CancellationToken cancellationToken = default) =>
         Unlocked(input, outputPath, (file, output) => PdfLinkWriter.ApplyAsync(Thread, file, remove, add, output, cancellationToken), cancellationToken);
+
+    /// <summary>
+    /// Writes every comment and markup to an XFDF file, the format Acrobat swaps comments in. Links, form fields and
+    /// placed pictures aren't comments and stay out. Returns how many; with none, no file is made.
+    /// </summary>
+    public async Task<int> ExportCommentsAsync(PdfInputFile input, string xfdfPath, CancellationToken cancellationToken = default)
+    {
+        await using var document = await OpenAsync(input.Path, input.Password, cancellationToken).ConfigureAwait(false);
+        return await CommentExchange.ExportAsync(document, xfdfPath, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The same from an open document, including comments not saved yet.</summary>
+    public Task<int> ExportCommentsAsync(PdfDocument document, string xfdfPath, CancellationToken cancellationToken = default) =>
+        CommentExchange.ExportAsync(document, xfdfPath, cancellationToken);
+
+    /// <summary>
+    /// Adds the comments in an XFDF file (Papery's or Acrobat's) to a PDF, as Papery annotations that stay editable,
+    /// then saves through the checked save. When nothing is added, the output isn't written. Throws
+    /// InvalidDataException for a file that isn't XFDF, including any with a DTD.
+    /// </summary>
+    public Task<CommentImportResult> ImportCommentsAsync(PdfInputFile input, string xfdfPath, string outputPath, CancellationToken cancellationToken = default) =>
+        CommentExchange.ImportAsync(this, input, xfdfPath, outputPath, cancellationToken);
 
     /// <summary>Replaces a saved PDF's bookmarks. An empty list removes them all.</summary>
     public Task SetOutlineAsync(PdfInputFile input, IReadOnlyList<PdfOutlineItem> outline, string outputPath, CancellationToken cancellationToken = default) =>

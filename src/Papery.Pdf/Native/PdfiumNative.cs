@@ -460,6 +460,29 @@ internal static unsafe partial class PdfiumNative
     [LibraryImport(Dll)]
     internal static partial int FPDFAnnot_SetAP(nint annotation, int mode, char* value);
 
+    // ---- Reading an annotation's shape back, for swapping comments with other apps (fpdf_annot.h) ----
+
+    [LibraryImport(Dll)]
+    internal static partial nuint FPDFAnnot_CountAttachmentPoints(nint annotation);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_GetAttachmentPoints(nint annotation, nuint quadIndex, FS_QUADPOINTSF* points);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFAnnot_GetInkListCount(nint annotation);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFAnnot_GetInkListPath(nint annotation, uint pathIndex, FS_POINTF* buffer, uint length);
+
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFAnnot_GetVertices(nint annotation, FS_POINTF* buffer, uint length);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_GetLine(nint annotation, FS_POINTF* start, FS_POINTF* end);
+
+    [LibraryImport(Dll)]
+    internal static partial int FPDFAnnot_GetBorder(nint annotation, float* horizontalRadius, float* verticalRadius, float* width);
+
     [LibraryImport(Dll)]
     internal static partial int FPDFAnnot_GetFlags(nint annotation);
 
@@ -674,6 +697,10 @@ internal static unsafe partial class PdfiumNative
 
     [LibraryImport(Dll)]
     internal static partial int FPDFAnnot_IsChecked(nint form, nint annotation);
+
+    // The "on" name of a check box or radio button, which is what form data files store as its answer.
+    [LibraryImport(Dll)]
+    internal static partial uint FPDFAnnot_GetFormFieldExportValue(nint form, nint annotation, char* buffer, uint bufferBytes);
 
     [LibraryImport(Dll)]
     internal static partial int FPDFPage_Flatten(nint page, int flag);
