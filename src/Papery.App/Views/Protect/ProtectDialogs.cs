@@ -59,9 +59,9 @@ internal static class ProtectDialogs
 
     public static async Task<PdfDescription?> AskMetadataAsync(XamlRoot root, PdfMetadata current)
     {
-        var title = new TextBox { Header = "Title", Text = current.Title ?? string.Empty };
+        var title = new TextBox { Header = "Title", Text = current.Title ?? string.Empty, IsSpellCheckEnabled = true };
         var author = new TextBox { Header = "Author", Text = current.Author ?? string.Empty };
-        var subject = new TextBox { Header = "Subject", Text = current.Subject ?? string.Empty };
+        var subject = new TextBox { Header = "Subject", Text = current.Subject ?? string.Empty, IsSpellCheckEnabled = true };
         var keywords = new TextBox { Header = "Keywords", Text = current.Keywords ?? string.Empty };
         var panel = new StackPanel { Spacing = 10, Width = 360 };
         panel.Children.Add(title);
@@ -118,19 +118,32 @@ internal static class ProtectDialogs
     }
 
     /// <summary>What to look for across the document when marking redactions.</summary>
-    public static async Task<(bool Emails, bool Phones, string Words)?> AskRedactSearchAsync(XamlRoot root)
+    public static async Task<(Core.Text.SensitiveKind Kinds, string Words)?> AskRedactSearchAsync(XamlRoot root)
     {
-        var emails = new CheckBox { Content = "Email addresses" };
-        var phones = new CheckBox { Content = "Phone numbers" };
-        var words = new TextBox { Header = "Words or names", PlaceholderText = "Exact words to find" };
-        var panel = new StackPanel { Spacing = 8, Width = 340 };
-        panel.Children.Add(emails);
-        panel.Children.Add(phones);
+        var choices = new (CheckBox Box, Core.Text.SensitiveKind Kind)[]
+        {
+            (new CheckBox { Content = "Email addresses" }, Core.Text.SensitiveKind.Email),
+            (new CheckBox { Content = "Phone numbers" }, Core.Text.SensitiveKind.Phone),
+            (new CheckBox { Content = "Card numbers" }, Core.Text.SensitiveKind.CardNumber),
+            (new CheckBox { Content = "Bank account numbers (IBAN)" }, Core.Text.SensitiveKind.BankAccount),
+            (new CheckBox { Content = "ID numbers (SSN, National Insurance, PAN, Aadhaar)" }, Core.Text.SensitiveKind.IdNumber),
+        };
+        var words = new TextBox { Header = "Words or names", PlaceholderText = "Exact words to find", IsSpellCheckEnabled = false };
+        var panel = new StackPanel { Spacing = 8, Width = 380 };
+        foreach (var (box, _) in choices)
+        {
+            panel.Children.Add(box);
+        }
+
         panel.Children.Add(words);
         var dialog = new ContentDialog { Title = "Find what to remove", Content = panel, PrimaryButtonText = "Mark them", CloseButtonText = "Cancel", DefaultButton = ContentDialogButton.Primary };
-        return await Dialogs.ShowAsync(dialog, root) == ContentDialogResult.Primary
-            ? (emails.IsChecked == true, phones.IsChecked == true, words.Text.Trim())
-            : null;
+        if (await Dialogs.ShowAsync(dialog, root) != ContentDialogResult.Primary)
+        {
+            return null;
+        }
+
+        var kinds = choices.Where(c => c.Box.IsChecked == true).Aggregate(Core.Text.SensitiveKind.None, (all, c) => all | c.Kind);
+        return (kinds, words.Text.Trim());
     }
 
     /// <summary>Choosing a certificate. The name says plainly what this is, and how it differs from a picture of a signature.</summary>
@@ -149,7 +162,7 @@ internal static class ProtectDialogs
         }
 
         picker.SelectedIndex = 0;
-        var reason = new TextBox { Header = "Reason (optional)" };
+        var reason = new TextBox { Header = "Reason (optional)", IsSpellCheckEnabled = true };
         var place = new TextBox { Header = "Place (optional)" };
         var panel = new StackPanel { Spacing = 10, Width = 400 };
         panel.Children.Add(picker);

@@ -42,6 +42,14 @@ public sealed class PdfEngine
         PdfComposer.FlattenAsync(Thread, input, outputPath, Native.PdfiumNative.FLAT_NORMALDISPLAY, cancellationToken);
 
     /// <summary>Writes a Word document from an open PDF. It's a best effort at rebuilding paragraphs, not a perfect copy of the layout.</summary>
+    /// <summary>Attaches files to the PDF and removes the attachments at <paramref name="remove"/> (indexes as listed by the document).</summary>
+    public Task ChangeAttachmentsAsync(PdfInputFile input, IReadOnlyList<string> add, IReadOnlyList<int> remove, string outputPath, CancellationToken cancellationToken = default) =>
+        Unlocked(input, outputPath, (file, output) => PdfAttacher.ChangeAsync(Thread, file, add, remove, output, cancellationToken), cancellationToken);
+
+    /// <summary>Finds words in every PDF in a folder and its subfolders. Results arrive as each file is read.</summary>
+    public IAsyncEnumerable<FolderSearchHit> SearchFolderAsync(string folder, string query, IProgress<FolderSearchProgress>? progress = null, CancellationToken cancellationToken = default) =>
+        PdfFolderSearch.SearchAsync(this, folder, query, progress, cancellationToken);
+
     public Task ExportWordAsync(PdfDocument document, string outputPath, IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>
         DocxWriter.ExportAsync(document, outputPath, progress, cancellationToken);
 

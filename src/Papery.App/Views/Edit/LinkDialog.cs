@@ -18,7 +18,7 @@ internal static class LinkDialog
         kinds.AddItem("Web address", "", "web");
         kinds.AddItem("Page", "", "page");
 
-        var address = new TextBox { Text = existing?.Uri ?? string.Empty, PlaceholderText = "https://" };
+        var address = new TextBox { Text = existing?.Uri ?? string.Empty, PlaceholderText = "https://", IsSpellCheckEnabled = false };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(address, "Web address");
         var page = EditPieces.Number((existing?.TargetPage ?? 0) + 1, 1, pageCount, $"Page (1 to {pageCount:N0})", 150);
         var error = new TextBlock { Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["SystemFillColorCriticalBrush"], Visibility = Visibility.Collapsed };

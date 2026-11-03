@@ -14,7 +14,7 @@ internal static class BookmarksDialog
         var editor = new OutlineEditor(outline);
         var list = new ListView { Height = 280, SelectionMode = ListViewSelectionMode.Single };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(list, "Bookmarks");
-        var title = new TextBox { Header = "Name" };
+        var title = new TextBox { Header = "Name", IsSpellCheckEnabled = true };
         var page = EditPieces.Number(1, 1, pageCount, "Page", 110);
         bool filling = false;
 

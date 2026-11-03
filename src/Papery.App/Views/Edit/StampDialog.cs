@@ -86,7 +86,7 @@ internal static class StampDialog
         }
 
         formats.SelectedIndex = 2;
-        var words = new TextBox { Header = kind == StampKind.Watermark ? "Words" : "Text", Text = stamp.Text ?? string.Empty };
+        var words = new TextBox { Header = kind == StampKind.Watermark ? "Words" : "Text", Text = stamp.Text ?? string.Empty, IsSpellCheckEnabled = true };
         var pageToken = new Button { Content = "Page number", Style = (Style)Application.Current.Resources["PaperyQuietButtonStyle"] };
         var dateToken = new Button { Content = "Date", Style = (Style)Application.Current.Resources["PaperyQuietButtonStyle"] };
         var tokens = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };

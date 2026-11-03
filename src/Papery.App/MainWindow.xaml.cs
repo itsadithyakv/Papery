@@ -235,7 +235,7 @@ public sealed partial class MainWindow : Window
             {
                 ShowMerge([]); // Merge has its own place to add files
             }
-            else if (tool?.Key is "images-to-pdf" or "scan" or "batch" or "compare")
+            else if (tool?.Key is "images-to-pdf" or "scan" or "batch" or "compare" or "html-to-pdf" or "search-files")
             {
                 await MakeNewPdfAsync(tool.Key, []); // these don't start from one open PDF
             }
@@ -255,7 +255,7 @@ public sealed partial class MainWindow : Window
             {
                 ShowMerge(e.Files);
             }
-            else if (e.Tool?.Key is "images-to-pdf" or "scan" or "batch" or "compare")
+            else if (e.Tool?.Key is "images-to-pdf" or "scan" or "batch" or "compare" or "html-to-pdf" or "search-files")
             {
                 await MakeNewPdfAsync(e.Tool.Key, e.Files);
             }
@@ -298,6 +298,22 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        if (key == "search-files")
+        {
+            ShowFolderSearch();
+            return;
+        }
+
+        if (key == "html-to-pdf")
+        {
+            if (await Views.Convert.HtmlToPdf.ShowAsync(Root.XamlRoot, Hwnd, pictures) is { } pdf)
+            {
+                await OpenFilesAsync([pdf]);
+            }
+
+            return;
+        }
+
         string? made = key == "scan"
             ? await Views.Convert.ScanDialog.ShowAsync(Root.XamlRoot, Hwnd)
             : await Views.Convert.ImagesToPdfDialog.ShowAsync(Root.XamlRoot, Hwnd, pictures);
@@ -305,6 +321,31 @@ public sealed partial class MainWindow : Window
         {
             await OpenFilesAsync([made]);
         }
+    }
+
+    /// <summary>A tab for searching every PDF in a folder. Picking a result opens that page with the words found.</summary>
+    private void ShowFolderSearch()
+    {
+        var existing = Tabs.TabItems.OfType<TabViewItem>().FirstOrDefault(t => t.Content is Views.Tools.FolderSearchView);
+        if (existing != null)
+        {
+            Tabs.SelectedItem = existing;
+            return;
+        }
+
+        var search = new Views.Tools.FolderSearchView(() => Hwnd);
+        search.Picked += (_, pick) => Guard.Run(() => OpenAtAsync(pick.Hit.Path, pick.Hit.PageIndex, pick.Query), "Opening a result");
+        var tab = CreateTab(search, "Search a folder", ToolCatalog.All.First(t => t.Key == "search-files").Glyph);
+        Tabs.TabItems.Add(tab);
+        Tabs.SelectedItem = tab;
+    }
+
+    private async Task OpenAtAsync(string path, int page, string query)
+    {
+        await OpenFilesAsync([path]);
+        string full = Path.GetFullPath(path);
+        var view = WindowManager.All.SelectMany(w => w.Documents).FirstOrDefault(d => string.Equals(d.FilePath, full, StringComparison.OrdinalIgnoreCase));
+        view?.FindOnPage(page, query);
     }
 
     /// <summary>Compares two PDFs in a tab, asking for whichever of the two hasn't been given.</summary>
@@ -513,6 +554,11 @@ public sealed partial class MainWindow : Window
         if (tab.Content is Views.Tools.CompareView compare)
         {
             await compare.CloseAsync();
+        }
+
+        if (tab.Content is Views.Tools.FolderSearchView folderSearch)
+        {
+            folderSearch.Stop();
         }
 
         if (tab.Content is DocumentView view)
@@ -916,6 +962,9 @@ public sealed partial class MainWindow : Window
                     break;
                 case Views.Tools.CompareView compare:
                     await compare.CloseAsync();
+                    break;
+                case Views.Tools.FolderSearchView folderSearch:
+                    folderSearch.Stop();
                     break;
             }
         }

@@ -564,6 +564,9 @@ internal static unsafe partial class PdfiumNative
     [LibraryImport(Dll)]
     internal static partial int FPDFAttachment_SetFile(nint attachment, nint document, void* contents, uint length);
 
+    [LibraryImport(Dll)]
+    internal static partial int FPDFDoc_DeleteAttachment(nint document, int index);
+
     // ---- Digital signatures (fpdf_signature.h) ----
 
     [LibraryImport(Dll)]

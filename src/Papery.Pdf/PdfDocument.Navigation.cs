@@ -284,7 +284,7 @@ public sealed partial class PdfDocument
         return Encoding.UTF8.GetString(buffer, 0, (int)length - 1);
     }
 
-    private readonly unsafe struct NativeBuffer(void* ptr, uint length)
+    internal readonly unsafe struct NativeBuffer(void* ptr, uint length)
     {
         public void* Ptr { get; } = ptr;
 
@@ -292,7 +292,7 @@ public sealed partial class PdfDocument
     }
 
     /// <summary>Calls a PDFium "get UTF-16 string" function twice: once for the size, once for the text.</summary>
-    private static unsafe string ReadUtf16(Func<NativeBuffer, uint> read)
+    internal static unsafe string ReadUtf16(Func<NativeBuffer, uint> read)
     {
         uint bytes = read(new NativeBuffer(null, 0));
         if (bytes <= 2 || bytes > 1024 * 1024)

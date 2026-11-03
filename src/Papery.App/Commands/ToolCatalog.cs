@@ -63,11 +63,15 @@ internal static class ToolCatalog
         new("images-to-pdf", "Images to PDF", "Photos become a PDF", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("pdf-to-images", "PDF to images", "Pages and pictures out", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("pdf-to-excel", "PDF to Excel", "Tables into a spreadsheet", "\uE80A", ToolFamily.Convert, IsPro: true, IsBuilt: true),
+        new("pdf-to-word", "PDF to Word", "An editable document", "\uE8A5", ToolFamily.Convert, IsPro: true, IsBuilt: true),
+        new("pdf-to-powerpoint", "PDF to PowerPoint", "Pages become slides", "\uE7F4", ToolFamily.Convert, IsPro: true, IsBuilt: true),
+        new("html-to-pdf", "Web page to PDF", "Saved pages and HTML", "\uE774", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("scan", "Scan to PDF", "Scanner or camera", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("ocr", "Make searchable", "Read text in scans", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("protect", "Protect", "Add or remove a password", "", ToolFamily.Protect, IsPro: true, IsBuilt: true),
         new("redact", "Redact", "Remove private details", "", ToolFamily.Protect, IsPro: true, IsBuilt: true),
         new("batch", "Batch", "One action, many files", "", ToolFamily.Size, IsPro: true, IsBuilt: true),
         new("compare", "Compare", "Two versions side by side", "\uE8F1", ToolFamily.Size, IsPro: true, IsBuilt: true),
+        new("search-files", "Search a folder", "Words in many PDFs", "\uE773", ToolFamily.Size, IsPro: true, IsBuilt: true),
     ];
 }

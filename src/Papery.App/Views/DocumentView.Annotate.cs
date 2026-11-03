@@ -715,7 +715,7 @@ public sealed partial class DocumentView
             return null;
         }
 
-        var box = new TextBox { Text = current, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 90, Width = 360 };
+        var box = new TextBox { Text = current, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 90, Width = 360, IsSpellCheckEnabled = true };
         var dialog = new ContentDialog { Title = title, Content = box, PrimaryButtonText = "OK", CloseButtonText = "Cancel" };
         dialog.Opened += (_, _) => box.Focus(FocusState.Programmatic);
         return await Dialogs.ShowAsync(dialog, XamlRoot) == ContentDialogResult.Primary ? box.Text : null;

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Papery.Core.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -21,12 +22,6 @@ public sealed partial class DocumentView
 
     private readonly List<RedactionArea> _redactions = [];
     private readonly List<(Canvas Layer, Rectangle Mark)> _redactionMarks = [];
-
-    [GeneratedRegex(@"[\w.+\-]+@[\w\-]+(\.[\w\-]+)+", RegexOptions.CultureInvariant)]
-    private static partial Regex EmailPattern();
-
-    [GeneratedRegex(@"(?<![\w.])\+?\(?\d[\d ()\-.]{7,}\d(?!\w)", RegexOptions.CultureInvariant)]
-    private static partial Regex PhonePattern();
 
     private void EnterProtectMode()
     {
@@ -92,23 +87,8 @@ public sealed partial class DocumentView
             return;
         }
 
-        var patterns = new List<Regex>();
-        if (search.Emails)
-        {
-            patterns.Add(EmailPattern());
-        }
-
-        if (search.Phones)
-        {
-            patterns.Add(PhonePattern());
-        }
-
-        if (search.Words.Length > 0)
-        {
-            patterns.Add(new Regex(Regex.Escape(search.Words), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
-        }
-
-        if (patterns.Count == 0)
+        var words = search.Words.Length > 0 ? new Regex(Regex.Escape(search.Words), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant) : null;
+        if (search.Kinds == SensitiveKind.None && words == null)
         {
             return;
         }
@@ -121,14 +101,17 @@ public sealed partial class DocumentView
             {
                 cancel.ThrowIfCancellationRequested();
                 string text = await document.GetPageTextAsync(page, PdfWorkPriority.Background, cancel);
-                foreach (var pattern in patterns)
+                var matches = SensitiveText.Find(text, search.Kinds).Select(m => (m.Index, m.Length)).ToList();
+                if (words != null)
                 {
-                    foreach (Match match in pattern.Matches(text))
-                    {
-                        var selection = await document.GetSelectionAsync(page, match.Index, match.Index + match.Length - 1, cancel);
-                        found.AddRange(selection.Areas.Select(a => new RedactionArea(page, Outset(a))));
-                        count++;
-                    }
+                    matches.AddRange(words.Matches(text).Select(m => (m.Index, m.Length)));
+                }
+
+                foreach (var (index, length) in matches)
+                {
+                    var selection = await document.GetSelectionAsync(page, index, index + length - 1, cancel);
+                    found.AddRange(selection.Areas.Select(a => new RedactionArea(page, Outset(a))));
+                    count++;
                 }
 
                 progress.Report((double)(page + 1) / document.PageCount);

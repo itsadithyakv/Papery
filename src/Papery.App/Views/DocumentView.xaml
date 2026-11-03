@@ -49,6 +49,9 @@
                 <Button x:Name="PrintButton" Style="{StaticResource ToolButtonStyle}" Click="OnPrintClick" AutomationProperties.Name="Print" ToolTipService.ToolTip="Print (Ctrl+P)">
                     <FontIcon Glyph="&#xE749;" Style="{StaticResource ToolIconStyle}" />
                 </Button>
+                <Button x:Name="ShareButton" Style="{StaticResource ToolButtonStyle}" Click="OnShareClick" AutomationProperties.Name="Share" ToolTipService.ToolTip="Share with Mail, Teams and other apps">
+                    <FontIcon Glyph="&#xE72D;" Style="{StaticResource ToolIconStyle}" />
+                </Button>
                 <Button x:Name="MoreButton" Style="{StaticResource ToolButtonStyle}" AutomationProperties.Name="More options" ToolTipService.ToolTip="More options">
                     <FontIcon Glyph="&#xE712;" Style="{StaticResource ToolIconStyle}" />
                     <Button.Flyout>

@@ -73,7 +73,7 @@ internal static class SignatureDialog
         var line = new Rectangle { Height = 1, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(24, 0, 24, 44), Fill = new SolidColorBrush(Microsoft.UI.Colors.LightGray), IsHitTestVisible = false };
 
         // ---- type ----
-        var words = new TextBox { PlaceholderText = initials ? "Your initials" : "Your name" };
+        var words = new TextBox { PlaceholderText = initials ? "Your initials" : "Your name", IsSpellCheckEnabled = false };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(words, words.PlaceholderText);
         var typed = new TextBlock { FontSize = 44, Foreground = ink, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(8) };
         var fonts = new ComboBox { MinWidth = 220 };

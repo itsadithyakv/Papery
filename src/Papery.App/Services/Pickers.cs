@@ -90,6 +90,16 @@ internal static class Pickers
         }
     }
 
+    /// <summary>Any kind of file, several at once (for attaching to a PDF).</summary>
+    public static async Task<IReadOnlyList<string>> PickAnyFilesAsync(nint hwnd)
+    {
+        var picker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary, ViewMode = PickerViewMode.List };
+        picker.FileTypeFilter.Add("*");
+        InitializeWithWindow.Initialize(picker, hwnd);
+        var files = await picker.PickMultipleFilesAsync();
+        return files?.Select(f => f.Path).ToArray() ?? [];
+    }
+
     public static async Task<string?> PickFolderAsync(nint hwnd)
     {
         var picker = new FolderPicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary };

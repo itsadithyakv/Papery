@@ -6,6 +6,9 @@ using Papery.Services;
 
 namespace Papery.Views.Protect;
 
+/// <summary>What the person chose on the attached files screen, besides saving or opening one.</summary>
+internal sealed record AttachmentChoice(bool Add, int? Remove);
+
 /// <summary>The two "what's in this file?" screens: its attached files and its digital signatures.</summary>
 internal static class FileExtrasDialogs
 {
@@ -22,14 +25,27 @@ internal static class FileExtrasDialogs
         return block;
     }
 
-    /// <summary>Lists attachments to save. Only PDFs open in Papery: anything else could be a program, so it's never run from here.</summary>
-    public static async Task ShowAttachmentsAsync(XamlRoot root, PdfDocument document, nint hwnd, Action<string> openPdf, Action<string> saved)
+    /// <summary>
+    /// Lists attachments to save, and offers adding or removing them. Only PDFs open in Papery: anything else could be a
+    /// program, so it's never run from here. Adding and removing change the file, which the caller does once this closes.
+    /// </summary>
+    public static async Task<AttachmentChoice?> ShowAttachmentsAsync(XamlRoot root, PdfDocument document, nint hwnd, Action<string> openPdf, Action<string> saved)
     {
         var attachments = await document.GetAttachmentsAsync();
         var list = new StackPanel { Spacing = 10, Width = 460 };
-        var dialog = new ContentDialog { Title = "Attached files", CloseButtonText = "Done", Content = new ScrollViewer { Content = list, MaxHeight = 420 } };
+        AttachmentChoice? choice = null;
+        var dialog = new ContentDialog
+        {
+            Title = "Attached files",
+            PrimaryButtonText = "Attach files",
+            CloseButtonText = "Done",
+            DefaultButton = ContentDialogButton.Close,
+            Content = new ScrollViewer { Content = list, MaxHeight = 420 },
+        };
+        dialog.PrimaryButtonClick += (_, _) => choice = new AttachmentChoice(Add: true, Remove: null);
         foreach (var attachment in attachments)
         {
+            int index = attachment.Index;
             string name = Path.GetFileName(attachment.Name.Replace('\\', '/'));
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -38,6 +54,7 @@ internal static class FileExtrasDialogs
 
             var row = new Grid { ColumnSpacing = 8 };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             var words = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
@@ -54,7 +71,7 @@ internal static class FileExtrasDialogs
                 {
                     try
                     {
-                        await AttachedFileWriter.WriteAsync(output, await document.ReadAttachmentAsync(attachment.Index));
+                        await AttachedFileWriter.WriteAsync(output, await document.ReadAttachmentAsync(index));
                     }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
                     {
@@ -68,6 +85,16 @@ internal static class FileExtrasDialogs
             Grid.SetColumn(save, 2);
             row.Children.Add(save);
 
+            var remove = new Button { Content = "Remove" };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(remove, $"Remove {name}");
+            remove.Click += (_, _) =>
+            {
+                choice = new AttachmentChoice(Add: false, Remove: index);
+                dialog.Hide();
+            };
+            Grid.SetColumn(remove, 3);
+            row.Children.Add(remove);
+
             if (string.Equals(Path.GetExtension(name), ".pdf", StringComparison.OrdinalIgnoreCase))
             {
                 var open = new Button { Content = "Open" };
@@ -76,7 +103,7 @@ internal static class FileExtrasDialogs
                 {
                     string folder = Directory.CreateDirectory(Path.Combine(TempFiles.AttachmentsFolder, Guid.NewGuid().ToString("N"))).FullName;
                     string path = Path.Combine(folder, name);
-                    await File.WriteAllBytesAsync(path, await document.ReadAttachmentAsync(attachment.Index));
+                    await File.WriteAllBytesAsync(path, await document.ReadAttachmentAsync(index));
                     dialog.Hide();
                     openPdf(path);
                 }, "Opening an attached file");
@@ -93,6 +120,7 @@ internal static class FileExtrasDialogs
         }
 
         await Dialogs.ShowAsync(dialog, root);
+        return choice;
     }
 
     /// <summary>One plain sentence on what each signature proves, and a clear word on what it doesn't.</summary>

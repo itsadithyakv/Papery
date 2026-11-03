@@ -22,3 +22,6 @@ BundleArtifacts/
 #   dotnet run --project tools/Papery.TestFiles -c Release
 PaperyTestFiles/
 dist/
+
+# Working copies the Claude agents use
+.claude/worktrees/

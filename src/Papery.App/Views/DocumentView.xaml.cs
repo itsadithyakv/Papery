@@ -244,6 +244,7 @@ public sealed partial class DocumentView : UserControl
         return
         [
             new("Print", "", () => _ = PrintAsync(), "Ctrl+P", "printer paper", hasDoc),
+            new("Share", "\uE72D", () => Guard.Run(ShareAsync, "Sharing"), Keywords: "send email mail teams nearby", CanExecute: hasDoc),
             new("Search in document", "", ShowSearch, "Ctrl+F", "find text look", hasDoc),
             new("Go to page", "", FocusPageBox, "Ctrl+G", "jump number", hasDoc),
             new("First page", "", () => Viewer.GoToPage(0), "Home", "start beginning", hasDoc),
@@ -593,6 +594,16 @@ public sealed partial class DocumentView : UserControl
     }
 
     private void OnSearchClick(object sender, RoutedEventArgs e) => ShowSearch();
+
+    /// <summary>Opens on a page with a search already run, for a result picked from a folder search.</summary>
+    public void FindOnPage(int page, string query)
+    {
+        SetSidebarOpen(true);
+        SidebarTabs.SelectedIndex = SearchTabIndex;
+        SearchBox.Text = query;
+        Viewer.GoToPage(page);
+        _ = RunSearchAsync(query);
+    }
 
     private PdfSearchOptions CurrentSearchOptions =>
         (MatchCaseBox.IsChecked == true ? PdfSearchOptions.MatchCase : 0) | (WholeWordBox.IsChecked == true ? PdfSearchOptions.WholeWord : 0);

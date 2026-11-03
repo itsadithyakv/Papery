@@ -273,10 +273,42 @@ public sealed partial class DocumentView
 
     private async Task ShowAttachmentsAsync()
     {
-        if (_document is { } document && XamlRoot != null)
+        if (_document is not { } document || XamlRoot == null)
         {
-            await Protect.FileExtrasDialogs.ShowAttachmentsAsync(XamlRoot, document, GetWindowHandle?.Invoke() ?? 0, path => NewPdfMade?.Invoke(this, path), output => Toaster.Show("Saved", "", "Show", () => Shell.ShowInFolder(output)));
+            return;
         }
+
+        nint window = GetWindowHandle?.Invoke() ?? 0;
+        var choice = await Protect.FileExtrasDialogs.ShowAttachmentsAsync(XamlRoot, document, window, path => NewPdfMade?.Invoke(this, path), output => Toaster.Show("Saved", "\uE74E", "Show", () => Shell.ShowInFolder(output)));
+        if (choice == null || !await AllowEditAsync())
+        {
+            return;
+        }
+
+        if (choice.Remove is int index)
+        {
+            await ChangeFileAsync("Attachment removed", "\uE723", input => PdfEngine.Shared.ChangeAttachmentsAsync(input, [], [index], FilePath));
+        }
+        else if (await Pickers.PickAnyFilesAsync(window) is { Count: > 0 } files)
+        {
+            string done = files.Count == 1 ? $"Attached {Path.GetFileName(files[0])}" : $"Attached {files.Count:N0} files";
+            await ChangeFileAsync(done, "\uE723", input => PdfEngine.Shared.ChangeAttachmentsAsync(input, files, [], FilePath));
+        }
+    }
+
+    // ================================================================= share
+
+    private void OnShareClick(object sender, RoutedEventArgs e) => Guard.Run(ShareAsync, "Sharing");
+
+    /// <summary>Shares the file as saved, so unsaved markup is saved first rather than left out without a word.</summary>
+    private async Task ShareAsync()
+    {
+        if (_document == null || !await SaveAnnotationsFirstAsync("Sharing") || GetWindowHandle?.Invoke() is not { } window || window == 0)
+        {
+            return;
+        }
+
+        ShareService.Share(window, FilePath);
     }
 
     /// <summary>Attached files are easy to miss, so a file that has them says so once when it opens.</summary>

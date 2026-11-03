@@ -96,7 +96,9 @@ internal sealed class FormOverlay(
             CornerRadius = new CornerRadius(2),
             AcceptsReturn = field.IsMultiline,
             TextWrapping = field.IsMultiline ? TextWrapping.Wrap : TextWrapping.NoWrap,
-            IsSpellCheckEnabled = false,
+
+            // Sentences go in the big boxes; names, dates and numbers in the small ones, where red lines would only distract.
+            IsSpellCheckEnabled = field.IsMultiline,
             VerticalContentAlignment = VerticalAlignment.Center,
         };
         Solid(box, "TextControlBackground", "TextControlBackgroundPointerOver", "TextControlBackgroundFocused");
