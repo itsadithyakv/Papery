@@ -1,6 +1,6 @@
 """
 Turns the app screenshots in branding/screenshots into framed Store images in branding/store-screenshots:
-warm paper with soft colour, a short headline, a hand-drawn underline and arrow, and the app window.
+warm paper with soft colour, a short headline, a hand-drawn underline, and the app window.
 Same look as the app: brand coral, the tool family colours, Segoe UI Variable, doodles like the tour's.
 
 Needs Python 3 with Pillow (pip install pillow). Run after tools/Make-Screenshots.ps1:
@@ -84,7 +84,7 @@ def stroke(draw, points, width, colour):
         draw.ellipse((x - r, y - r, x + r, y + r), fill=colour)
 
 
-def doodles(underline, arrow_from, arrow_to, seed):
+def doodles(underline, seed):
     """Drawn at twice the size and shrunk, so the pen lines come out smooth."""
     s = 2
     layer = Image.new('RGBA', (W * s, H * s), (0, 0, 0, 0))
@@ -95,24 +95,6 @@ def doodles(underline, arrow_from, arrow_to, seed):
     pts = [((x0 - 10 + (x1 - x0 + 30) * i / 60) * s, (y + 9 * math.sin(i / 60 * math.pi * 3.2)) * s) for i in range(61)]
     stroke(d, wobbly(pts, seed, 5 * s), 13 * s, CORAL + (255,))
 
-    # A curved arrow towards the window, with a two-stroke head.
-    (sx, sy), (ex, ey) = arrow_from, arrow_to
-    mx, my = (sx + ex) / 2, (sy + ey) / 2
-    dx, dy = ex - sx, ey - sy
-    length = math.hypot(dx, dy)
-    cx, cy = mx - dy / length * length * 0.22, my + dx / length * length * 0.22
-    curve = []
-    for i in range(80):
-        t = i / 79
-        u = 1 - t
-        curve.append(((u * u * sx + 2 * u * t * cx + t * t * ex) * s, (u * u * sy + 2 * u * t * cy + t * t * ey) * s))
-    curve = wobbly(curve, seed + 1, 6 * s)
-    stroke(d, curve, 11 * s, CORAL + (255,))
-    (px, py), (qx, qy) = curve[-6], curve[-1]
-    angle = math.atan2(qy - py, qx - px)
-    for turn in (2.55, -2.55):
-        hx, hy = qx + math.cos(angle + turn) * 58 * s, qy + math.sin(angle + turn) * 58 * s
-        stroke(d, wobbly([(qx, qy), ((qx + hx) / 2, (qy + hy) / 2), (hx, hy)], seed + 2, 2 * s), 11 * s, CORAL + (255,))
     return layer.resize((W, H), Image.LANCZOS)
 
 
@@ -195,10 +177,7 @@ def slide(name, shot, lines, accent, below, tint, seed):
     sparkle(draw, 170 + widest + 20, top - 40, 34, tint)
     sparkle(draw, 170 + widest + 80, top + 18, 18, CORAL)
 
-    # The arrow leaves from under the line of text and swings down into the window.
-    start = (620, sub_y + 150)
-    end = (win_x - 50, win_y + round(win_h * 0.78))
-    layer = doodles(underline, start, end, seed)
+    layer = doodles(underline, seed)
     img.paste(layer, (0, 0), layer)
 
     OUT.mkdir(parents=True, exist_ok=True)
