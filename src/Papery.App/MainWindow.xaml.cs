@@ -235,7 +235,7 @@ public sealed partial class MainWindow : Window
             {
                 ShowMerge([]); // Merge has its own place to add files
             }
-            else if (tool?.Key is "images-to-pdf" or "scan" or "batch" or "compare" or "html-to-pdf" or "search-files")
+            else if (tool?.Key is "images-to-pdf" or "scan" or "batch" or "compare" or "html-to-pdf" or "text-to-pdf" or "search-files")
             {
                 await MakeNewPdfAsync(tool.Key, []); // these don't start from one open PDF
             }
@@ -255,7 +255,7 @@ public sealed partial class MainWindow : Window
             {
                 ShowMerge(e.Files);
             }
-            else if (e.Tool?.Key is "images-to-pdf" or "scan" or "batch" or "compare" or "html-to-pdf" or "search-files")
+            else if (e.Tool?.Key is "images-to-pdf" or "scan" or "batch" or "compare" or "html-to-pdf" or "text-to-pdf" or "search-files")
             {
                 await MakeNewPdfAsync(e.Tool.Key, e.Files);
             }
@@ -301,6 +301,16 @@ public sealed partial class MainWindow : Window
         if (key == "search-files")
         {
             ShowFolderSearch();
+            return;
+        }
+
+        if (key == "text-to-pdf")
+        {
+            if (await Views.Convert.TextToPdf.ShowAsync(Root.XamlRoot, Hwnd, pictures) is { } fromText)
+            {
+                await OpenFilesAsync([fromText]);
+            }
+
             return;
         }
 

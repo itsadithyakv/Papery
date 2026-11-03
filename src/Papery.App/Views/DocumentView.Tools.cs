@@ -54,7 +54,9 @@ public sealed partial class DocumentView
             return;
         }
 
-        string done = $"Compressed: {CompressDialog.Size(outcome.Before)} → {CompressDialog.Size(outcome.After)}";
+        string done = outcome.After < outcome.Before
+            ? $"Compressed: {CompressDialog.Size(outcome.Before)} → {CompressDialog.Size(outcome.After)}"
+            : "Ready for fast web view";
         try
         {
             if (outcome.SaveElsewhere)

@@ -9,7 +9,8 @@ namespace Papery.Views.Edit;
 /// <summary>Add, rename, move, nest and delete bookmarks. Returns the new tree, or null if cancelled.</summary>
 internal static class BookmarksDialog
 {
-    public static async Task<IReadOnlyList<PdfOutlineItem>?> ShowAsync(XamlRoot root, IReadOnlyList<PdfOutlineItem> outline, int currentPage, int pageCount)
+    /// <param name="fromHeadings">Finds bookmarks from the document's headings, offered as a starting point.</param>
+    public static async Task<IReadOnlyList<PdfOutlineItem>?> ShowAsync(XamlRoot root, IReadOnlyList<PdfOutlineItem> outline, int currentPage, int pageCount, Func<Task<IReadOnlyList<PdfOutlineItem>>>? fromHeadings = null)
     {
         var editor = new OutlineEditor(outline);
         var list = new ListView { Height = 280, SelectionMode = ListViewSelectionMode.Single };
@@ -101,6 +102,7 @@ internal static class BookmarksDialog
             return button;
         }
 
+        var note = new TextBlock { TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed, Style = (Style)Application.Current.Resources["PaperySecondaryTextStyle"] };
         var tools = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
         tools.Children.Add(Tool("", "Add a bookmark to this page", () =>
         {
@@ -136,6 +138,39 @@ internal static class BookmarksDialog
             }
         }));
 
+        if (fromHeadings != null)
+        {
+            var finding = new ProgressRing { IsActive = false, Width = 18, Height = 18, Margin = new Thickness(6, 0, 0, 0) };
+            Button? headings = null;
+            headings = Tool("", "Make bookmarks from the headings", () => Guard.Run(async () =>
+            {
+                headings!.IsEnabled = false;
+                finding.IsActive = true;
+                try
+                {
+                    var found = await fromHeadings();
+                    note.Visibility = Visibility.Visible;
+                    if (found.Count == 0)
+                    {
+                        note.Text = "No headings found. Every line is set in much the same size.";
+                        return;
+                    }
+
+                    editor = new OutlineEditor(found);
+                    Show(0);
+                    note.Text = editor.Rows.Count == 1 ? "Found 1 heading. Check it, then Save." : $"Found {editor.Rows.Count:N0} headings. Check them, then Save.";
+                }
+                finally
+                {
+                    finding.IsActive = false;
+                    headings.IsEnabled = true;
+                }
+            }, "Finding headings"));
+            tools.Children.Add(new Microsoft.UI.Xaml.Shapes.Rectangle { Style = (Style)Application.Current.Resources["ToolbarSeparatorStyle"] });
+            tools.Children.Add(headings);
+            tools.Children.Add(finding);
+        }
+
         var details = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         title.Width = 300;
         details.Children.Add(title);
@@ -145,6 +180,7 @@ internal static class BookmarksDialog
         panel.Children.Add(tools);
         panel.Children.Add(list);
         panel.Children.Add(details);
+        panel.Children.Add(note);
         Show(0);
 
         var dialog = new ContentDialog

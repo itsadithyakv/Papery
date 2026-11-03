@@ -34,9 +34,12 @@ internal static class CompressDialog
         var limit = EditPieces.Number(5, 0.1, 10_000, "MB", 110);
         limit.Visibility = Visibility.Collapsed;
         var grey = new CheckBox { Content = "Make pictures grey" };
+        var web = new CheckBox { Content = "Fast web view" };
+        ToolTipService.SetToolTip(web, "Lays the file out so a browser shows the first page before the rest has downloaded. Good for files put on a website.");
         var options = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16, VerticalAlignment = VerticalAlignment.Bottom };
         options.Children.Add(limit);
         options.Children.Add(grey);
+        options.Children.Add(web);
 
         var sizes = new TextBlock { FontSize = 20, TextWrapping = TextWrapping.Wrap };
         var note = new TextBlock { TextWrapping = TextWrapping.Wrap, Style = (Style)Application.Current.Resources["PaperySecondaryTextStyle"] };
@@ -105,8 +108,8 @@ internal static class CompressDialog
             {
                 int chosen = Math.Max(0, presets.SelectedIndex);
                 var result = chosen == 3
-                    ? await PdfEngine.Shared.CompressToFitAsync(input, (long)((double.IsNaN(limit.Value) ? 5 : limit.Value) * 1024 * 1024), output, cancel.Token)
-                    : await PdfEngine.Shared.CompressAsync(input, (chosen == 0 ? CompressOptions.HighQuality : chosen == 2 ? CompressOptions.Smallest : CompressOptions.Balanced) with { Greyscale = grey.IsChecked == true }, output, cancel.Token);
+                    ? await PdfEngine.Shared.CompressToFitAsync(input, (long)((double.IsNaN(limit.Value) ? 5 : limit.Value) * 1024 * 1024), web.IsChecked == true, output, cancel.Token)
+                    : await PdfEngine.Shared.CompressAsync(input, (chosen == 0 ? CompressOptions.HighQuality : chosen == 2 ? CompressOptions.Smallest : CompressOptions.Balanced) with { Greyscale = grey.IsChecked == true, FastWebView = web.IsChecked == true }, output, cancel.Token);
                 if (cancel.IsCancellationRequested)
                 {
                     return;
@@ -122,7 +125,9 @@ internal static class CompressDialog
                 ready = output;
                 readySize = result.NewBytes;
                 int saved = (int)Math.Round(100.0 * (original - result.NewBytes) / original);
-                sizes.Text = $"{Size(original)} → {Size(result.NewBytes)}, {saved}% smaller";
+                sizes.Text = saved > 0
+                    ? $"{Size(original)} → {Size(result.NewBytes)}, {saved}% smaller"
+                    : $"{Size(result.NewBytes)}, ready for fast web view";
                 note.Text = result.FitsLimit ? string.Empty : "This is the smallest Papery can go, and it's still over your limit.";
                 dialog.IsPrimaryButtonEnabled = true;
                 dialog.IsSecondaryButtonEnabled = true;
@@ -159,6 +164,7 @@ internal static class CompressDialog
         };
         limit.ValueChanged += (_, _) => Start();
         grey.Click += (_, _) => Start();
+        web.Click += (_, _) => Start();
         dialog.Loaded += (_, _) => presets.SelectedIndex = 1;
 
         var answer = await Dialogs.ShowAsync(dialog, root);

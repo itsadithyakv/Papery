@@ -17,6 +17,9 @@ internal static class HtmlToPdf
 {
     private static readonly string[] Kinds = [".html", ".htm", ".mht", ".mhtml", ".xhtml", ".svg"];
 
+    /// <summary>Letter paper where people use it, A4 everywhere else.</summary>
+    public static bool UsesLetter => RegionInfo.CurrentRegion.TwoLetterISORegionName is "US" or "CA" or "MX" or "PH" or "CL" or "CO" or "VE";
+
     /// <summary>Asks for the page if none was given, then where to save. Returns the new PDF, or null.</summary>
     public static async Task<string?> ShowAsync(XamlRoot root, nint window, IReadOnlyList<string> given)
     {
@@ -129,10 +132,8 @@ internal static class HtmlToPdf
         settings.ShouldPrintHeaderAndFooter = false;
         settings.MarginTop = settings.MarginBottom = settings.MarginLeft = settings.MarginRight = 0.4;
 
-        // Letter where people use it, A4 everywhere else.
-        bool letter = RegionInfo.CurrentRegion.TwoLetterISORegionName is "US" or "CA" or "MX" or "PH" or "CL" or "CO" or "VE";
-        settings.PageWidth = letter ? 8.5 : 8.27;
-        settings.PageHeight = letter ? 11 : 11.69;
+        settings.PageWidth = UsesLetter ? 8.5 : 8.27;
+        settings.PageHeight = UsesLetter ? 11 : 11.69;
         return await core.PrintToPdfAsync(output, settings) ? null : "The page couldn't be turned into a PDF.";
     }
 }

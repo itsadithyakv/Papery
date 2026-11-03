@@ -325,6 +325,9 @@
                             <ToggleButton x:Name="EditLink" Style="{StaticResource ToolToggleButtonStyle}" Click="OnEditLink" AutomationProperties.Name="Links" ToolTipService.ToolTip="Add or change a link">
                                 <FontIcon Glyph="&#xE71B;" Style="{StaticResource ToolIconStyle}" />
                             </ToggleButton>
+                            <Button Style="{StaticResource ToolButtonStyle}" Click="OnLinkAddresses" AutomationProperties.Name="Make web addresses clickable" ToolTipService.ToolTip="Make every web and email address clickable, in any PDF app">
+                                <FontIcon Glyph="&#xE774;" Style="{StaticResource ToolIconStyle}" />
+                            </Button>
                             <Rectangle Style="{StaticResource ToolbarSeparatorStyle}" />
                             <Button Style="{StaticResource ToolButtonStyle}" Tag="PageNumbers" Click="OnEditStamp" AutomationProperties.Name="Page numbers" ToolTipService.ToolTip="Page numbers">
                                 <FontIcon Glyph="&#xE8EF;" Style="{StaticResource ToolIconStyle}" />

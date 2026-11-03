@@ -92,6 +92,14 @@
                                     <MenuFlyoutItem x:Name="ReverseItem" Text="Reverse all pages" Click="OnReverse">
                                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8CB;" /></MenuFlyoutItem.Icon>
                                     </MenuFlyoutItem>
+                                    <MenuFlyoutSubItem x:Name="ShuffleItem" Text="Put double-sided scans in order">
+                                        <MenuFlyoutSubItem.Icon><FontIcon Glyph="&#xE8B1;" /></MenuFlyoutSubItem.Icon>
+                                        <MenuFlyoutItem Text="Backs scanned last page first" Tag="reversed" Click="OnShuffleScans" />
+                                        <MenuFlyoutItem Text="Backs scanned first page first" Tag="forward" Click="OnShuffleScans" />
+                                    </MenuFlyoutSubItem>
+                                    <MenuFlyoutItem x:Name="RemoveBlankItem" Text="Remove blank pages" Click="OnRemoveBlank">
+                                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7C3;" /></MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
                                     <MenuFlyoutSeparator />
                                     <MenuFlyoutItem x:Name="SplitDoubleItem" Text="Split double pages down the middle" Click="OnSplitDouble">
                                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8C6;" /></MenuFlyoutItem.Icon>

@@ -26,15 +26,15 @@ FREE, FOREVER
 • No watermarks on anything you save, and no pop-ups asking you to upgrade
 
 PAPERY PRO: ONE PAYMENT, EVERY TOOL
-• Organise: reorder, rotate, delete, extract and insert pages
-• Merge and split, including split by size
+• Organise: reorder, rotate, delete, extract and insert pages, remove blank pages, and put double-sided scans back in order
+• Merge and split, including split by size, and shuffle a file of fronts with a file of backs
 • Crop, resize and straighten pages
 • Mark up: underline, strike through, draw, shapes, stamps, and measure distances, areas and perimeters. Bring in comments from other apps
-• Edit: add text and pictures, whiteout, links, page numbers, headers and footers, watermarks, Bates numbers and bookmarks, and change existing text
+• Edit: add text and pictures, whiteout, links, page numbers, headers and footers, watermarks, Bates numbers and bookmarks, and change existing text. Make bookmarks from the headings, and make every web address clickable
 • Sign: draw, type or import your signature, and create form fields. Certified digital signatures with your own certificate too, and check the signatures on a PDF you receive
-• Convert: images and saved web pages to PDF; PDF to Word, Excel, PowerPoint, images and text; scan from a scanner or camera
+• Convert: images, saved web pages, text files and what you copied to PDF; PDF to Word, Excel, PowerPoint, images and text; scan from a scanner or camera
 • OCR: make scans searchable with the text recognition built into Windows, in any language you've installed
-• Compress: presets, or fit under a size you choose
+• Compress: presets, or fit under a size you choose, with fast web view for files you put online
 • Filters: clean up scans with whiter paper, darker text and no shadows, or use grey, black and white, brightness, contrast, sharpen and straighten
 • Protect: AES-256 passwords and permissions
 • Redact: permanently remove private details, not just cover them, then check they're gone. Find emails, phone, card, bank and ID numbers in one go. The redacted copy also leaves out details, bookmarks, comments and attachments that could repeat them
@@ -57,14 +57,14 @@ Free PDF reader with tabs, thumbnails, search, bookmarks and dark mode
 Fill in forms, highlight text and add sticky notes for free
 Opens very large PDFs quickly
 One payment unlocks every tool: no subscription, ever
-Merge, split, reorder, rotate, delete and extract pages
+Merge, split and reorder pages; remove blank pages and sort double-sided scans
 Add text, pictures, page numbers, watermarks and Bates numbers
 Sign by drawing, typing or importing your signature
 Create and fill form fields, and flatten forms
 PDF to Word, Excel, PowerPoint, images or text
 Scan to PDF from a scanner or camera, and make scans searchable offline
 Compress PDFs, or fit them under a size you choose
-Turn saved web pages and HTML into PDFs
+Turn web pages, text files and what you copy into PDFs
 Check digital signatures on PDFs you receive
 Share PDFs, and swap comments and form answers with other apps
 Clean up scans with filters: whiter paper, darker text, no shadows

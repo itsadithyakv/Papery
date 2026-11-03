@@ -418,6 +418,88 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         AfterChange();
     }
 
+    /// <summary>
+    /// A one-sided scan of double-sided paper holds all the fronts, then all the backs. This puts each back after its
+    /// front: the selected pages, or the whole document when fewer than two are selected.
+    /// </summary>
+    private void ShuffleScans(bool backsReversed)
+    {
+        var pages = Board.SelectedItems.Count > 1 ? SelectedInOrder() : _pages.ToList();
+        if (pages.Count < 3 || _busy != null)
+        {
+            Toaster.Show("This needs the fronts and the backs: at least three pages", "");
+            return;
+        }
+
+        RememberForUndo();
+        var slots = pages.Select(p => p.Position).ToList();
+        var order = Core.Pages.ScanOrder.Shuffle(pages.Count, backsReversed);
+        for (int i = 0; i < slots.Count; i++)
+        {
+            _pages.Move(_pages.IndexOf(pages[order[i]]), slots[i]);
+        }
+
+        AfterChange();
+        Toaster.Show("Fronts and backs are in order", "", "Undo", Undo);
+    }
+
+    /// <summary>
+    /// Finds pages with nothing on them (judged from the picture, so it works on scans with dust and show-through)
+    /// and takes them out. Pages with any text, even white, stay. Undo brings them back.
+    /// </summary>
+    private async Task RemoveBlankAsync()
+    {
+        var targets = SelectedOrAll();
+        if (targets.Count == 0 || _busy != null)
+        {
+            return;
+        }
+
+        var blank = await RunAsync("Looking for blank pages", async ct =>
+        {
+            var found = new List<OrganisePage>();
+            for (int i = 0; i < targets.Count; i++)
+            {
+                var page = targets[i];
+                if (page.IsBlank)
+                {
+                    found.Add(page); // added here as a blank page
+                }
+                else if (string.IsNullOrWhiteSpace(await page.Document!.GetPageTextAsync(page.Reference.Page, cancellationToken: ct)))
+                {
+                    double scale = 1000 / Math.Max(page.Size.Width, page.Size.Height);
+                    int w = Math.Max(16, (int)(page.Size.Width * scale)), h = Math.Max(16, (int)(page.Size.Height * scale));
+                    var bitmap = await page.Document.RenderPageAsync(page.Reference.Page, w, h, PdfRenderOptions.Annotations, PdfWorkPriority.Background, ct);
+                    if (await Task.Run(() => Core.Imaging.PageImageAnalysis.LooksBlank(bitmap.Pixels, bitmap.Width, bitmap.Height, bitmap.Stride), ct))
+                    {
+                        found.Add(page);
+                    }
+                }
+
+                BusyProgress.Value = (i + 1.0) / targets.Count;
+            }
+
+            return found;
+        });
+        if (blank == null)
+        {
+            return;
+        }
+
+        if (blank.Count == 0)
+        {
+            Toaster.Show("No blank pages found", "");
+        }
+        else if (blank.Count >= _pages.Count)
+        {
+            Toaster.Show("Every page looks blank, so they've been left in", "");
+        }
+        else
+        {
+            Delete(blank);
+        }
+    }
+
     /// <summary>Swaps the selected pages for pages of another PDF, starting at a page the user picks.</summary>
     private async Task ReplaceAsync()
     {
@@ -1116,6 +1198,8 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         ResetShapeItem.IsEnabled = SelectedOrAll().Any(p => p.Geometry != null);
         MoveStartItem.IsEnabled = MoveEndItem.IsEnabled = any && Board.SelectedItems.Count < _pages.Count;
         ReverseItem.Text = Board.SelectedItems.Count > 1 ? "Reverse the selected pages" : "Reverse all pages";
+        RemoveBlankItem.Text = Board.SelectedItems.Count > 0 ? "Remove blank pages from the selection" : "Remove blank pages";
+        RemoveBlankItem.IsEnabled = ShuffleItem.IsEnabled = _busy == null;
     }
 
     private void OnRotate180(object sender, RoutedEventArgs e) => Rotate(SelectedInOrder(), 2);
@@ -1137,6 +1221,10 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
     private void OnMoveToEnd(object sender, RoutedEventArgs e) => MoveSelected(toStart: false);
 
     private void OnReverse(object sender, RoutedEventArgs e) => Reverse();
+
+    private void OnShuffleScans(object sender, RoutedEventArgs e) => ShuffleScans((string)((FrameworkElement)sender).Tag == "reversed");
+
+    private void OnRemoveBlank(object sender, RoutedEventArgs e) => Guard.Run(RemoveBlankAsync, "Removing blank pages");
 
     private void OnReplace(object sender, RoutedEventArgs e) => Guard.Run(ReplaceAsync, "Replacing pages");
 

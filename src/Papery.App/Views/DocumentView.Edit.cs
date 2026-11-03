@@ -456,6 +456,36 @@ public sealed partial class DocumentView
 
     // ================================================================= whole-document tools
 
+    private void OnLinkAddresses(object sender, RoutedEventArgs e) => Guard.Run(LinkAddressesAsync, "Linking web addresses");
+
+    /// <summary>
+    /// Papery already lets people click addresses written in the text; this writes them into the file as links, so they
+    /// work in every PDF app and browser too.
+    /// </summary>
+    private async Task LinkAddressesAsync()
+    {
+        if (_document is not { } document || XamlRoot == null || !await AllowEditAsync())
+        {
+            return;
+        }
+
+        var found = await WebAddressLinks.FindAsync(document);
+        if (found.Count == 0)
+        {
+            Toaster.Show("Every web address already has a link, or there are none", "");
+            return;
+        }
+
+        // An address drawn in pieces, or over two lines, has a link for each piece; people count addresses.
+        int addresses = found.Select(l => (l.PageIndex, l.Uri)).Distinct().Count();
+        string done = addresses == 1 ? "1 address is now a link" : $"{addresses:N0} addresses are now links";
+        await ChangeFileAsync(done, "", input => PdfEngine.Shared.EditLinksAsync(input, [], found, FilePath));
+        if (_linkToolOn)
+        {
+            await ShowLinkMarksAsync();
+        }
+    }
+
     private void OnEditStamp(object sender, RoutedEventArgs e)
     {
         var kind = Enum.Parse<StampKind>((string)((FrameworkElement)sender).Tag);
@@ -492,7 +522,7 @@ public sealed partial class DocumentView
         }
 
         var outline = await document.GetOutlineAsync();
-        if (await BookmarksDialog.ShowAsync(XamlRoot, outline, Viewer.CurrentPage, document.PageCount) is { } tree)
+        if (await BookmarksDialog.ShowAsync(XamlRoot, outline, Viewer.CurrentPage, document.PageCount, () => PdfEngine.Shared.FindHeadingsAsync(document)) is { } tree)
         {
             await ChangeFileAsync("Bookmarks saved", "", input => PdfEngine.Shared.SetOutlineAsync(input, tree, FilePath));
         }

@@ -7,7 +7,11 @@ namespace Papery.Pdf.Editing;
 /// <param name="MaxDpi">Pictures sharper than this on the page are scaled down to it.</param>
 /// <param name="JpegQuality">1 (smallest) to 100 (best).</param>
 /// <param name="Greyscale">Turn pictures grey. Text and shapes keep their colours.</param>
-public sealed record CompressOptions(int MaxDpi, int JpegQuality, bool Greyscale = false)
+/// <param name="FastWebView">
+/// Lay the file out so a browser or a web app can show the first page before the rest has downloaded ("fast web
+/// view", or linearised). It makes the file a touch bigger, so a copy is made even when it's no smaller.
+/// </param>
+public sealed record CompressOptions(int MaxDpi, int JpegQuality, bool Greyscale = false, bool FastWebView = false)
 {
     public static CompressOptions HighQuality { get; } = new(220, 85);
 
@@ -47,7 +51,7 @@ internal static class PdfCompressor
             long original = new FileInfo(input.Path).Length;
             string built = await BuildAsync(thread, input, options, work, 0, cancellationToken).ConfigureAwait(false);
             long size = new FileInfo(built).Length;
-            if (size >= original)
+            if (size >= original && !options.FastWebView)
             {
                 return new CompressResult(original, original, false);
             }
@@ -62,7 +66,7 @@ internal static class PdfCompressor
     }
 
     /// <summary>The gentlest setting that fits under the limit, or the smallest result it could manage.</summary>
-    public static async Task<CompressResult> FitUnderAsync(PdfiumThread thread, PdfInputFile input, long limitBytes, string outputPath, CancellationToken cancellationToken)
+    public static async Task<CompressResult> FitUnderAsync(PdfiumThread thread, PdfInputFile input, long limitBytes, bool fastWebView, string outputPath, CancellationToken cancellationToken)
     {
         string work = NewWorkFolder();
         try
@@ -71,8 +75,9 @@ internal static class PdfCompressor
             string? best = null;
             long bestSize = original;
             int attempt = 0;
-            foreach (var options in CompressOptions.Ladder)
+            foreach (var step in CompressOptions.Ladder)
             {
+                var options = step with { FastWebView = fastWebView };
                 string built = await BuildAsync(thread, input, options, work, attempt++, cancellationToken).ConfigureAwait(false);
                 long size = new FileInfo(built).Length;
                 if (size < bestSize)
@@ -199,7 +204,13 @@ internal static class PdfCompressor
         }
 
         string merged = await PdfDeduper.MergeCopiesAsync(thread, pictures, input.Password, work, cancellationToken).ConfigureAwait(false);
-        await QpdfTool.RunAsync(QpdfTool.Tight(QpdfTool.Job(merged, final, input.Password)), input.Path, cancellationToken).ConfigureAwait(false);
+        var job = QpdfTool.Tight(QpdfTool.Job(merged, final, input.Password));
+        if (options.FastWebView)
+        {
+            job["linearize"] = string.Empty;
+        }
+
+        await QpdfTool.RunAsync(job, input.Path, cancellationToken).ConfigureAwait(false);
         await thread.InvokeAsync(() => PdfComposer.Verify(final, input.Password, PageCountOf(input), input.Path), PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false);
         return final;
     }

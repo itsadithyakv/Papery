@@ -101,6 +101,11 @@
                 <StackPanel x:Name="Options" Spacing="2" Visibility="Collapsed">
                     <ToggleSwitch x:Name="BookmarkPerFile" IsOn="True" OnContent="A bookmark for each file" OffContent="A bookmark for each file" />
                     <ToggleSwitch x:Name="KeepBookmarks" IsOn="True" OnContent="Keep the files' own bookmarks" OffContent="Keep the files' own bookmarks" />
+                    <StackPanel x:Name="ShuffleOptions" Spacing="2" Visibility="Collapsed">
+                        <ToggleSwitch x:Name="ShuffleScans" OnContent="Shuffle together: fronts, then backs" OffContent="Shuffle together: fronts, then backs" Toggled="OnShuffleToggled"
+                                      ToolTipService.ToolTip="For a scanner that reads one side: the first file holds the fronts, the second the backs" />
+                        <CheckBox x:Name="BacksReversed" Content="The backs are last page first" IsChecked="True" Margin="0,0,0,4" Visibility="Collapsed" />
+                    </StackPanel>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>

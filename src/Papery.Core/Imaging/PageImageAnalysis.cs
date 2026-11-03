@@ -25,16 +25,24 @@ public readonly record struct DetectedField(DetectedFieldKind Kind, FractionRect
 public static class PageImageAnalysis
 {
     /// <summary>
-    /// The smallest rectangle holding everything that isn't paper, or null for a blank page.
+    /// Whether a rendered page looks empty: no ink beyond dust, a hole punch or the scanner's edges. Judged the same
+    /// way as <see cref="ContentBounds"/>, so faint show-through from the other side of a scan doesn't count either.
     /// </summary>
-    /// <remarks>
-    /// Works for clean PDFs and for scans: ink is judged against the page's own paper colour (scans
-    /// are grey, not white), dark areas joined to the edge of the image are scanner borders, not content (a flood fill
-    /// from the edges removes them; text never touches the edge). Rows and columns are judged a few pixels at a time, so lone specks of dust don't count
-    /// while a line of text, a rule or a small page number does.
-    /// </remarks>
-    /// <param name="paperLuma">Brightness (0-255) above which a pixel always counts as paper.</param>
-    public static FractionRect? ContentBounds(byte[] bgra, int width, int height, int stride, int paperLuma = 235)
+    /// <param name="maxInk">The share of the page that may still be dark (0.0003 is a few specks on a scan).</param>
+    public static bool LooksBlank(byte[] bgra, int width, int height, int stride, double maxInk = 0.0003)
+    {
+        var inked = Ink(bgra, width, height, stride, 235);
+        int count = 0;
+        foreach (bool dark in inked)
+        {
+            count += dark ? 1 : 0;
+        }
+
+        return count <= maxInk * inked.Length;
+    }
+
+    /// <summary>Pixels that are real ink: clearly darker than the paper, not specks, not shadows joined to the edge.</summary>
+    private static bool[] Ink(byte[] bgra, int width, int height, int stride, int paperLuma)
     {
         // The paper is the most common bright shade; ink must be clearly darker than it.
         var histogram = new int[256];
@@ -79,6 +87,22 @@ public static class PageImageAnalysis
         }
 
         RemoveSpecks(inked, width, height, minArea: Math.Max(6, width * height / 150_000));
+        return inked;
+    }
+
+    /// <summary>
+    /// The smallest rectangle holding everything that isn't paper, or null for a blank page.
+    /// </summary>
+    /// <remarks>
+    /// Works for clean PDFs and for scans: ink is judged against the page's own paper colour (scans
+    /// are grey, not white), dark areas joined to the edge of the image are scanner borders, not content (a flood fill
+    /// from the edges removes them; text never touches the edge). Rows and columns are judged a few pixels at a time, so lone specks of dust don't count
+    /// while a line of text, a rule or a small page number does.
+    /// </remarks>
+    /// <param name="paperLuma">Brightness (0-255) above which a pixel always counts as paper.</param>
+    public static FractionRect? ContentBounds(byte[] bgra, int width, int height, int stride, int paperLuma = 235)
+    {
+        var inked = Ink(bgra, width, height, stride, paperLuma);
         var rows = new int[height];
         var columns = new int[width];
         for (int y = 0; y < height; y++)

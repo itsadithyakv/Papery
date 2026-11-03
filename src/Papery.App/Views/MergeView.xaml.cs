@@ -188,6 +188,9 @@ public sealed partial class MergeView : UserControl
         bool any = _files.Count > 0;
         EmptyState.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
         FileList.Visibility = Options.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
+        ShuffleOptions.Visibility = _files.Count == 2 ? Visibility.Visible : Visibility.Collapsed;
+        bool shuffling = Shuffling;
+        BookmarkPerFile.IsEnabled = KeepBookmarks.IsEnabled = !shuffling;
         int pages = _files.Sum(f => f.TryGetPages(out var p, out _) ? p.Count : 0);
         string files = _files.Count == 1 ? "1 file" : $"{_files.Count} files";
         TotalText.Text = any ? $"{files}  ·  {pages:N0} pages" : string.Empty;
@@ -235,6 +238,15 @@ public sealed partial class MergeView : UserControl
             }
         }
 
+        if (Shuffling)
+        {
+            // Pages from the two files alternate, so each file's bookmarks would point all over: there are none.
+            int fronts = pages.Count(p => p.Source == 0);
+            var fromFile = new[] { pages.Where(p => p.Source == 0).ToList(), pages.Where(p => p.Source == 1).ToList() };
+            pages = Core.Pages.ScanOrder.Shuffle(fronts, pages.Count - fronts, BacksReversed.IsChecked == true).Select(p => fromFile[p.File][p.Page]).ToList();
+            outline.Clear();
+        }
+
         var first = _files[0];
         string suggested = $"{System.IO.Path.GetFileNameWithoutExtension(first.Name)} (merged).pdf";
         string? output = await Pickers.PickSavePdfAsync(GetWindowHandle(), suggested, first.Path);
@@ -280,6 +292,14 @@ public sealed partial class MergeView : UserControl
     private void OnMergeClick(object sender, RoutedEventArgs e) => Guard.Run(() => MergeAsync(), "OnMergeClick");
 
     private void OnCancelClick(object sender, RoutedEventArgs e) => _busy?.Cancel();
+
+    private bool Shuffling => _files.Count == 2 && ShuffleScans.IsOn;
+
+    private void OnShuffleToggled(object sender, RoutedEventArgs e)
+    {
+        BacksReversed.Visibility = ShuffleScans.IsOn ? Visibility.Visible : Visibility.Collapsed;
+        Update();
+    }
 
     private void OnRemoveClick(object sender, RoutedEventArgs e) => Guard.Run(async () =>
     {

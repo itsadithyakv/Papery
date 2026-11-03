@@ -66,6 +66,7 @@ internal static class ToolCatalog
         new("pdf-to-word", "PDF to Word", "An editable document", "\uE8A5", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("pdf-to-powerpoint", "PDF to PowerPoint", "Pages become slides", "\uE7F4", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("html-to-pdf", "Web page to PDF", "Saved pages and HTML", "\uE774", ToolFamily.Convert, IsPro: true, IsBuilt: true),
+        new("text-to-pdf", "Text to PDF", "A text file or what you copied", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("scan", "Scan to PDF", "Scanner or camera", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("ocr", "Make searchable", "Read text in scans", "", ToolFamily.Convert, IsPro: true, IsBuilt: true),
         new("protect", "Protect", "Add or remove a password", "", ToolFamily.Protect, IsPro: true, IsBuilt: true),

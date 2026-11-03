@@ -64,6 +64,13 @@ $text = [regex]::Replace($text, '(<uap:VisualElements\b[^>]*?\bDisplayName=")[^"
 [IO.File]::WriteAllText($manifest.FullName, $text)
 
 Write-Host "Registering $($manifest.Directory.FullName)" -ForegroundColor Cyan
+
+# Registered from another folder (a build folder, or an unpacked package) with the same version, Windows would quietly keep that one.
+$registered = Get-AppxPackage -Name $packageName | Select-Object -First 1
+if ($registered -and $registered.InstallLocation -ne $manifest.Directory.FullName) {
+    $registered | Remove-AppxPackage -PreserveApplicationData
+}
+
 try {
     Add-AppxPackage -Register $manifest.FullName -ForceUpdateFromAnyVersion -ErrorAction Stop
 } catch {

@@ -122,7 +122,31 @@ public sealed class PdfEngine
 
     /// <summary>Compresses no harder than it must to fit under a size. If it can't fit, it gives the smallest it could manage.</summary>
     public Task<CompressResult> CompressToFitAsync(PdfInputFile input, long limitBytes, string outputPath, CancellationToken cancellationToken = default) =>
-        PdfCompressor.FitUnderAsync(Thread, input, limitBytes, outputPath, cancellationToken);
+        PdfCompressor.FitUnderAsync(Thread, input, limitBytes, fastWebView: false, outputPath, cancellationToken);
+
+    /// <summary>The same, laid out for fast web view as well.</summary>
+    public Task<CompressResult> CompressToFitAsync(PdfInputFile input, long limitBytes, bool fastWebView, string outputPath, CancellationToken cancellationToken = default) =>
+        PdfCompressor.FitUnderAsync(Thread, input, limitBytes, fastWebView, outputPath, cancellationToken);
+
+    /// <summary>
+    /// Makes a PDF from lines of plain text already wrapped to <see cref="TextPageOptions.Columns"/>, in a typewriter
+    /// font. A line holding just "" starts a new page. Returns the number of pages.
+    /// </summary>
+    public Task<int> TextToPdfAsync(IReadOnlyList<string> lines, TextPageOptions options, string outputPath, IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>
+        TextToPdfWriter.WriteAsync(Thread, lines, options, outputPath, progress, cancellationToken);
+
+    /// <summary>Suggested bookmarks from the headings of an open document (lines set larger than the body text).</summary>
+    public async Task<IReadOnlyList<PdfOutlineItem>> FindHeadingsAsync(PdfDocument document, IProgress<double>? progress = null, CancellationToken cancellationToken = default)
+    {
+        var pages = new List<IReadOnlyList<PdfWord>>(document.PageCount);
+        for (int page = 0; page < document.PageCount; page++)
+        {
+            pages.Add(await document.GetPageWordsAsync(page, PdfWorkPriority.Background, cancellationToken).ConfigureAwait(false));
+            progress?.Report((page + 1.0) / document.PageCount);
+        }
+
+        return HeadingOutline.Find(pages);
+    }
 
     /// <summary>Saves the text as a spreadsheet, keeping tables in columns. Returns the rows written; with none, no file is made.</summary>
     public Task<int> ExportExcelAsync(PdfDocument document, bool oneSheet, string outputPath, IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>
