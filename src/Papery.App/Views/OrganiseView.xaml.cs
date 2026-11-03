@@ -1173,6 +1173,13 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         e.Handled = true;
     }
 
+    private void OnToolbarLoaded(object sender, RoutedEventArgs e)
+    {
+        var bar = (ScrollViewer)sender;
+        bar.Loaded -= OnToolbarLoaded;
+        Controls.ToolLabel.ScrollsSideways(bar);
+    }
+
     private void OnRotateLeft(object sender, RoutedEventArgs e) => Rotate(SelectedInOrder(), -1);
 
     private void OnRotateRight(object sender, RoutedEventArgs e) => Rotate(SelectedInOrder(), 1);

@@ -50,6 +50,13 @@ public sealed partial class DocumentView
         (PdfAnnotationKind.Perimeter, "Measure a perimeter (click each corner, double-click to finish)", null, "F1 M1.9,12.3 L4.9,3.3 L6.1,3.7 L3.1,12.7 Z M5.8,2.9 L11.3,5.9 L10.7,7.1 L5.2,4.1 Z M11.6,6.2 L14.1,12.2 L12.9,12.8 L10.4,6.8 Z M0.9,10.9 L4.1,10.9 L4.1,14.1 L0.9,14.1 Z M3.9,1.9 L7.1,1.9 L7.1,5.1 L3.9,5.1 Z M9.4,4.9 L12.6,4.9 L12.6,8.1 L9.4,8.1 Z M11.9,10.9 L15.1,10.9 L15.1,14.1 L11.9,14.1 Z", false, 1.5f),
     ];
 
+    // The word under each tool's icon, in the same order (the names above stay as tooltips and for screen readers).
+    private static readonly string[] AnnotationLabels =
+    [
+        "Select", "Highlight", "Note", "Underline", "Strike", "Squiggly", "Pen", "Marker", "Rectangle", "Ellipse", "Line", "Arrow",
+        "Polygon", "Cloud", "Text box", "Callout", "Stamp", "Distance", "Area", "Perimeter",
+    ];
+
     private static readonly string[] StampWords = ["APPROVED", "DRAFT", "CONFIDENTIAL", "RECEIVED", "PAID"];
 
     private readonly Dictionary<ToggleButton, int> _toolButtons = [];
@@ -79,6 +86,7 @@ public sealed partial class DocumentView
             };
             ToolTipService.SetToolTip(button, def.Name);
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, def.Name);
+            Controls.ToolLabel.SetText(button, AnnotationLabels[i]);
             int index = i;
             button.Click += (_, _) => Guard.Run(() => PickToolAsync(index), "Choosing a tool");
             if (def.Kind == PdfAnnotationKind.Stamp)

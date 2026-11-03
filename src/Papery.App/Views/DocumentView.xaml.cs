@@ -603,15 +603,11 @@ public sealed partial class DocumentView : UserControl
     {
         var bar = (ScrollViewer)sender;
         bar.Loaded -= OnToolbarLoaded;
-        bar.AddHandler(PointerWheelChangedEvent, new PointerEventHandler((_, args) =>
-        {
-            if (bar.ScrollableWidth > 0)
-            {
-                bar.ChangeView(bar.HorizontalOffset - args.GetCurrentPoint(bar).Properties.MouseWheelDelta, null, null);
-                args.Handled = true;
-            }
-        }), handledEventsToo: true);
+        ToolLabel.ScrollsSideways(bar, roomForBar: bar.Content is not PillBar); // the mode pills have no words under them
     }
+
+    /// <summary>The words beside Search, Print, Share and More give way first when the window is narrow, so the modes keep their room.</summary>
+    private void OnModeBarSizeChanged(object sender, SizeChangedEventArgs e) => ToolLabel.ShowWords(TopActions, e.NewSize.Width >= 1080);
 
     /// <summary>Opens on a page with a search already run, for a result picked from a folder search.</summary>
     public void FindOnPage(int page, string query)
