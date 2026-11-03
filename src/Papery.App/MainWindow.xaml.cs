@@ -64,7 +64,7 @@ public sealed partial class MainWindow : Window
         if (_active && Root.XamlRoot != null)
         {
             _ = Dialogs.ShowMessageAsync(Root.XamlRoot, "Something went wrong",
-                "Papery hit a problem and stopped what it was doing. Your files have not been changed.", Controls.MascotMood.Oops);
+                "Papery hit a problem and stopped what it was doing. Your files have not been changed.");
         }
     }
 

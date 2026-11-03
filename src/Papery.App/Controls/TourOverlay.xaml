@@ -26,7 +26,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <controls:Mascot Width="40" Height="48" VerticalAlignment="Top" />
+                    <controls:LogoMark Width="36" Height="36" VerticalAlignment="Top" />
                     <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
                         <TextBlock x:Name="TitleText" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap" />
                         <Path x:Name="Squiggle" Stroke="{ThemeResource PaperyCoralBrush}" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"

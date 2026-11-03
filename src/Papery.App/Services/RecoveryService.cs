@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Windows.Storage;
 
 namespace Papery.Services;
@@ -19,7 +20,7 @@ internal static class RecoveryService
     /// <summary>Records which file a copy belongs to, so it can be offered back by name.</summary>
     public static void Describe(string copyPath, string originalPath)
     {
-        File.WriteAllText(Path.ChangeExtension(copyPath, ".json"), JsonSerializer.Serialize(originalPath));
+        File.WriteAllText(Path.ChangeExtension(copyPath, ".json"), JsonValue.Create(originalPath).ToJsonString()); // no reflection, so it survives trimming
     }
 
     public static void Forget(string? copyPath)
@@ -42,13 +43,13 @@ internal static class RecoveryService
             string copy = Path.ChangeExtension(info, ".pdf");
             try
             {
-                if (File.Exists(copy) && JsonSerializer.Deserialize<string>(File.ReadAllText(info)) is { } original)
+                if (File.Exists(copy) && JsonNode.Parse(File.ReadAllText(info))?.GetValue<string>() is { } original)
                 {
                     found.Add(new RecoveredFile(copy, info, original));
                     continue;
                 }
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or FormatException)
             {
                 Log.Info($"Unreadable recovery record: {ex.GetType().Name}");
             }

@@ -38,7 +38,6 @@ public sealed partial class SettingsView : UserControl
     private void UpdateProCard()
     {
         bool pro = AppServices.Pro.IsPro;
-        ProMascot.Mood = pro ? Controls.MascotMood.Excited : Controls.MascotMood.Happy;
         ProTitle.Text = pro ? "Papery Pro is unlocked" : "Free version";
         ProSubtitle.Text = pro
             ? "Thank you! Every tool is yours, on every PC signed in with your Microsoft account."
@@ -62,7 +61,6 @@ public sealed partial class SettingsView : UserControl
         if (AppServices.Pro.IsPro)
         {
             ProSubtitle.Text = "Restored. Welcome back!";
-            ProMascot.Bounce();
         }
         else
         {

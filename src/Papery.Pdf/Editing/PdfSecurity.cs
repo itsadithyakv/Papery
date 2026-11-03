@@ -133,8 +133,8 @@ internal static class PdfSecurity
     public static Task<PdfHiddenData> InspectAsync(PdfInputFile input, CancellationToken cancellationToken) => Task.Run(() =>
     {
         using var doc = input.Password is null
-            ? PdfReader.Open(input.Path, PdfDocumentOpenMode.ReadOnly)
-            : PdfReader.Open(input.Path, input.Password, PdfDocumentOpenMode.ReadOnly);
+            ? PdfReader.Open(input.Path, PdfDocumentOpenMode.Import)
+            : PdfReader.Open(input.Path, input.Password, PdfDocumentOpenMode.Import);
         var catalog = doc.Internals.Catalog;
         bool metadata = catalog.Elements.ContainsKey("/Metadata") || DescriptionKeys.Any(k => !string.IsNullOrEmpty(doc.Info.Elements.GetString(k)));
         int comments = 0, attachments = EmbeddedFileCount(catalog), scripts = CatalogScripts(catalog);

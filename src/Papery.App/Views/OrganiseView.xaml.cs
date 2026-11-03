@@ -485,7 +485,7 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         {
             await document.DisposeAsync();
             var (title, message) = EditErrors.Explain(new PdfEditException(PdfEditError.NotAllowed, path));
-            await Dialogs.ShowMessageAsync(XamlRoot, title, message, MascotMood.Oops);
+            await Dialogs.ShowMessageAsync(XamlRoot, title, message);
             return null;
         }
 
@@ -833,7 +833,6 @@ public sealed partial class OrganiseView : UserControl, IOrganiseActions
         _busy = cts;
         BusyText.Text = what;
         BusyProgress.Value = 0;
-        BusyMascot.Mood = MascotMood.Happy;
         BusyOverlay.Visibility = Visibility.Visible;
         Motion.FadeIn(BusyOverlay);
         UpdateCommands();

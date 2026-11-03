@@ -37,11 +37,11 @@ internal static class ProDialogs
     {
         var panel = new StackPanel { Spacing = 16, Width = 480 };
 
-        // Character + title
+        // Mark + title
         var header = new Grid { ColumnSpacing = 16 };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        header.Children.Add(new Mascot { Width = 56, Height = 66 });
+        header.Children.Add(new LogoMark { Width = 44, Height = 44, VerticalAlignment = VerticalAlignment.Center });
         var titles = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 2 };
         titles.Children.Add(new TextBlock { Text = "Papery Pro", FontSize = 26, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
         titles.Children.Add(new TextBlock
@@ -168,9 +168,8 @@ internal static class ProDialogs
     /// <summary>A warm thank-you that shows what's now unlocked.</summary>
     public static async Task ShowWelcomeAsync(XamlRoot root)
     {
-        var mascot = new Mascot { Mood = MascotMood.Excited, Width = 72, Height = 86, HorizontalAlignment = HorizontalAlignment.Center };
         var panel = new StackPanel { Spacing = 14, Width = 480 };
-        panel.Children.Add(mascot);
+        panel.Children.Add(new LogoMark { Width = 56, Height = 56, HorizontalAlignment = HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock
         {
             Text = "Welcome to Papery Pro",
@@ -189,7 +188,6 @@ internal static class ProDialogs
         panel.Children.Add(tiles);
 
         var dialog = new ContentDialog { Content = panel, PrimaryButtonText = "Let's go", DefaultButton = ContentDialogButton.Primary };
-        dialog.Opened += (_, _) => mascot.Bounce();
         await Dialogs.ShowAsync(dialog, root);
     }
 

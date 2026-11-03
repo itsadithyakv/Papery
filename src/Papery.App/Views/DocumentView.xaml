@@ -517,9 +517,9 @@
                             </DataTemplate>
                         </TreeView.ItemTemplate>
                     </TreeView>
-                    <!-- Empty state: a sleepy character instead of a bare sentence. -->
+                    <!-- Empty state: the mark above a short line, so the panel doesn't look broken. -->
                     <StackPanel x:Name="NoBookmarksText" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Margin="16">
-                        <controls:Mascot Mood="Sleepy" Width="56" Height="66" />
+                        <controls:LogoMark Width="44" Height="44" />
                         <TextBlock Text="No bookmarks here" HorizontalAlignment="Center" Style="{StaticResource PaperySecondaryTextStyle}" />
                     </StackPanel>
                 </Grid>
@@ -552,7 +552,7 @@
                         </ListView.ItemTemplate>
                     </ListView>
                     <StackPanel x:Name="NoCommentsText" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Margin="16">
-                        <controls:Mascot Mood="Sleepy" Width="56" Height="66" />
+                        <controls:LogoMark Width="44" Height="44" />
                         <TextBlock Text="No comments yet" HorizontalAlignment="Center" Style="{StaticResource PaperySecondaryTextStyle}" />
                     </StackPanel>
                 </Grid>

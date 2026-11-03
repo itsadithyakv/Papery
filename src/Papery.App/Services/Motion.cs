@@ -74,25 +74,6 @@ internal static class Motion
         visual.StartAnimation("Opacity", pulse);
     }
 
-    /// <summary>Squashes an element vertically and back (used for blinking eyes).</summary>
-    public static void Blink(UIElement element, Vector3 center)
-    {
-        if (!Enabled)
-        {
-            return;
-        }
-
-        var visual = Prepare(element);
-        visual.CenterPoint = center;
-        var c = visual.Compositor;
-        var blink = c.CreateVector3KeyFrameAnimation();
-        blink.InsertKeyFrame(0, Vector3.One);
-        blink.InsertKeyFrame(0.5f, new Vector3(1, 0.1f, 1));
-        blink.InsertKeyFrame(1, Vector3.One);
-        blink.Duration = TimeSpan.FromMilliseconds(150);
-        visual.StartAnimation("Scale", blink);
-    }
-
     /// <summary>Slides an element vertically to an offset (used by toasts).</summary>
     public static void SlideTo(UIElement element, float y, float opacity, int ms = 220)
     {

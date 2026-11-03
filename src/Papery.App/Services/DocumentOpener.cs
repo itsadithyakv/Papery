@@ -41,24 +41,24 @@ internal static class DocumentOpener
                 if (await RepairAsync(path) is not { } repaired)
                 {
                     Log.Info($"Open failed: {ex.Error}");
-                    await Dialogs.ShowMessageAsync(root, "Papery can't open this file", Explain(ex.Error, name), Controls.MascotMood.Oops);
+                    await Dialogs.ShowMessageAsync(root, "Papery can't open this file", Explain(ex.Error, name));
                     return null;
                 }
 
                 Log.Info("Opened a repaired copy of a damaged file");
-                await Dialogs.ShowMessageAsync(root, "This file was damaged", $"Papery rebuilt what it could of \"{name}\" into a new copy, and that's what's open now. Check it looks right, then use Save a copy to keep it. Your original hasn't been changed.", Controls.MascotMood.Oops);
+                await Dialogs.ShowMessageAsync(root, "This file was damaged", $"Papery rebuilt what it could of \"{name}\" into a new copy, and that's what's open now. Check it looks right, then use Save a copy to keep it. Your original hasn't been changed.");
                 return repaired;
             }
             catch (PdfOpenException ex)
             {
                 Log.Info($"Open failed: {ex.Error}");
-                await Dialogs.ShowMessageAsync(root, "Papery can't open this file", Explain(ex.Error, name), Controls.MascotMood.Oops);
+                await Dialogs.ShowMessageAsync(root, "Papery can't open this file", Explain(ex.Error, name));
                 return null;
             }
             catch (Exception ex) when (ex is not OutOfMemoryException)
             {
                 Log.Error("Open failed unexpectedly", ex);
-                await Dialogs.ShowMessageAsync(root, "Papery can't open this file", Explain(PdfOpenError.Unknown, name), Controls.MascotMood.Oops);
+                await Dialogs.ShowMessageAsync(root, "Papery can't open this file", Explain(PdfOpenError.Unknown, name));
                 return null;
             }
         }

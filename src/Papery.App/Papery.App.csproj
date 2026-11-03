@@ -27,7 +27,16 @@
 
     <!-- Fast start-up: precompile to native code in Release builds. -->
     <PublishReadyToRun Condition="'$(Configuration)' == 'Release'">true</PublishReadyToRun>
-    <PublishTrimmed>false</PublishTrimmed>
+
+    <!--
+      A smaller download: Release packages leave out the parts of .NET and the Windows API that Papery never calls.
+      "partial" only trims libraries that say they're safe to trim, so PDFsharp and Papery's own code stay whole.
+      Nothing in Papery uses reflection-based JSON (each file type has its own JsonSerializerContext).
+    -->
+    <PublishTrimmed Condition="'$(Configuration)' == 'Release'">true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <UseSystemResourceKeys Condition="'$(Configuration)' == 'Release'">true</UseSystemResourceKeys>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 
     <!-- WinUI XAML types and event handlers are used from XAML; analyzers can't see that. -->
     <NoWarn>$(NoWarn);CA1812;CA1001;CA1515;CA1822</NoWarn>
@@ -54,6 +63,13 @@
     <Content Include="..\..\docs\THIRD-PARTY-NOTICES.txt" Link="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" />
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
+
+  <!-- Debugger support files of the .NET runtime: only a debugger attaching to the app uses them. -->
+  <Target Name="LeaveOutDebuggerFiles" AfterTargets="ComputeResolvedFilesToPublishList" Condition="'$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('mscordaccore')) or '%(Filename)' == 'mscordbi' or $([System.String]::Copy('%(Filename)').StartsWith('Microsoft.DiaSymReader.Native')) or '%(Filename)' == 'createdump'" />
+    </ItemGroup>
+  </Target>
 
   <!-- Lets Visual Studio show the "Package and Publish" menus for this single-project MSIX. -->
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)' != 'true' and '$(EnableMsixTooling)' == 'true'">

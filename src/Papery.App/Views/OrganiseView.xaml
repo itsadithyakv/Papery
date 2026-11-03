@@ -178,10 +178,10 @@
             <StackPanel x:Name="HintRow" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="14" />
         </Grid>
 
-        <!-- ============ Saving: the character waits with you ============ -->
+        <!-- ============ Saving ============ -->
         <Grid x:Name="BusyOverlay" Grid.RowSpan="3" Visibility="Collapsed" Background="{ThemeResource PaperyCanvasBrush}" Opacity="0.96">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14" Width="280">
-                <controls:Mascot x:Name="BusyMascot" Width="64" Height="76" HorizontalAlignment="Center" />
+                <controls:LogoMark Width="52" Height="52" HorizontalAlignment="Center" />
                 <TextBlock x:Name="BusyText" Text="Saving" HorizontalAlignment="Center" FontSize="16" FontWeight="SemiBold" />
                 <ProgressBar x:Name="BusyProgress" Maximum="1" />
                 <Button x:Name="BusyCancel" Content="Cancel" HorizontalAlignment="Center" Style="{StaticResource PaperyQuietButtonStyle}" Click="OnBusyCancel" />

@@ -373,7 +373,7 @@ public sealed partial class DocumentView
         }
 
         var (title, message) = EditErrors.Explain(new PdfEditException(PdfEditError.NotAllowed, FilePath));
-        await Dialogs.ShowMessageAsync(XamlRoot, title, message, Controls.MascotMood.Oops);
+        await Dialogs.ShowMessageAsync(XamlRoot, title, message);
         return false;
     }
 

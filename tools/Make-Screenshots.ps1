@@ -62,8 +62,13 @@ Write-Host 'Organise'
 Drive @('select:Organise', 'wait:4', (Shot "03-organise-$Theme"))
 
 Write-Host 'Fill and sign'
-Start-App @((& $q 'forms-interactive.pdf'))
-Drive @($size, 'wait:1', 'select:Fill and Sign', 'wait:4', 'click:Sign', 'wait:4', 'click:New signature', 'wait:4', 'select:Type', 'wait:1', 'type:Your name=Alex Morgan', 'wait:2', (Shot "04-fill-and-sign-$Theme"))
+# The signature menu sometimes opens too late for the next step, so this one gets a few tries.
+foreach ($try in 1..3) {
+    Start-App @((& $q 'forms-interactive.pdf'))
+    $missed = Drive @($size, 'wait:1', 'select:Fill and Sign', 'wait:4', 'click:Sign', 'wait:4', 'click:New signature', 'wait:4', 'select:Type', 'wait:1', 'type:Your name=Alex Morgan', 'wait:2', (Shot "04-fill-and-sign-$Theme")) | Where-Object { "$_" -match 'Nothing named' }
+    if (-not $missed) { break }
+    Write-Host "  trying again ($try)"
+}
 
 Write-Host 'Compress'
 Start-App @((& $q 'scanned-document.pdf'))

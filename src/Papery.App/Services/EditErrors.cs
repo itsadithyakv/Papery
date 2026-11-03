@@ -22,7 +22,7 @@ internal static class EditErrors
             (title, message) = ("Something went wrong", "Papery couldn't finish saving. Your original file has not been changed.");
         }
 
-        await Dialogs.ShowMessageAsync(root, title, message, Controls.MascotMood.Oops);
+        await Dialogs.ShowMessageAsync(root, title, message);
         return true;
     }
 

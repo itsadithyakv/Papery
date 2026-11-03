@@ -12,14 +12,14 @@
         <ScrollViewer>
             <StackPanel MaxWidth="1080" Padding="40,28,40,48">
 
-                <!-- Hero: the Papery character says hello -->
+                <!-- Hero: the mark and a greeting -->
                 <Grid x:Name="Hero" ColumnSpacing="18">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <controls:Mascot x:Name="Character" Width="72" Height="86" />
+                    <controls:LogoMark Width="56" Height="56" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                         <TextBlock x:Name="Greeting" FontSize="30" FontWeight="SemiBold" />
                         <TextBlock Text="What shall we do with your PDFs?" Style="{StaticResource PaperySecondaryTextStyle}" />

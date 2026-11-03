@@ -10,12 +10,16 @@
     powershell -ExecutionPolicy Bypass -File tools/Run-Papery.ps1 -Configuration Release
     powershell -ExecutionPolicy Bypass -File tools/Run-Papery.ps1 -NoLaunch       # just build + register
     powershell -ExecutionPolicy Bypass -File tools/Run-Papery.ps1 -File "C:\x.pdf"
+    powershell -ExecutionPolicy Bypass -File tools/Run-Papery.ps1 -Package dist\Papery_x64.msix   # the packaged (trimmed) build
 #>
 param(
     [ValidateSet('Debug', 'Release')] [string]$Configuration = 'Debug',
     [ValidateSet('x64', 'ARM64')] [string]$Platform = $(if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'ARM64' } else { 'x64' }),
     [switch]$NoLaunch,
-    [string]$File
+    [string]$File,
+
+    # Runs what a package holds instead of building: Release packages are trimmed, which a normal build isn't.
+    [string]$Package
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
@@ -28,15 +32,27 @@ $packageName = 'Papery.Dev'
 # Never an installed Papery, which may have someone's unsaved work in it.
 Get-Process Papery -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$repo\*" } | Stop-Process -Force
 
-Write-Host "Building Papery ($Configuration|$Platform)..." -ForegroundColor Cyan
-dotnet build $project -c $Configuration -p:Platform=$Platform -nologo -v q
-if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
+if ($Package) {
+    $unpacked = Join-Path $repo 'dist\run-package'
+    if (Test-Path $unpacked) { Remove-Item $unpacked -Recurse -Force }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [IO.Compression.ZipFile]::ExtractToDirectory((Resolve-Path $Package).Path, $unpacked)
+    Remove-Item (Join-Path $unpacked 'AppxSignature.p7x'), (Join-Path $unpacked 'AppxBlockMap.xml'), (Join-Path $unpacked '[[]Content_Types[]].xml') -ErrorAction SilentlyContinue
+    $manifest = Get-Item (Join-Path $unpacked 'AppxManifest.xml')
 
-$rid = "win-$($Platform.ToLowerInvariant())"
-$manifest = Get-ChildItem (Join-Path $repo "src\Papery.App\bin\$Platform\$Configuration") -Recurse -Filter AppxManifest.xml |
-    Where-Object { $_.FullName -match [regex]::Escape($rid) -and $_.FullName -notmatch '\\publish\\' } |
-    Sort-Object LastWriteTime -Descending | Select-Object -First 1
-if (-not $manifest) { throw 'AppxManifest.xml not found in the build output.' }
+    # Same version as a registered build folder means Windows would quietly keep that one, so start clean.
+    Get-AppxPackage -Name $packageName | Remove-AppxPackage -PreserveApplicationData
+} else {
+    Write-Host "Building Papery ($Configuration|$Platform)..." -ForegroundColor Cyan
+    dotnet build $project -c $Configuration -p:Platform=$Platform -nologo -v q
+    if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
+
+    $rid = "win-$($Platform.ToLowerInvariant())"
+    $manifest = Get-ChildItem (Join-Path $repo "src\Papery.App\bin\$Platform\$Configuration") -Recurse -Filter AppxManifest.xml |
+        Where-Object { $_.FullName -match [regex]::Escape($rid) -and $_.FullName -notmatch '\\publish\\' } |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if (-not $manifest) { throw 'AppxManifest.xml not found in the build output.' }
+}
 
 # The development copy gets its own name, command and no file types, so nothing of an installed copy changes.
 $text = [IO.File]::ReadAllText($manifest.FullName)

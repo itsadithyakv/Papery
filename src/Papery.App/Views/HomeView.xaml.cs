@@ -232,7 +232,7 @@ public sealed partial class HomeView : UserControl
 
     private void OnToolClick(object sender, RoutedEventArgs e) => OpenRequested?.Invoke(this, (ToolInfo)((FrameworkElement)sender).Tag);
 
-    // ================================================================= drag and drop (the character reacts)
+    // ================================================================= drag and drop
 
     private void OnDragEnter(object sender, DragEventArgs e)
     {
@@ -241,8 +241,6 @@ public sealed partial class HomeView : UserControl
             return;
         }
 
-        Character.Mood = MascotMood.Excited;
-        Character.Bounce();
         Motion.Pop(DropIcon, 1.18f);
         DropTitle.Text = "Let go to open";
         DropOutline.StrokeThickness = 2.5;
@@ -252,7 +250,6 @@ public sealed partial class HomeView : UserControl
 
     private void ResetDropZone()
     {
-        Character.Mood = MascotMood.Happy;
         DropTitle.Text = "Drop PDFs here, or click to choose";
         DropOutline.StrokeThickness = 1.5;
     }

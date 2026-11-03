@@ -117,7 +117,7 @@ public sealed partial class MergeView : UserControl
             {
                 await document.DisposeAsync();
                 var (title, message) = EditErrors.Explain(new PdfEditException(PdfEditError.NotAllowed, path));
-                await Dialogs.ShowMessageAsync(XamlRoot, title, message, MascotMood.Oops);
+                await Dialogs.ShowMessageAsync(XamlRoot, title, message);
                 continue;
             }
 
@@ -135,7 +135,6 @@ public sealed partial class MergeView : UserControl
 
         if (_files.Count > 0)
         {
-            Character.Bounce();
         }
     }
 
@@ -253,8 +252,6 @@ public sealed partial class MergeView : UserControl
         {
             var request = new PdfComposeRequest(sources, pages, Outline: outline);
             var result = await PdfEngine.Shared.ComposeAsync(request, output, new Progress<double>(v => BusyProgress.Value = v), cts.Token);
-            Character.Mood = MascotMood.Excited;
-            Character.Bounce();
             string message = $"Merged into {System.IO.Path.GetFileName(output)}";
             Toaster.Show(result.BookmarksSkipped ? message + " (without bookmarks)" : message, "", "Open", () => OpenRequested?.Invoke(this, output));
         }
