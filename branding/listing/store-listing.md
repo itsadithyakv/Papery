@@ -49,8 +49,24 @@ Good to know
 
 Pay once, and Pro is yours on every Windows PC you sign in to, including when you're offline.
 
-## What's new in this version
-First release.
+## What's new in this version (limit 1,500)
+New in Papery
+• Labels under every toolbar button, so you can see what each one does
+• Text to PDF: turn a text file, or anything you copy, into a PDF
+• Remove blank pages, and put double-sided scans back in order
+• Merge a file of fronts with a file of backs
+• Make bookmarks from a document's headings
+• Turn web and email addresses into clickable links
+• Fast web view when compressing
+• Share PDFs to Mail, Teams, WhatsApp and more
+• Search every PDF in a folder
+• Web pages and HTML to PDF, and PDF to PowerPoint
+• Attach files to a PDF, or take them out
+• Swap comments with Acrobat and other apps; save form answers, or fill a form from a file
+• Measure areas and perimeters
+• Find card, bank and ID numbers to redact
+• Spell check as you type
+• A smaller download, safer saving and many small fixes
 
 ## Product features (up to 20, limit 200 each)
 Free PDF reader with tabs, thumbnails, search, bookmarks and dark mode
