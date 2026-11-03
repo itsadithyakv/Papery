@@ -45,6 +45,13 @@ public sealed class PdfEngine
     public Task ExportWordAsync(PdfDocument document, string outputPath, IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>
         DocxWriter.ExportAsync(document, outputPath, progress, cancellationToken);
 
+    /// <summary>
+    /// Writes a PowerPoint file from an open PDF, one slide per page, shaped like the first page. Text comes as boxes that can be
+    /// edited and pictures as pictures, near where they were; a page with no text to read, like a scan, comes as one picture.
+    /// </summary>
+    public Task ExportPowerPointAsync(PdfDocument document, string outputPath, PowerPointOptions? options = null, IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>
+        PptxWriter.ExportAsync(document, outputPath, options ?? new PowerPointOptions(), progress, cancellationToken);
+
     /// <summary>Adds a certified digital signature using a certificate.</summary>
     public Task SignAsync(PdfInputFile input, PdfSignatureRequest request, string outputPath, CancellationToken cancellationToken = default) =>
         PdfSigner.SignAsync(Thread, input, request, outputPath, cancellationToken);
