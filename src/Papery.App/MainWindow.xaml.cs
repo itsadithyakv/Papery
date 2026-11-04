@@ -46,6 +46,13 @@ public sealed partial class MainWindow : Window
         AppServices.Settings.Changed += OnSettingsChanged;
         Closed += (_, _) => AppServices.Settings.Changed -= OnSettingsChanged;
         Root.Loaded += (_, _) => UpdateCaptionInset();
+        Tabs.TabItemsChanged += (_, _) =>
+        {
+            if (!_closing)
+            {
+                SessionService.Remember();
+            }
+        };
         Root.SizeChanged += (_, _) => UpdateCaptionInset();
 
         if (withHomeTab)
@@ -55,6 +62,12 @@ public sealed partial class MainWindow : Window
     }
 
     public nint Hwnd { get; }
+
+    /// <summary>Closing has begun (its tabs are being shut, and no longer count as open).</summary>
+    internal bool IsClosing => _closing;
+
+    /// <summary>The PDF in the front tab, if the front tab is a PDF.</summary>
+    internal DocumentView? SelectedDocument => (Tabs.SelectedItem as TabViewItem)?.Content as DocumentView;
 
     private bool _active;
 
@@ -171,7 +184,7 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private bool ShowIfOpen(string fullPath)
+    internal bool ShowIfOpen(string fullPath)
     {
         var existing = Tabs.TabItems.OfType<TabViewItem>()
             .FirstOrDefault(t => t.Content is DocumentView d && string.Equals(d.FilePath, fullPath, StringComparison.OrdinalIgnoreCase));
@@ -617,46 +630,84 @@ public sealed partial class MainWindow : Window
         }
 
         Title = Tabs.SelectedItem is TabViewItem { Content: DocumentView view } ? $"{view.FileName} – Papery" : "Papery";
+        if (!_closing)
+        {
+            SessionService.Remember();
+        }
     }
 
-    // ---- tearing tabs out into new windows, and dropping them into other windows
+    // ---- dragging tabs out into new windows, and into other windows
+    //
+    // Built-in tear-out (CanTearOutTabs) asks for a new window the moment any tab drag starts, so a click that moved
+    // a pixel flashed an empty window and could leave it behind. Plain drag and drop makes a window only when a tab
+    // is really dropped outside.
 
-    private void OnTabTearOutWindowRequested(TabView sender, TabViewTabTearOutWindowRequestedEventArgs args)
+    private const string TabDragFormat = "Papery.Tab";
+
+    /// <summary>The tab being dragged and its window. Drags only ever move tabs within this one running Papery.</summary>
+    private static (TabViewItem Tab, MainWindow From)? _dragging;
+
+    private void OnTabDragStarting(TabView sender, TabViewTabDragStartingEventArgs args)
     {
-        var window = WindowManager.Create(withHomeTab: false);
-        args.NewWindowId = window.AppWindow.Id;
+        _dragging = (args.Tab, this);
+        args.Data.Properties.Add(TabDragFormat, true);
+        args.Data.RequestedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
     }
 
-    private void OnTabTearOutRequested(TabView sender, TabViewTabTearOutRequestedEventArgs args)
+    private void OnTabStripDragOver(object sender, DragEventArgs e)
     {
-        var target = WindowManager.Find(args.NewWindowId);
-        if (target == null)
+        if (_dragging is { From: var from } && from != this && e.DataView.Properties.ContainsKey(TabDragFormat))
+        {
+            e.AcceptedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Move;
+        }
+    }
+
+    /// <summary>A tab from another Papery window lands here, where it was dropped among the tabs.</summary>
+    private void OnTabStripDrop(object sender, DragEventArgs e)
+    {
+        if (_dragging is not { } drag || drag.From == this || !drag.From.Tabs.TabItems.Contains(drag.Tab))
         {
             return;
         }
 
-        foreach (var tab in args.Items.OfType<TabViewItem>().ToList())
+        _dragging = null; // handled here, so the window it came from doesn't also make a new window for it
+        double x = e.GetPosition(Tabs).X;
+        int index = Tabs.TabItems.Count;
+        for (int i = 0; i < Tabs.TabItems.Count; i++)
         {
-            Tabs.TabItems.Remove(tab);
-            target.AdoptTab(tab, target.Tabs.TabItems.Count);
+            if (Tabs.ContainerFromIndex(i) is TabViewItem item && x < item.TransformToVisual(Tabs).TransformPoint(default).X + (item.ActualWidth / 2))
+            {
+                index = i;
+                break;
+            }
         }
 
+        drag.From.Tabs.TabItems.Remove(drag.Tab);
+        AdoptTab(drag.Tab, index);
+        drag.From.CloseIfEmpty();
+        BringToFront();
+    }
+
+    /// <summary>A tab dropped away from every tab strip gets a window of its own, where it was dropped.</summary>
+    private void OnTabDroppedOutside(TabView sender, TabViewTabDroppedOutsideEventArgs args)
+    {
+        if (_dragging is not { } drag || drag.Tab != args.Tab || !Tabs.TabItems.Contains(args.Tab) || Tabs.TabItems.Count < 2)
+        {
+            return; // taken by another window, or the only tab here (moving it would just move the window)
+        }
+
+        _dragging = null;
+        var window = WindowManager.Create(withHomeTab: false);
+        var size = AppWindow.Size;
+        var at = NativeMethods.GetCursorPos(out var cursor) ? cursor : new NativeMethods.Point(AppWindow.Position.X + 60, AppWindow.Position.Y + 60);
+        window.AppWindow.MoveAndResize(new RectInt32(at.X - 120, at.Y - 20, size.Width, size.Height));
+        Tabs.TabItems.Remove(args.Tab);
+        window.AdoptTab(args.Tab, 0);
+        window.Activate();
         CloseIfEmpty();
     }
 
-    private void OnExternalTabsDropping(TabView sender, TabViewExternalTornOutTabsDroppingEventArgs args) => args.AllowDrop = true;
-
-    private void OnExternalTabsDropped(TabView sender, TabViewExternalTornOutTabsDroppedEventArgs args)
-    {
-        int index = args.DropIndex;
-        foreach (var tab in args.Items.OfType<TabViewItem>().ToList())
-        {
-            var source = WindowManager.All.FirstOrDefault(w => w.Tabs.TabItems.Contains(tab));
-            source?.Tabs.TabItems.Remove(tab);
-            AdoptTab(tab, index++);
-            source?.CloseIfEmpty();
-        }
-    }
+    private void OnTabDragCompleted(TabView sender, TabViewTabDragCompletedEventArgs args) => _dragging = null;
 
     private void AdoptTab(TabViewItem tab, int index)
     {
@@ -959,6 +1010,7 @@ public sealed partial class MainWindow : Window
 
     private async Task FinishClosingAsync()
     {
+        SessionService.RememberClosing(this);
         var contents = Tabs.TabItems.OfType<TabViewItem>().Select(t => t.Content).ToList();
         foreach (var content in contents)
         {
@@ -989,6 +1041,13 @@ public sealed partial class MainWindow : Window
 
 internal static partial class NativeMethods
 {
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    public record struct Point(int X, int Y);
+
+    [System.Runtime.InteropServices.LibraryImport("user32.dll")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    public static partial bool GetCursorPos(out Point point);
+
     [System.Runtime.InteropServices.LibraryImport("user32.dll")]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
     public static partial bool SetForegroundWindow(nint hwnd);

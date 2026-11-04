@@ -102,6 +102,16 @@
                 <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Reopen last time's PDFs" />
+                        <TextBlock Text="When Papery starts, the PDFs you had open come back in their tabs" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="SessionSwitch" Grid.Column="1" Toggled="OnSessionToggled" AutomationProperties.Name="Reopen last time's PDFs" />
+                </Grid>
+            </Border>
+            <Border Style="{StaticResource SettingsCardStyle}">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="Always save a copy" />
                         <TextBlock Text="Your original files are never changed. The first edit asks where to save" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>

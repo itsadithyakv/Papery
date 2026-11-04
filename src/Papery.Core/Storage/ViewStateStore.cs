@@ -101,6 +101,39 @@ public sealed class ViewStateStore
         RecentFilesChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>The PDFs that were open last time, in tab order, and the one in front.</summary>
+    public (IReadOnlyList<string> Files, string? Selected) Session
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return ([.. _data.OpenFiles], _data.SelectedFile);
+            }
+        }
+    }
+
+    /// <summary>Remembers the open PDFs (each once, in order) and the one in front.</summary>
+    public void SetSession(IEnumerable<string> files, string? selected)
+    {
+        var list = new List<string>();
+        foreach (string file in files)
+        {
+            string normalized = Normalize(file);
+            if (!list.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+            {
+                list.Add(normalized);
+            }
+        }
+
+        string? front = selected == null ? null : Normalize(selected);
+        lock (_lock)
+        {
+            _data.OpenFiles = list;
+            _data.SelectedFile = front != null && list.Contains(front, StringComparer.OrdinalIgnoreCase) ? front : null;
+        }
+    }
+
     public Task SaveAsync()
     {
         ViewStateData snapshot;
@@ -110,6 +143,8 @@ public sealed class ViewStateStore
             {
                 RecentFiles = [.. _data.RecentFiles],
                 Files = new Dictionary<string, FileViewState>(_data.Files, StringComparer.OrdinalIgnoreCase),
+                OpenFiles = [.. _data.OpenFiles],
+                SelectedFile = _data.SelectedFile,
             };
         }
 

@@ -1,4 +1,4 @@
-using Papery.Core.Storage;
+﻿using Papery.Core.Storage;
 using Papery.Core.Viewing;
 
 namespace Papery.Core.Tests;
@@ -26,6 +26,30 @@ public sealed class StorageTests : IDisposable
         Assert.Equal(1.5, state.Zoom);
         Assert.Equal(ViewMode.TwoPage, state.ViewMode);
         Assert.Equal([@"C:\Docs\Report.pdf"], reloaded.RecentFiles);
+    }
+
+    [Fact]
+    public async Task The_open_tabs_survive_a_restart_in_order_with_the_front_one()
+    {
+        string file = Path.Combine(_folder, "state.json");
+        var store = new ViewStateStore(file);
+        store.SetSession([@"C:\Docs\B.pdf", @"C:\Docs\A.pdf", @"c:\docs\b.PDF"], @"C:\Docs\A.pdf");
+        await store.SaveAsync();
+
+        var (files, selected) = new ViewStateStore(file).Session;
+        Assert.Equal([@"C:\Docs\B.pdf", @"C:\Docs\A.pdf"], files); // each file once, in tab order
+        Assert.Equal(@"C:\Docs\A.pdf", selected);
+    }
+
+    [Fact]
+    public void A_front_file_that_isnt_open_is_not_remembered_and_no_tabs_means_an_empty_session()
+    {
+        var store = new ViewStateStore(Path.Combine(_folder, "state.json"));
+        store.SetSession([@"C:\Docs\A.pdf"], @"C:\Docs\Gone.pdf");
+        Assert.Null(store.Session.Selected);
+
+        store.SetSession([], null);
+        Assert.Empty(store.Session.Files);
     }
 
     [Fact]

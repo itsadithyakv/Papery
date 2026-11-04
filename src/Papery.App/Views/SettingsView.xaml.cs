@@ -20,6 +20,7 @@ public sealed partial class SettingsView : UserControl
         ReadingBox.SelectedIndex = (int)s.ReadingMode;
         LayoutBox.SelectedIndex = (int)s.DefaultViewMode;
         RememberSwitch.IsOn = s.RememberPosition;
+        SessionSwitch.IsOn = s.ReopenLastSession;
         AlwaysCopySwitch.IsOn = s.AlwaysSaveCopy;
         VersionText.Text = $"Version {AppVersion()}";
 #if DEBUG || PAPERY_TEST_BUILD
@@ -97,6 +98,27 @@ public sealed partial class SettingsView : UserControl
 
     private void OnRememberToggled(object sender, RoutedEventArgs e) =>
         Save(s => s.RememberPosition = RememberSwitch.IsOn);
+
+    private void OnSessionToggled(object sender, RoutedEventArgs e)
+    {
+        bool on = SessionSwitch.IsOn;
+        if (on == AppServices.Settings.Current.ReopenLastSession)
+        {
+            return; // the switch being set up, not a change
+        }
+
+        Save(s => s.ReopenLastSession = on);
+        if (on)
+        {
+            SessionService.Remember();
+        }
+        else
+        {
+            // Off means forget: nothing is kept for next time.
+            AppServices.ViewState.SetSession([], null);
+            _ = AppServices.ViewState.SaveAsync();
+        }
+    }
 
     private void OnAlwaysCopyToggled(object sender, RoutedEventArgs e) =>
         Save(s => s.AlwaysSaveCopy = AlwaysCopySwitch.IsOn);

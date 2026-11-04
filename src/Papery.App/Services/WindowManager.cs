@@ -33,9 +33,21 @@ internal static class WindowManager
             {
                 Active = Windows.LastOrDefault();
             }
+
+            if (Windows.Count > 0)
+            {
+                SessionService.Remember(); // its tabs went with it; the last window's are kept as it closes
+            }
         };
         return window;
     }
+
+    /// <summary>
+    /// Where files opened from Explorer go: the window used last, if it's on screen; otherwise any window on screen.
+    /// A window that was never shown (or is closing) is passed over, so files never land somewhere out of sight.
+    /// </summary>
+    public static MainWindow? ForNewFiles() =>
+        new[] { Active }.Concat(Windows.AsEnumerable().Reverse()).FirstOrDefault(w => w != null && w.AppWindow.IsVisible);
 
     public static MainWindow? Find(WindowId id) => Windows.FirstOrDefault(w => w.AppWindow.Id == id);
 

@@ -24,15 +24,17 @@
                  IsAddTabButtonVisible="True"
                  CanReorderTabs="True"
                  CanDragTabs="True"
-                 CanTearOutTabs="True"
+                 CanTearOutTabs="False"
+                 AllowDropTabs="True"
                  TabWidthMode="SizeToContent"
                  AddTabButtonClick="OnAddTabClick"
                  TabCloseRequested="OnTabCloseRequested"
                  SelectionChanged="OnTabSelectionChanged"
-                 TabTearOutWindowRequested="OnTabTearOutWindowRequested"
-                 TabTearOutRequested="OnTabTearOutRequested"
-                 ExternalTornOutTabsDropping="OnExternalTabsDropping"
-                 ExternalTornOutTabsDropped="OnExternalTabsDropped">
+                 TabDragStarting="OnTabDragStarting"
+                 TabStripDragOver="OnTabStripDragOver"
+                 TabStripDrop="OnTabStripDrop"
+                 TabDroppedOutside="OnTabDroppedOutside"
+                 TabDragCompleted="OnTabDragCompleted">
             <TabView.TabStripHeader>
                 <!-- Just a little space before the first tab (no icon: the taskbar already shows it). -->
                 <Border Width="8" />

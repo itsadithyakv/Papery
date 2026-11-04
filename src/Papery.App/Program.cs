@@ -42,19 +42,33 @@ public static class Program
         // RedirectActivationToAsync must not block the STA thread's message pump,
         // so it runs on a worker thread while this thread waits.
         var activation = AppInstance.GetCurrent().GetActivatedEventArgs();
+        bool handed = false;
         var done = new ManualResetEventSlim();
         _ = Task.Run(async () =>
         {
             try
             {
                 await mainInstance.RedirectActivationToAsync(activation);
+                handed = true;
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                // The other Papery was closing, or didn't answer.
             }
             finally
             {
                 done.Set();
             }
         });
-        done.Wait(TimeSpan.FromSeconds(10));
-        return true;
+
+        if (done.Wait(TimeSpan.FromSeconds(10)) && handed)
+        {
+            return true;
+        }
+
+        // Rather than quit and leave the person with nothing, open the file here. If the other Papery has gone,
+        // this one takes over as the one later launches hand their files to.
+        _ = AppInstance.FindOrRegisterForKey("papery-main");
+        return false;
     }
 }

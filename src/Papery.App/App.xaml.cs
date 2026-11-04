@@ -23,7 +23,8 @@ public partial class App : Application
         AppServices.Initialize();
         _ = Task.Run(TempFiles.SweepOld);
 
-        // Files sent from a second launch (double-clicking another PDF) arrive here.
+        // Files sent from a second launch (double-clicking another PDF) arrive here, on a background thread.
+        _ui = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
         AppInstance.GetCurrent().Activated += OnRedirectedActivation;
 
         var window = WindowManager.Create();
@@ -44,8 +45,23 @@ public partial class App : Application
 
         bool merge = WantsMerge(activation) || Environment.GetCommandLineArgs().Contains(MergeSwitch, StringComparer.OrdinalIgnoreCase);
         Log.Info($"Started ({activation.Kind}), {files.Count} file(s) to {(merge ? "merge" : "open")}");
-        Open(window, files, merge, VerbOf(activation));
-        _ = window.OfferRecoveryAsync();
+        _ = StartAsync(window, files, merge, VerbOf(activation));
+    }
+
+    /// <summary>Last time's PDFs first, then whatever this launch was for (on top), then any unsaved work to bring back.</summary>
+    private static async Task StartAsync(MainWindow window, List<string> files, bool merge, string? verb)
+    {
+        try
+        {
+            await SessionService.RestoreAsync(window);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Log.Error("Reopening last time's PDFs failed", ex);
+        }
+
+        Open(window, files, merge, verb);
+        await window.OfferRecoveryAsync();
     }
 
     /// <summary>"papery.exe --merge a.pdf b.pdf" opens a Merge tab (used by Explorer's "Merge with Papery").</summary>
@@ -83,16 +99,45 @@ public partial class App : Application
         args.Kind == ExtendedActivationKind.Launch && args.Data is ILaunchActivatedEventArgs launch
         && (launch.Arguments ?? string.Empty).Contains(MergeSwitch, StringComparison.OrdinalIgnoreCase);
 
+    private static Microsoft.UI.Dispatching.DispatcherQueue? _ui;
+
+    /// <summary>
+    /// Windows calls this on a background thread. Nothing here may touch a window (WinUI windows only answer on their
+    /// own thread), and nothing may throw: an error escaping back into Windows' app-launch code ends Papery on the
+    /// spot, open files and all. So the files are read here and everything else happens on the window thread.
+    /// </summary>
     private static void OnRedirectedActivation(object? sender, AppActivationArguments args)
     {
-        var files = FilesFrom(args);
-        bool merge = WantsMerge(args);
-        var window = WindowManager.Active ?? (WindowManager.Count > 0 ? WindowManager.All[0] : null);
-        window?.DispatcherQueue.TryEnqueue(() =>
+        try
         {
-            window.BringToFront();
-            Open(window, files, merge, VerbOf(args));
-        });
+            var files = FilesFrom(args);
+            bool merge = WantsMerge(args);
+            string? verb = VerbOf(args);
+            Log.Info($"Handed {files.Count} file(s) by another launch");
+            _ui?.TryEnqueue(() =>
+            {
+                try
+                {
+                    var window = WindowManager.ForNewFiles();
+                    if (window == null)
+                    {
+                        window = WindowManager.Create();
+                        window.Activate();
+                    }
+
+                    window.BringToFront();
+                    Open(window, files, merge, verb);
+                }
+                catch (Exception ex) when (ex is not OutOfMemoryException)
+                {
+                    Log.Error("Opening handed-over files failed", ex);
+                }
+            });
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Log.Error("Reading a handed-over launch failed", ex);
+        }
     }
 
     /// <summary>File paths from a double-click (file activation) or the command line.</summary>

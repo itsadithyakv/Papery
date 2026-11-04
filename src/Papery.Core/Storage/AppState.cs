@@ -31,6 +31,9 @@ public sealed class AppSettings
 
     public bool RememberPosition { get; set; } = true;
 
+    /// <summary>Reopen the PDFs that were open last time, like a browser picking up where it left off.</summary>
+    public bool ReopenLastSession { get; set; } = true;
+
     /// <summary>Stamp wording the user typed, newest first.</summary>
     public List<string> CustomStamps { get; set; } = [];
 
@@ -73,6 +76,12 @@ public sealed class ViewStateData
     public List<string> RecentFiles { get; set; } = [];
 
     public Dictionary<string, FileViewState> Files { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The PDFs open when Papery was last used, in tab order, to reopen next time.</summary>
+    public List<string> OpenFiles { get; set; } = [];
+
+    /// <summary>Which of <see cref="OpenFiles"/> was in front.</summary>
+    public string? SelectedFile { get; set; }
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true)]
