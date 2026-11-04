@@ -51,6 +51,9 @@ Pay once, and Pro is yours on every Windows PC you sign in to, including when yo
 
 ## What's new in this version (limit 1,500)
 New in Papery
+• Papery reopens the PDFs you had open last time, each at the page you left it on
+• Opening a PDF from File Explorer now adds a tab instead of closing Papery
+• No more small window flashing when you click between tabs
 • Labels under every toolbar button, so you can see what each one does
 • Text to PDF: turn a text file, or anything you copy, into a PDF
 • Remove blank pages, and put double-sided scans back in order
@@ -129,7 +132,7 @@ Keywords: pdf, pro, unlock, editor
 
 Icon: branding/store/StoreLogo-1x1-300x300.png
 
-Settings: Product ID `papery_pro`, type Durable, Product lifetime Forever, price $4.99 (Tier). Content type: "Software as a service"? No: choose "Online data storage/services"? No: choose **"Unlocks app features"** if offered, otherwise the closest match, "Electronic software download".
+Settings: Product ID `papery_pro`, type Durable, Product lifetime Forever, price $9.99 (Tier). Content type: "Software as a service"? No: choose "Online data storage/services"? No: choose **"Unlocks app features"** if offered, otherwise the closest match, "Electronic software download".
 
 ---
 
@@ -137,4 +140,4 @@ Settings: Product ID `papery_pro`, type Durable, Product lifetime Forever, price
 
 Paste into Submission options › Notes for certification:
 
-Papery is free. The Papery Pro add-on (product ID papery_pro, Durable, $4.99, one time) unlocks tools marked with a small lock. To test: open any PDF, choose Organise (or any locked tool), and the unlock screen appears with the Store price. There's no account, and nothing is sent anywhere except the Store's own purchase check. The Get help and Privacy policy links in Settings open the browser only when clicked. The app declares the webcam capability only for Scan to PDF's camera option, which runs only if the person chooses it. runFullTrust is needed because it's a WinUI 3 desktop app that also runs a bundled PDF tool (QPDF) for compressing and protecting files.
+Papery is free. The Papery Pro add-on (product ID papery_pro, Durable, $9.99, one time) unlocks tools marked with a small lock. To test: open any PDF, choose Organise (or any locked tool), and the unlock screen appears with the Store price. There's no account, and nothing is sent anywhere except the Store's own purchase check. The Get help and Privacy policy links in Settings open the browser only when clicked. The app declares the webcam capability only for Scan to PDF's camera option, which runs only if the person chooses it. runFullTrust is needed because it's a WinUI 3 desktop app that also runs a bundled PDF tool (QPDF) for compressing and protecting files.

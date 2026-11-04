@@ -1,4 +1,4 @@
-using Microsoft.UI.Dispatching;
+﻿using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 
@@ -41,7 +41,16 @@ public static class Program
 
         // RedirectActivationToAsync must not block the STA thread's message pump,
         // so it runs on a worker thread while this thread waits.
-        var activation = AppInstance.GetCurrent().GetActivatedEventArgs();
+        AppActivationArguments activation;
+        try
+        {
+            activation = AppInstance.GetCurrent().GetActivatedEventArgs();
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            return true; // nothing to hand over that can be read; the open Papery carries on as it was
+        }
+
         bool handed = false;
         var done = new ManualResetEventSlim();
         _ = Task.Run(async () =>

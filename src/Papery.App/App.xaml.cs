@@ -33,8 +33,18 @@ public partial class App : Application
         // Pro already works from the local record; this just confirms with the Store in the background.
         AppServices.StartLicenseChecks(window.Hwnd);
 
-        var activation = AppInstance.GetCurrent().GetActivatedEventArgs();
-        var files = FilesFrom(activation);
+        // Reading how Papery was started can fail (the program that asked has gone away); start empty rather than not at all.
+        AppActivationArguments? activation = null;
+        try
+        {
+            activation = AppInstance.GetCurrent().GetActivatedEventArgs();
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Log.Error("Reading how Papery was started failed", ex);
+        }
+
+        var files = activation == null ? [] : FilesFrom(activation);
         if (files.Count == 0)
         {
             // Launched through the "papery.exe" alias or a script: the paths are plain command-line arguments.
@@ -43,9 +53,9 @@ public partial class App : Application
                 .Select(Path.GetFullPath).ToList();
         }
 
-        bool merge = WantsMerge(activation) || Environment.GetCommandLineArgs().Contains(MergeSwitch, StringComparer.OrdinalIgnoreCase);
-        Log.Info($"Started ({activation.Kind}), {files.Count} file(s) to {(merge ? "merge" : "open")}");
-        _ = StartAsync(window, files, merge, VerbOf(activation));
+        bool merge = (activation != null && WantsMerge(activation)) || Environment.GetCommandLineArgs().Contains(MergeSwitch, StringComparer.OrdinalIgnoreCase);
+        Log.Info($"Started ({activation?.Kind}), {files.Count} file(s) to {(merge ? "merge" : "open")}");
+        _ = StartAsync(window, files, merge, activation == null ? null : VerbOf(activation));
     }
 
     /// <summary>Last time's PDFs first, then whatever this launch was for (on top), then any unsaved work to bring back.</summary>

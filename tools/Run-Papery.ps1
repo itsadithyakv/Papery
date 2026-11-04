@@ -11,6 +11,7 @@
     powershell -ExecutionPolicy Bypass -File tools/Run-Papery.ps1 -NoLaunch       # just build + register
     powershell -ExecutionPolicy Bypass -File tools/Run-Papery.ps1 -File "C:\x.pdf"
     powershell -ExecutionPolicy Bypass -File tools/Run-Papery.ps1 -Package dist\Papery_x64.msix   # the packaged (trimmed) build
+    powershell -ExecutionPolicy Bypass -File tools/Run-Papery.ps1 -Package dist\Papery_x64.msix -KeepFileTypes   # to test opening from Explorer
 #>
 param(
     [ValidateSet('Debug', 'Release')] [string]$Configuration = 'Debug',
@@ -19,7 +20,11 @@ param(
     [string]$File,
 
     # Runs what a package holds instead of building: Release packages are trimmed, which a normal build isn't.
-    [string]$Package
+    [string]$Package,
+
+    # Keeps the PDF and picture file types, so opening files the way File Explorer does can be tested. It only adds
+    # "Papery Dev" to the Open with list (Windows never makes it the default); the next run without it takes it away.
+    [switch]$KeepFileTypes
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
@@ -59,7 +64,9 @@ $text = [IO.File]::ReadAllText($manifest.FullName)
 $text = [regex]::Replace($text, '(<Identity\b[^>]*?\bName=")[^"]*', '${1}Papery.Dev')
 $text = [regex]::Replace($text, '(<Identity\b[^>]*?\bPublisher=")[^"]*', '${1}CN=Papery Dev')
 $text = $text.Replace('Alias="papery.exe"', 'Alias="papery-dev.exe"')
-$text = [regex]::Replace($text, '(?s)<uap:Extension Category="windows\.fileTypeAssociation">.*?</uap:Extension>', '')
+if (-not $KeepFileTypes) {
+    $text = [regex]::Replace($text, '(?s)<uap:Extension Category="windows\.fileTypeAssociation">.*?</uap:Extension>', '')
+}
 $text = [regex]::Replace($text, '(<uap:VisualElements\b[^>]*?\bDisplayName=")[^"]*', '${1}Papery Dev')
 [IO.File]::WriteAllText($manifest.FullName, $text)
 

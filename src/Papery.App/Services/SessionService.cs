@@ -82,7 +82,8 @@ internal static class SessionService
         }
 
         string full = Path.GetFullPath(path);
-        string[] ours = [Windows.Storage.ApplicationData.Current.LocalFolder.Path, Windows.Storage.ApplicationData.Current.TemporaryFolder.Path, Path.GetTempPath()];
+        // Only Papery's own folders: other files in Temp are people's too (an attachment opened from Outlook, a download).
+        string[] ours = [Windows.Storage.ApplicationData.Current.LocalFolder.Path, Windows.Storage.ApplicationData.Current.TemporaryFolder.Path, Path.Combine(Path.GetTempPath(), "Papery")];
         return !ours.Any(folder => full.StartsWith(Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder)) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
     }
 }

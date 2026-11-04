@@ -26,7 +26,7 @@ There's nothing to do here unless Partner Center ever shows different values.
 3. Product ID: **papery_pro** (exactly this; it can't be changed later).
 4. **Properties**: Product lifetime **Forever**. For Content type, pick the closest match to
    "unlocks features in the app" (usually **Electronic software download**).
-5. **Pricing and availability**: base price **USD 4.99**. The Store converts it for each market.
+5. **Pricing and availability**: base price **USD 9.99**. The Store converts it for each market.
 6. **Age ratings**: answer the questionnaire (no violence, no user interaction, no purchases of
    physical goods); the result should match the app's rating.
 7. **Store listing** (English): paste the text below.
